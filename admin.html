@@ -1041,19 +1041,97 @@ async function loadReports() {
 function exportReports() {
   const data = window._reportData;
   if (!data || !data.length) { showToast('لا توجد بيانات للتصدير'); return; }
-  const headers = ['اسم الموظف','التيم','التاريخ','العميل','نوع المهمة','من','إلى','المدة','وصف المهمة'];
+
   const teamMap = {};
   STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
-  const wsData = [headers, ...data.map(r => [
-    r['اسم الموظف'], teamMap[r.team_id]||r.team_id, r['التاريخ'],
-    r['العميل'], r['نوع المهمة'], r['من'], r['إلى'], r['المدة'], r['وصف المهمة']
-  ])];
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols'] = headers.map(() => ({ wch: 20 }));
+
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'التقارير');
-  XLSX.writeFile(wb, `تقارير_${new Date().toISOString().slice(0,10)}.xlsx`);
-  showToast('تم التصدير', 'success');
+  const headers = ['اسم الموظف','التاريخ','العميل','نوع المهمة','من','إلى','المدة','وصف المهمة'];
+  const colWidths = [20, 14, 28, 18, 10, 10, 10, 35];
+
+  // جمع التيمات الموجودة في البيانات
+  const teamIds = [...new Set(data.map(r => r.team_id))];
+
+  teamIds.forEach(teamId => {
+    const teamName = teamMap[teamId] || teamId || 'غير محدد';
+    const teamRows = data.filter(r => r.team_id === teamId);
+
+    // فترة التقرير
+    const dates = teamRows.map(r => r['التاريخ']).filter(Boolean).sort();
+    const period = dates.length ? (dates[0] === dates[dates.length-1] ? dates[0] : `${dates[0]} → ${dates[dates.length-1]}`) : '';
+
+    // بناء الـ sheet
+    const wsData = [];
+
+    // سطر العنوان
+    wsData.push([`التيم: ${teamName}`, '', '', `الفترة: ${period}`, '', '', '', '']);
+    wsData.push([]); // فراغ
+    wsData.push(headers);
+
+    // فرز البيانات: الموظف ثم التاريخ
+    const sorted = [...teamRows].sort((a, b) => {
+      const empCmp = (a['اسم الموظف']||'').localeCompare(b['اسم الموظف']||'', 'ar');
+      if (empCmp !== 0) return empCmp;
+      return (a['التاريخ']||'').localeCompare(b['التاريخ']||'');
+    });
+
+    let lastEmp = null;
+    sorted.forEach(r => {
+      // سطر فاصل بين كل موظف وتاني
+      if (lastEmp !== null && r['اسم الموظف'] !== lastEmp) {
+        wsData.push([]); 
+      }
+      wsData.push([
+        r['اسم الموظف']||'',
+        r['التاريخ']||'',
+        r['العميل']||'',
+        r['نوع المهمة']||'',
+        r['من']||'',
+        r['إلى']||'',
+        r['المدة']||'',
+        r['وصف المهمة']||''
+      ]);
+      lastEmp = r['اسم الموظف'];
+    });
+
+    // إجمالي الساعات
+    let totalMins = 0;
+    sorted.forEach(r => {
+      const dur = r['المدة'] || '';
+      if (dur.includes(':')) {
+        const [h, m] = dur.split(':').map(Number);
+        totalMins += (h||0)*60 + (m||0);
+      }
+    });
+    const totalH = Math.floor(totalMins/60);
+    const totalM = totalMins % 60;
+    wsData.push([]);
+    wsData.push(['', '', '', '', '', '', 'الإجمالي:', `${totalH}:${String(totalM).padStart(2,'0')}`]);
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // تنسيق العرض
+    ws['!cols'] = colWidths.map(w => ({ wch: w }));
+
+    // دمج خلايا العنوان
+    ws['!merges'] = [
+      { s:{r:0,c:0}, e:{r:0,c:2} }, // اسم التيم
+      { s:{r:0,c:3}, e:{r:0,c:5} }, // الفترة
+    ];
+
+    // اسم الـ sheet (أقصر من 31 حرف — حد Excel)
+    const sheetName = teamName.slice(0, 30);
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  });
+
+  // لو كل البيانات من تيم واحد — ملف بسيط بدون تعدد sheets
+  const dateStr = new Date().toISOString().slice(0,10);
+  const fileName = teamIds.length === 1
+    ? `تقارير_${teamMap[teamIds[0]]||'التيم'}_${dateStr}.xlsx`
+    : `تقارير_كل_التيمات_${dateStr}.xlsx`;
+
+  XLSX.writeFile(wb, fileName);
+  showToast(`تم التصدير — ${teamIds.length} تيم`, 'success');
 }
 
 // ══════════════════════════════════════════════════════
