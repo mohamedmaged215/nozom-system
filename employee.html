@@ -196,7 +196,37 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
 const API = 'https://script.google.com/macros/s/AKfycbzgYKZQiepr-XJwn928zSTpUnWFznF8SLi4ENwNOCmql6280H2zr3mPh3QumHErifWUWQ/exec';
 const HOURS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 const MINS  = ['00','05','10','15','20','25','30','35','40','45','50','55'];
-const TASK_TYPES = ['إعداد قوائم مالية','قيود يومية','تسوية بنكية','مراجعة فواتير','إعداد تقارير ضريبية','متابعة عملاء','إعداد رواتب','تدقيق حسابات','إدخال بيانات','تقرير VAT','استشارة مالية','أخرى'];
+const TASK_TYPES = ['مبيعات','مشتريات','بنوك','تسجيلات','إقفالات','تقارير','إقرارات','تفريغ','قوائم مالية','اجتماع','اجتماع العمل الأسبوعي','أمور تقنية','إضافي'];
+
+const DEFAULT_CLIENTS = [
+  'مطعم جبنة حلوم لتقديم الوجبات',
+  'شركة الطريق الصحي (أورورا)',
+  'شركة الجلسة',
+  'شركة مراس المحدودة',
+  'شركة الفأس التجارية',
+  'صالون كوكب الريان للحلاقة',
+  'شركة تنفس الطبية',
+  'مؤسسة أناقة بالعربي',
+  'مؤسسة أعمار لأمير',
+  'شركة عبدالملك عبدالله سليمان',
+  'شركة تكتيك',
+  'شركة توصيل الخليجية',
+  'مؤسسة مركز طيف الطبية',
+  'شركة مراسم المستقبل',
+  'مؤسسة شيماء للتجارة',
+  'مؤسسة عالية السعودية',
+  'مؤسسة وفاء للمقاولات',
+  'مؤسسة ماجد أنعام للمقاولات',
+  'شركة السور الوطني لخدمات النفط والغاز',
+  'شركة أرض الحصاد للتجارة',
+  'شركة جياد التطوير',
+  'مؤسسة واحة الأسرار',
+  'مغاسل KH',
+  'رنك للأقمشة',
+  'مؤسسة بلوك آند فوليوم',
+  'شركة أنماط البيانات',
+  'عام'
+];
 
 let EMP_ID='', EMP_NAME='', TEAM_ID='';
 let clients=[], taskIds=[], taskCounter=0, activeClientTaskId=null;
@@ -223,8 +253,15 @@ async function init(){
   }catch(e){}
   try{
     const cr=await apiFetch({action:'getClients'});
-    if(cr.ok&&cr.clients) clients=cr.clients.map(c=>c.name||c);
-  }catch(e){clients=[];}
+    if(cr.ok&&cr.clients&&cr.clients.length>0){
+      // دمج العملاء من الـ Sheet مع الـ Default (بدون تكرار)
+      const fromSheet = cr.clients.map(c=>c.name||c);
+      const merged = [...new Set([...DEFAULT_CLIENTS, ...fromSheet])];
+      clients = merged;
+    } else {
+      clients = [...DEFAULT_CLIENTS];
+    }
+  }catch(e){clients=[...DEFAULT_CLIENTS];}
   checkExistingReport();
   addTask();
   document.getElementById('loading-overlay').style.display='none';
