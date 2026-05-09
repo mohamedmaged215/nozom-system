@@ -4,15 +4,453 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>تقرير المهام — نظم وحلول</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-body{margin:0;background:#0b0d14;color:#e4e6f2;font-family:'IBM Plex Sans Arabic',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px;}
-.spin{width:36px;height:36px;border:3px solid #262840;border-top-color:#4f6ef7;border-radius:50%;animation:s .7s linear infinite;}
-@keyframes s{to{transform:rotate(360deg)}}
-p{font-size:14px;color:#4e5370;}
+:root{--bg:#0b0d14;--bg2:#10121a;--bg3:#161824;--bg4:#1d1f2e;--bg5:#23263a;--border:#262840;--border2:#32364e;--accent:#4f6ef7;--accent-l:#6c8fff;--accent-s:rgba(79,110,247,0.10);--accent-s2:rgba(79,110,247,0.18);--text:#e4e6f2;--text2:#8b92b8;--text3:#4e5370;--success:#34d399;--success-s:rgba(52,211,153,0.10);--danger:#f87171;--danger-s:rgba(248,113,113,0.10);--warning:#fbbf24;--radius:12px;--radius-s:8px;--shadow:0 8px 32px rgba(0,0,0,0.5);}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans Arabic',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.app-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 2rem;height:62px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-dot{width:7px;height:7px;background:var(--accent-l);border-radius:50%;box-shadow:0 0 8px var(--accent-l);}
+.brand-name{font-size:13px;font-weight:600;}
+.brand-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.emp-badge{background:var(--accent-s2);color:var(--accent-l);border:1px solid rgba(108,143,255,0.25);padding:5px 14px;border-radius:20px;font-size:13px;font-weight:600;}
+.team-badge{background:var(--bg4);color:var(--text2);border:1px solid var(--border2);padding:5px 12px;border-radius:20px;font-size:12px;}
+.header-date{font-size:12px;color:var(--text3);}
+.loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+.spin{width:38px;height:38px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-screen{position:fixed;inset:0;background:var(--bg);z-index:998;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:2rem;}
+.error-icon{font-size:48px;}
+.error-title{font-family:'Tajawal',sans-serif;font-size:22px;font-weight:700;color:var(--danger);}
+.error-sub{font-size:14px;color:var(--text3);max-width:400px;line-height:1.6;}
+.main{max-width:860px;margin:0 auto;padding:2rem 1.5rem 5rem;}
+.period-banner{background:var(--accent-s);border:1px solid rgba(79,110,247,0.2);border-radius:var(--radius);padding:11px 16px;margin-bottom:1.5rem;display:none;align-items:center;gap:10px;font-size:13px;color:var(--accent-l);}
+.info-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.5rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.field-group{display:flex;flex-direction:column;gap:7px;}
+label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;}
+select,input[type=text],input[type=date],textarea{background:var(--bg4);border:1px solid var(--border);border-radius:var(--radius-s);color:var(--text);font-family:'IBM Plex Sans Arabic',sans-serif;font-size:14px;padding:10px 14px;width:100%;transition:border-color .2s,box-shadow .2s;outline:none;appearance:none;-webkit-appearance:none;}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239198b5' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:left 12px center;padding-left:36px;}
+select:focus,input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,110,247,0.12);}
+select option{background:var(--bg3);}
+textarea{resize:vertical;min-height:60px;line-height:1.6;}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem;}
+.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:.9rem 1.1rem;}
+.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}
+.stat-value{font-family:'Tajawal',sans-serif;font-size:22px;font-weight:800;line-height:1;}
+.stat-value.accent{color:var(--accent-l);}
+.stat-value.success{color:var(--success);}
+.stat-value.warning{color:var(--warning);}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.section-title{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;}
+.task-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:10px;animation:slideIn .2s ease;transition:border-color .2s;}
+.task-card:hover{border-color:var(--border2);}
+@keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.task-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.task-num{display:flex;align-items:center;gap:8px;}
+.task-num-badge{width:26px;height:26px;background:var(--accent-s);border:1px solid rgba(79,110,247,0.2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent-l);}
+.task-num-label{font-size:13px;font-weight:500;color:var(--text2);}
+.task-dur-pill{background:var(--success-s);border:1px solid rgba(52,211,153,0.2);color:var(--success);font-size:13px;font-weight:700;padding:4px 14px;border-radius:20px;min-width:80px;text-align:center;}
+.task-dur-pill.empty{background:var(--bg4);border-color:var(--border);color:var(--text3);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.time-picker{display:flex;gap:6px;align-items:center;}
+.time-picker select{flex:1;padding:10px 8px 10px 26px;font-size:13px;}
+.time-sep{color:var(--text3);font-size:16px;font-weight:700;flex-shrink:0;}
+.client-wrap{display:flex;gap:8px;}
+.client-wrap input{flex:1;}
+.btn-add-client{background:var(--bg4);border:1px solid var(--border);border-radius:var(--radius-s);color:var(--text2);width:40px;min-width:40px;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
+.btn-add-client:hover{background:var(--accent-s);border-color:var(--accent);color:var(--accent-l);}
+.btn-remove{background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;padding:3px 8px;border-radius:5px;transition:all .2s;line-height:1;}
+.btn-remove:hover{color:var(--danger);background:var(--danger-s);}
+.btn-add-task{width:100%;padding:13px;background:transparent;border:1px dashed var(--border2);border-radius:var(--radius);color:var(--text2);font-family:'IBM Plex Sans Arabic',sans-serif;font-size:14px;cursor:pointer;transition:all .2s;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-add-task:hover{background:var(--accent-s);border-color:var(--accent);color:var(--accent-l);}
+.divider{height:1px;background:var(--border);margin:1.5rem 0;}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.btn{padding:13px 24px;border-radius:var(--radius);font-family:'IBM Plex Sans Arabic',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn:disabled{opacity:0.45;cursor:not-allowed;}
+.btn-export{background:var(--bg3);border:1px solid var(--border2);color:var(--text);}
+.btn-export:hover:not(:disabled){background:var(--bg4);}
+.btn-submit{background:var(--accent);color:#fff;box-shadow:0 4px 20px rgba(79,110,247,0.35);}
+.btn-submit:hover:not(:disabled){background:var(--accent-l);transform:translateY(-1px);}
+.app-footer{text-align:center;padding:2rem;color:var(--text3);font-size:12px;border-top:1px solid var(--border);margin-top:2rem;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:1.75rem;width:380px;box-shadow:var(--shadow);}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:1rem;}
+.modal-actions{display:flex;gap:8px;margin-top:1rem;justify-content:flex-end;}
+.btn-sm-cancel{background:var(--bg4);border:1px solid var(--border2);color:var(--text2);padding:8px 16px;border-radius:var(--radius-s);font-family:'IBM Plex Sans Arabic',sans-serif;font-size:13px;cursor:pointer;}
+.btn-sm-confirm{background:var(--accent);color:#fff;padding:8px 16px;border-radius:var(--radius-s);font-family:'IBM Plex Sans Arabic',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;}
+.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:11px 20px;font-size:13px;color:var(--text);opacity:0;transition:all .3s;z-index:999;white-space:nowrap;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.success .t-icon{color:var(--success);}
+.toast.error .t-icon{color:var(--danger);}
+.toast.info .t-icon{color:var(--accent-l);}
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 </style>
 </head>
 <body>
-<div class="spin"></div>
-<p>جاري تحميل صفحة الموظف...</p>
+
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spin"></div>
+  <div style="font-size:13px;color:var(--text2)">جاري التحميل...</div>
+</div>
+
+<div class="error-screen" id="error-screen">
+  <div class="error-icon">⚠️</div>
+  <div class="error-title">رابط غير صحيح</div>
+  <div class="error-sub">هذا الرابط غير مرتبط بموظف. تواصل مع المدير للحصول على رابطك الشخصي.</div>
+</div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-dot"></div>
+    <div>
+      <div class="brand-name">نظم وحلول للتقنية المالية</div>
+      <div class="brand-sub">نظام تقارير المهام</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="team-badge" id="team-badge">—</span>
+    <span class="emp-badge" id="emp-badge">—</span>
+    <span class="header-date" id="header-date"></span>
+  </div>
+</header>
+
+<div class="main" id="main-content" style="display:none">
+
+  <div class="period-banner" id="period-banner">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span id="period-text"></span>
+  </div>
+
+  <div style="margin-bottom:1.75rem">
+    <div style="font-family:'Tajawal',sans-serif;font-size:24px;font-weight:800">تقرير المهام اليومي</div>
+    <div style="font-size:13px;color:var(--text3);margin-top:4px">أدخل مهامك ليوم العمل ثم أرسل التقرير</div>
+  </div>
+
+  <div class="info-card">
+    <div class="field-group">
+      <label>الموظف</label>
+      <input type="text" id="emp-display" readonly style="color:var(--accent-l);font-weight:600;cursor:default;">
+    </div>
+    <div class="field-group">
+      <label>تاريخ التقرير</label>
+      <input type="date" id="report-date">
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">عدد المهام</div><div class="stat-value accent" id="stat-tasks">0</div></div>
+    <div class="stat-card"><div class="stat-label">إجمالي الوقت</div><div class="stat-value success" id="stat-time">0:00</div></div>
+    <div class="stat-card"><div class="stat-label">العملاء</div><div class="stat-value warning" id="stat-clients">0</div></div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">المهام</span>
+  </div>
+
+  <div id="tasks-container"></div>
+
+  <button class="btn-add-task" onclick="addTask()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    إضافة مهمة
+  </button>
+
+  <div class="divider"></div>
+
+  <div class="actions">
+    <button class="btn btn-export" onclick="exportExcel()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      تصدير Excel
+    </button>
+    <button class="btn btn-submit" id="btn-submit" onclick="submitReport()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>
+      إرسال التقرير
+    </button>
+  </div>
+</div>
+
+<footer class="app-footer">
+  <span style="color:var(--text2);font-weight:600">نظم وحلول للتقنية المالية</span> — جميع الحقوق محفوظة
+</footer>
+
+<div class="modal-overlay" id="modal-client">
+  <div class="modal">
+    <div class="modal-title">إضافة عميل جديد</div>
+    <input type="text" id="new-client-input" placeholder="اسم العميل" style="width:100%;padding:10px 14px;">
+    <div class="modal-actions">
+      <button class="btn-sm-cancel" onclick="closeModal('modal-client')">إلغاء</button>
+      <button class="btn-sm-confirm" onclick="confirmAddClient()">إضافة</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <span class="t-icon" id="t-icon">✓</span>
+  <span id="t-msg"></span>
+</div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbzyabhlwXLF2LDGzoR9RdvDZy_fyAXfbQO_EpKhwNE7zclPE8I8YNujf9pgquY55pMbhQ/exec';
+const HOURS = Array.from({length:24},(_,i)=>String(i).padStart(2,'0'));
+const MINS  = ['00','05','10','15','20','25','30','35','40','45','50','55'];
+const TASK_TYPES = ['إعداد قوائم مالية','قيود يومية','تسوية بنكية','مراجعة فواتير','إعداد تقارير ضريبية','متابعة عملاء','إعداد رواتب','تدقيق حسابات','إدخال بيانات','تقرير VAT','استشارة مالية','أخرى'];
+
+let EMP_ID='', EMP_NAME='', TEAM_ID='';
+let clients=[], taskIds=[], taskCounter=0, activeClientTaskId=null;
+
+async function apiFetch(p){const r=await fetch(API+'?'+new URLSearchParams(p));return r.json();}
+async function apiPost(a,d){const r=await fetch(API,{method:'POST',body:JSON.stringify({action:a,...d})});return r.json();}
+
+async function init(){
+  const p=new URLSearchParams(window.location.search);
+  EMP_ID=p.get('empId')||''; EMP_NAME=p.get('name')||''; TEAM_ID=p.get('teamId')||'';
+  if(!EMP_ID||!EMP_NAME){
+    document.getElementById('loading-overlay').style.display='none';
+    document.getElementById('error-screen').style.display='flex';
+    return;
+  }
+  document.getElementById('emp-badge').textContent=EMP_NAME;
+  document.getElementById('emp-display').value=EMP_NAME;
+  document.getElementById('header-date').textContent=new Date().toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('report-date').value=new Date().toISOString().slice(0,10);
+  document.title=`تقرير ${EMP_NAME} — نظم وحلول`;
+  try{
+    const tr=await apiFetch({action:'getTeams'});
+    if(tr.ok&&tr.teams){const t=tr.teams.find(t=>t.id===TEAM_ID);document.getElementById('team-badge').textContent=t?t['اسم التيم']:TEAM_ID;}
+  }catch(e){}
+  try{
+    const cr=await apiFetch({action:'getClients'});
+    if(cr.ok&&cr.clients) clients=cr.clients.map(c=>c.name||c);
+  }catch(e){clients=[];}
+  checkExistingReport();
+  addTask();
+  document.getElementById('loading-overlay').style.display='none';
+  document.getElementById('main-content').style.display='block';
+}
+
+async function checkExistingReport(){
+  const date=document.getElementById('report-date').value;
+  try{
+    const r=await apiFetch({action:'getReports',empId:EMP_ID,dateFrom:date,dateTo:date});
+    if(r.ok&&r.rows&&r.rows.length>0){
+      const b=document.getElementById('period-banner');
+      document.getElementById('period-text').textContent=`يوجد تقرير مُرسَل مسبقاً ليوم ${date} (${r.rows.length} مهام) — الإرسال مجدداً سيستبدله.`;
+      b.style.display='flex';
+    } else {
+      document.getElementById('period-banner').style.display='none';
+    }
+  }catch(e){}
+}
+
+function addTask(){
+  const id=++taskCounter; taskIds.push(id);
+  const hoursOpts=HOURS.map(h=>`<option value="${h}">${h}</option>`).join('');
+  const minsOpts=MINS.map(m=>`<option value="${m}">${m}</option>`).join('');
+  const typesOpts=TASK_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('');
+  const dlOpts=clients.map(c=>`<option value="${c}">`).join('');
+  const card=document.createElement('div');
+  card.className='task-card'; card.id=`task-${id}`;
+  card.innerHTML=`
+    <div class="task-header">
+      <div class="task-num">
+        <div class="task-num-badge">${id}</div>
+        <span class="task-num-label">مهمة ${id}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="task-dur-pill empty" id="pill-${id}">0:00</span>
+        ${taskIds.length>1?`<button class="btn-remove" onclick="removeTask(${id})">✕</button>`:''}
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="field-group">
+        <label>العميل</label>
+        <div class="client-wrap">
+          <input type="text" id="client-${id}" placeholder="ابحث أو اكتب..." list="dl-${id}" oninput="updateStats()">
+          <datalist id="dl-${id}">${dlOpts}</datalist>
+          <button class="btn-add-client" onclick="openAddClient(${id})">+</button>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>نوع المهمة</label>
+        <select id="tasktype-${id}"><option value="">اختر النوع</option>${typesOpts}</select>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="field-group">
+        <label>من</label>
+        <div class="time-picker">
+          <select id="tp-from-h-${id}" onchange="calcDur(${id})">${hoursOpts}</select>
+          <span class="time-sep">:</span>
+          <select id="tp-from-m-${id}" onchange="calcDur(${id})">${minsOpts}</select>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>إلى</label>
+        <div class="time-picker">
+          <select id="tp-to-h-${id}" onchange="calcDur(${id})">${hoursOpts}</select>
+          <span class="time-sep">:</span>
+          <select id="tp-to-m-${id}" onchange="calcDur(${id})">${minsOpts}</select>
+        </div>
+      </div>
+    </div>
+    <div class="field-group" style="margin-top:12px">
+      <label>وصف المهمة</label>
+      <textarea id="desc-${id}" placeholder="وصف مختصر لما تم إنجازه..." rows="2"></textarea>
+    </div>`;
+  document.getElementById('tasks-container').appendChild(card);
+  const now=new Date();
+  const h=String(now.getHours()).padStart(2,'0');
+  const m=MINS.reduce((p,c)=>Math.abs(parseInt(c)-now.getMinutes())<Math.abs(parseInt(p)-now.getMinutes())?c:p);
+  document.getElementById(`tp-from-h-${id}`).value=h;
+  document.getElementById(`tp-from-m-${id}`).value=m;
+  document.getElementById(`tp-to-h-${id}`).value=h;
+  document.getElementById(`tp-to-m-${id}`).value=m;
+  updateStats();
+}
+
+function removeTask(id){
+  document.getElementById(`task-${id}`)?.remove();
+  taskIds=taskIds.filter(i=>i!==id);
+  calcTotal(); updateStats();
+}
+
+function calcDur(id){
+  const fh=parseInt(document.getElementById(`tp-from-h-${id}`).value);
+  const fm=parseInt(document.getElementById(`tp-from-m-${id}`).value);
+  const th=parseInt(document.getElementById(`tp-to-h-${id}`).value);
+  const tm=parseInt(document.getElementById(`tp-to-m-${id}`).value);
+  const pill=document.getElementById(`pill-${id}`);
+  const diff=(th*60+tm)-(fh*60+fm);
+  if(diff<=0){pill.textContent='0:00';pill.className='task-dur-pill empty';}
+  else{const rh=Math.floor(diff/60),rm=diff%60;pill.textContent=`${rh}:${String(rm).padStart(2,'0')}`;pill.className='task-dur-pill';}
+  calcTotal();
+}
+
+function calcTotal(){
+  let total=0;
+  taskIds.forEach(id=>{
+    const p=document.getElementById(`pill-${id}`);
+    if(!p||p.classList.contains('empty'))return;
+    const[h,m]=p.textContent.split(':').map(Number);total+=h*60+m;
+  });
+  const h=Math.floor(total/60),m=total%60;
+  document.getElementById('stat-time').textContent=`${h}:${String(m).padStart(2,'0')}`;
+}
+
+function updateStats(){
+  const active=taskIds.filter(id=>document.getElementById(`task-${id}`));
+  document.getElementById('stat-tasks').textContent=active.length;
+  const cs=new Set();
+  active.forEach(id=>{const c=document.getElementById(`client-${id}`);if(c&&c.value.trim())cs.add(c.value.trim());});
+  document.getElementById('stat-clients').textContent=cs.size;
+}
+
+function openAddClient(id){
+  activeClientTaskId=id;
+  document.getElementById('new-client-input').value='';
+  openModal('modal-client');
+  setTimeout(()=>document.getElementById('new-client-input').focus(),150);
+}
+
+async function confirmAddClient(){
+  const name=document.getElementById('new-client-input').value.trim();
+  if(!name)return;
+  if(!clients.includes(name)){
+    clients.push(name);
+    try{await apiPost('addClient',{name});showToast(`تمت إضافة "${name}"`, 'success');}
+    catch(e){showToast('تمت الإضافة محلياً','info');}
+  }
+  taskIds.forEach(id=>{const dl=document.getElementById(`dl-${id}`);if(dl)dl.innerHTML=clients.map(c=>`<option value="${c}">`).join('');});
+  if(activeClientTaskId){const inp=document.getElementById(`client-${activeClientTaskId}`);if(inp)inp.value=name;}
+  closeModal('modal-client'); updateStats();
+}
+
+function collectData(){
+  const date=document.getElementById('report-date').value;
+  const rows=[];
+  taskIds.forEach(id=>{
+    if(!document.getElementById(`task-${id}`))return;
+    const fh=document.getElementById(`tp-from-h-${id}`).value;
+    const fm=document.getElementById(`tp-from-m-${id}`).value;
+    const th=document.getElementById(`tp-to-h-${id}`).value;
+    const tm=document.getElementById(`tp-to-m-${id}`).value;
+    const pill=document.getElementById(`pill-${id}`);
+    rows.push({
+      client:document.getElementById(`client-${id}`)?.value.trim()||'',
+      tasktype:document.getElementById(`tasktype-${id}`)?.value||'',
+      from:`${fh}:${fm}`,to:`${th}:${tm}`,
+      dur:pill&&!pill.classList.contains('empty')?pill.textContent:'0:00',
+      desc:document.getElementById(`desc-${id}`)?.value.trim()||''
+    });
+  });
+  return{empId:EMP_ID,empName:EMP_NAME,teamId:TEAM_ID,date,rows};
+}
+
+function exportExcel(){
+  const{empName,date,rows}=collectData();
+  if(!rows.length){showToast('أضف مهمة واحدة على الأقل');return;}
+  const wsData=[['الموظف',empName,'','التاريخ',date,''],[]
+    ,['العميل','نوع المهمة','من','إلى','المدة','وصف المهمة']
+    ,...rows.map(r=>[r.client,r.tasktype,r.from,r.to,r.dur,r.desc])];
+  let total=0;
+  rows.forEach(r=>{if(r.dur&&r.dur.includes(':')){const[h,m]=r.dur.split(':').map(Number);total+=h*60+m;}});
+  wsData.push([]);
+  wsData.push(['','','','إجمالي الوقت',`${Math.floor(total/60)}:${String(total%60).padStart(2,'0')}`,'' ]);
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols']=[{wch:28},{wch:16},{wch:12},{wch:12},{wch:10},{wch:40}];
+  ws['!dir']='rtl';
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'التقرير');
+  XLSX.writeFile(wb,`تقرير_${empName}_${date}.xlsx`);
+  showToast('تم التصدير','success');
+}
+
+async function submitReport(){
+  const data=collectData();
+  if(!data.date){showToast('حدد تاريخ التقرير');return;}
+  if(!data.rows.length){showToast('أضف مهمة واحدة على الأقل');return;}
+  if(!data.rows[0].client){showToast('أدخل اسم العميل للمهمة الأولى');return;}
+  const btn=document.getElementById('btn-submit');
+  btn.disabled=true;
+  btn.innerHTML='<div class="spin" style="width:18px;height:18px;border-width:2px"></div> جاري الإرسال...';
+  try{
+    const r=await apiPost('submitReport',data);
+    if(r.ok){
+      showToast(`✓ تم إرسال تقرير ${EMP_NAME} بنجاح`,'success');
+      const b=document.getElementById('period-banner');
+      document.getElementById('period-text').textContent=`✓ تم الإرسال بنجاح — ${data.rows.length} مهام ليوم ${data.date}`;
+      b.style.cssText='display:flex;background:var(--success-s);border-color:rgba(52,211,153,0.2);color:var(--success)';
+    }else showToast('حدث خطأ: '+(r.error||''),'error');
+  }catch(e){showToast('تعذر الاتصال بالسيرفر','error');}
+  btn.disabled=false;
+  btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg> إرسال التقرير';
+}
+
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');
+  document.getElementById('t-msg').textContent=msg;
+  document.getElementById('t-icon').textContent=type==='success'?'✓':'!';
+  t.className=`toast ${type} show`;
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('new-client-input').addEventListener('keydown',e=>{
+    if(e.key==='Enter')confirmAddClient();
+    if(e.key==='Escape')closeModal('modal-client');
+  });
+  document.getElementById('modal-client').addEventListener('click',e=>{
+    if(e.target===document.getElementById('modal-client'))closeModal('modal-client');
+  });
+  document.getElementById('report-date').addEventListener('change',checkExistingReport);
+});
+
+init();
+</script>
 </body>
 </html>
