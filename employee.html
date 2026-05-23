@@ -331,13 +331,25 @@ async function init(){
   document.getElementById('header-date').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('report-date').value=new Date().toISOString().slice(0,10);
   document.title=`تقرير ${EMP_NAME} — نظم وحلول`;
+  let isTeam1 = false;
+  if (TEAM_ID.toLowerCase() === 'team-1' || TEAM_ID.toLowerCase() === 'team_1') {
+    isTeam1 = true;
+  }
   try{
     const tr=await apiFetch({action:'getTeams'});
-    if(tr.ok&&tr.teams){const t=tr.teams.find(t=>t.id===TEAM_ID);document.getElementById('team-badge').textContent=t?t['اسم التيم']:TEAM_ID;}
+    if(tr.ok&&tr.teams){
+      const t=tr.teams.find(t=>t.id===TEAM_ID);
+      if(t){
+        const teamName = t['اسم التيم'] || '';
+        document.getElementById('team-badge').textContent=teamName;
+        isTeam1 = teamName.includes('تيم 1') || teamName.toLowerCase().includes('team 1') || teamName.toLowerCase().includes('team-1') || TEAM_ID.toLowerCase() === 'team-1' || TEAM_ID.toLowerCase() === 'team_1';
+      } else {
+        document.getElementById('team-badge').textContent=TEAM_ID;
+      }
+    }
   }catch(e){}
   try{
     const cr=await apiFetch({action:'getClients', teamId: TEAM_ID});
-    const isTeam1 = TEAM_ID.toLowerCase().includes('team-1') || TEAM_ID.includes('تيم 1') || TEAM_ID.toLowerCase().includes('team_1');
     const delList = cr.deletedDefaultClients || [];
     const baseDefaults = DEFAULT_CLIENTS.filter(name => !delList.includes(name));
     if(cr.ok&&cr.clients){
@@ -352,7 +364,6 @@ async function init(){
       clients = isTeam1 ? [...baseDefaults] : [];
     }
   }catch(e){
-    const isTeam1 = TEAM_ID.toLowerCase().includes('team-1') || TEAM_ID.includes('تيم 1') || TEAM_ID.toLowerCase().includes('team_1');
     clients=isTeam1 ? [...DEFAULT_CLIENTS] : [];
   }
   checkExistingReport();
@@ -446,18 +457,26 @@ function addTask(){
       <textarea id="desc-${id}" placeholder="وصف مختصر لما تم إنجازه..." rows="2"></textarea>
     </div>`;
   document.getElementById('tasks-container').appendChild(card);
-  const now = new Date();
-  let hh = now.getHours();
-  const period = hh >= 12 ? 'PM' : 'AM';
-  hh = hh % 12 || 12;
-  const h = String(hh).padStart(2,'0');
-  const m = MINS.reduce((p,c)=>Math.abs(parseInt(c)-now.getMinutes())<Math.abs(parseInt(p)-now.getMinutes())?c:p);
-  document.getElementById(`tp-from-h-${id}`).value = h;
-  document.getElementById(`tp-from-m-${id}`).value = m;
-  document.getElementById(`tp-from-p-${id}`).value = period;
-  document.getElementById(`tp-to-h-${id}`).value   = h;
-  document.getElementById(`tp-to-m-${id}`).value   = m;
-  document.getElementById(`tp-to-p-${id}`).value   = period;
+  if (taskIds.length === 1) {
+    document.getElementById(`tp-from-h-${id}`).value = '09';
+    document.getElementById(`tp-from-m-${id}`).value = '00';
+    document.getElementById(`tp-from-p-${id}`).value = 'AM';
+    document.getElementById(`tp-to-h-${id}`).value   = '09';
+    document.getElementById(`tp-to-m-${id}`).value   = '00';
+    document.getElementById(`tp-to-p-${id}`).value   = 'AM';
+  } else {
+    const prevId = taskIds[taskIds.length - 2];
+    const prevToH = document.getElementById(`tp-to-h-${prevId}`)?.value || '09';
+    const prevToM = document.getElementById(`tp-to-m-${prevId}`)?.value || '00';
+    const prevToP = document.getElementById(`tp-to-p-${prevId}`)?.value || 'AM';
+    document.getElementById(`tp-from-h-${id}`).value = prevToH;
+    document.getElementById(`tp-from-m-${id}`).value = prevToM;
+    document.getElementById(`tp-from-p-${id}`).value = prevToP;
+    document.getElementById(`tp-to-h-${id}`).value   = prevToH;
+    document.getElementById(`tp-to-m-${id}`).value   = prevToM;
+    document.getElementById(`tp-to-p-${id}`).value   = prevToP;
+  }
+  calcDur(id);
   updateStats();
 }
 
