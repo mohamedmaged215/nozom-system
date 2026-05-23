@@ -265,16 +265,23 @@ async function init(){
     if(tr.ok&&tr.teams){const t=tr.teams.find(t=>t.id===TEAM_ID);document.getElementById('team-badge').textContent=t?t['اسم التيم']:TEAM_ID;}
   }catch(e){}
   try{
-    const cr=await apiFetch({action:'getClients'});
-    if(cr.ok&&cr.clients&&cr.clients.length>0){
-      // دمج العملاء من الـ Sheet مع الـ Default (بدون تكرار)
+    const cr=await apiFetch({action:'getClients', teamId: TEAM_ID});
+    const isTeam1 = TEAM_ID.toLowerCase().includes('team-1') || TEAM_ID.includes('تيم 1') || TEAM_ID.toLowerCase().includes('team_1');
+    if(cr.ok&&cr.clients){
       const fromSheet = cr.clients.map(c=>c.name||c);
-      const merged = [...new Set([...DEFAULT_CLIENTS, ...fromSheet])];
-      clients = merged;
+      if (isTeam1) {
+        const merged = [...new Set([...DEFAULT_CLIENTS, ...fromSheet])];
+        clients = merged;
+      } else {
+        clients = fromSheet;
+      }
     } else {
-      clients = [...DEFAULT_CLIENTS];
+      clients = isTeam1 ? [...DEFAULT_CLIENTS] : [];
     }
-  }catch(e){clients=[...DEFAULT_CLIENTS];}
+  }catch(e){
+    const isTeam1 = TEAM_ID.toLowerCase().includes('team-1') || TEAM_ID.includes('تيم 1') || TEAM_ID.toLowerCase().includes('team_1');
+    clients=isTeam1 ? [...DEFAULT_CLIENTS] : [];
+  }
   checkExistingReport();
   // جلب التكليفات المسندة للموظف
   try {
@@ -444,7 +451,7 @@ async function confirmAddClient(){
   if(!name)return;
   if(!clients.includes(name)){
     clients.push(name);
-    try{await apiPost('addClient',{name});showToast(`تمت إضافة "${name}"`, 'success');}
+    try{await apiPost('addClient',{name, teamId: TEAM_ID});showToast(`تمت إضافة "${name}"`, 'success');}
     catch(e){showToast('تمت الإضافة محلياً','info');}
   }
   taskIds.forEach(id=>{const dl=document.getElementById(`dl-${id}`);if(dl)dl.innerHTML=clients.map(c=>`<option value="${c}">`).join('');});
