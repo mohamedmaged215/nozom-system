@@ -4,40 +4,80 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة الإدارة — نظم وحلول</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
-  --bg:      #0b0d14;
-  --bg2:     #10121a;
-  --bg3:     #161824;
-  --bg4:     #1d1f2e;
-  --bg5:     #23263a;
-  --border:  #262840;
-  --border2: #32364e;
-  --accent:  #4f6ef7;
-  --accent-l:#6c8fff;
-  --accent-s:rgba(79,110,247,0.10);
-  --accent-s2:rgba(79,110,247,0.18);
-  --text:    #e4e6f2;
-  --text2:   #8b92b8;
-  --text3:   #4e5370;
-  --success: #34d399;
-  --success-s:rgba(52,211,153,0.10);
-  --danger:  #f87171;
-  --danger-s:rgba(248,113,113,0.10);
-  --warning: #fbbf24;
+  /* Nuzum Design System v2.0 Tokens */
+  --bg-0:#0f0d0b; --bg-1:#1a1816; --bg-2:#242120; --bg-3:#2e2b29; --bg-4:#3a3735;
+  --border:rgba(255,255,255,0.07); --border-h:rgba(255,255,255,0.14);
+  --accent-n:#d4703b; --accent2:#e8944d; --accent-g:rgba(212,112,59,0.15);
+  --green:#4ade80; --green-g:rgba(74,222,128,0.1);
+  --red:#f87171; --red-g:rgba(248,113,113,0.1);
+  --blue:#60a5fa; --amber:#fbbf24; --violet:#a78bfa; --cyan:#22d3ee;
+  --t1:#f5f0eb; --t2:#b0a99f; --t3:#78716c;
+  
+  --serif:'Playfair Display','Tajawal',serif;
+  --sans:'Tajawal',sans-serif;
+  --mono:'IBM Plex Mono','Tajawal',monospace;
+  --ease:cubic-bezier(0.16,1,0.3,1);
+  --r:12px;
+
+  /* Existing variable mappings to preserve functional styles */
+  --bg:      var(--bg-0);
+  --bg2:     var(--bg-1);
+  --bg3:     var(--bg-2);
+  --bg4:     var(--bg-3);
+  --bg5:     var(--bg-4);
+  --border:  rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.14);
+  --accent:  var(--accent-n);
+  --accent-l:var(--accent2);
+  --accent-s:var(--accent-g);
+  --accent-s2:rgba(212,112,59,0.22);
+  --text:    var(--t1);
+  --text2:   var(--t2);
+  --text3:   var(--t3);
+  --success: var(--green);
+  --success-s:var(--green-g);
+  --danger:  var(--red);
+  --danger-s:var(--red-g);
+  --warning: var(--amber);
   --warning-s:rgba(251,191,36,0.10);
-  --purple:  #a78bfa;
+  --purple:  var(--violet);
   --purple-s:rgba(167,139,250,0.10);
   --radius:  12px;
   --radius-s:8px;
-  --shadow:  0 8px 32px rgba(0,0,0,0.5);
+  --shadow:  0 8px 40px rgba(0,0,0,0.4);
   --nav-w:   220px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'IBM Plex Sans Arabic',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden;-webkit-font-smoothing:antialiased;transition:background 0.5s,color 0.4s;}
+::selection{background:var(--accent);color:#fff;}
+
+/* Noise Overlay */
+body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9998;opacity:0.4;}
+
+/* ═══════════════════════════════════
+   AMBIENT EFFECTS
+   ═══════════════════════════════════ */
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.ambient-orb{position:absolute;border-radius:50%;filter:blur(120px);opacity:0.07;animation:orbF 20s ease-in-out infinite alternate;}
+.ambient-orb:nth-child(1){width:600px;height:600px;background:var(--accent);top:-10%;right:-10%;}
+.ambient-orb:nth-child(2){width:500px;height:500px;background:var(--blue);bottom:-15%;left:-10%;animation-delay:-7s;}
+.ambient-orb:nth-child(3){width:400px;height:400px;background:var(--purple);top:40%;left:50%;animation-delay:-14s;}
+@keyframes orbF{0%{transform:translate(0,0) scale(1);}50%{transform:translate(40px,-30px) scale(1.1);}100%{transform:translate(-20px,50px) scale(0.95);}}
+
+/* Cursor Glow */
+.cursor-glow{position:fixed;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(212,112,59,0.06) 0%,transparent 70%);pointer-events:none;z-index:1;transform:translate(-50%,-50%);transition:left 0.3s ease-out,top 0.3s ease-out;}
+
+/* Particles */
+.particles{position:fixed;inset:0;pointer-events:none;z-index:0;}
+.particle{position:absolute;width:2px;height:2px;background:var(--accent);border-radius:50%;opacity:0;animation:pFade 8s ease-in-out infinite;}
+@keyframes pFade{0%{opacity:0;transform:translateY(0);}20%{opacity:0.4;}80%{opacity:0.2;}100%{opacity:0;transform:translateY(-200px);}}
 
 /* ── LOGIN ── */
 .login-wrap{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center;}
@@ -57,9 +97,11 @@ body{font-family:'IBM Plex Sans Arabic',sans-serif;background:var(--bg);color:va
 /* ── LAYOUT ── */
 .sidebar{width:var(--nav-w);background:var(--bg2);border-left:1px solid var(--border);min-height:100vh;display:flex;flex-direction:column;position:fixed;right:0;top:0;bottom:0;z-index:50;}
 .sidebar-brand{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);}
-.brand-dot{width:7px;height:7px;background:var(--accent-l);border-radius:50%;box-shadow:0 0 8px var(--accent-l);display:inline-block;margin-left:8px;}
-.brand-name{font-size:13px;font-weight:600;line-height:1.3;}
-.brand-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.logo-diamond{width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin-left:8px;}
+.logo-diamond::before{content:'';width:12px;height:12px;background:var(--accent);border-radius:3px;transform:rotate(45deg);box-shadow:0 0 14px var(--accent-s);animation:dPulse 3s ease-in-out infinite;}
+@keyframes dPulse{0%,100%{box-shadow:0 0 10px rgba(212,112,59,0.25);transform:rotate(45deg) scale(1);}50%{box-shadow:0 0 20px rgba(212,112,59,0.45);transform:rotate(45deg) scale(1.1);}}
+.brand-name{font-family:var(--serif);font-size:14px;font-weight:850;line-height:1.3;letter-spacing:-0.5px;}
+.brand-sub{font-size:11px;color:var(--text3);margin-top:2px;letter-spacing:1px;}
 .sidebar-role{margin:1rem 1rem 0;background:var(--warning-s);border:1px solid rgba(251,191,36,0.25);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--warning);text-align:center;}
 .sidebar-nav{flex:1;padding:1rem 0.75rem;display:flex;flex-direction:column;gap:3px;}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-s);font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:right;}
@@ -238,6 +280,11 @@ tbody tr:hover{background:var(--bg4);}
 </head>
 <body>
 
+<!-- ═══════ AMBIENT EFFECTS ═══════ -->
+<div class="ambient"><div class="ambient-orb"></div><div class="ambient-orb"></div><div class="ambient-orb"></div></div>
+<div class="cursor-glow" id="cursorGlow"></div>
+<div class="particles" id="particles"></div>
+
 <!-- Loading -->
 <div class="loading-overlay" id="loading-overlay">
   <div class="spin"></div>
@@ -274,7 +321,7 @@ tbody tr:hover{background:var(--bg4);}
 <aside class="sidebar" id="sidebar" style="display:none">
   <div class="sidebar-brand">
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-      <span class="brand-dot"></span>
+      <div class="logo-diamond"></div>
       <span class="brand-name">نظم وحلول</span>
     </div>
     <div class="brand-sub">للتقنية المالية</div>
@@ -659,6 +706,7 @@ tbody tr:hover{background:var(--bg4);}
             <span class="mgmt-card-title">🏢 العملاء</span>
             <div style="display:flex; align-items:center; gap:8px;">
               <input type="text" id="clients-search-input" placeholder="بحث عن عميل..." oninput="renderClientsList()" style="font-size:12px; padding:6px 12px; max-width:200px; height: 32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text); outline:none;">
+              <select id="clients-filter-team" onchange="renderClientsList()" style="font-size:12px; padding:6px 10px; max-width:180px; height: 32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text); outline:none;"><option value="">كل الفرق</option></select>
               <span id="clients-count" style="font-size:12px;color:var(--text3)"></span>
             </div>
           </div>
@@ -1083,13 +1131,15 @@ function populateFilters() {
     ? STATE.teams.filter(t => t.id === STATE.teamId)
     : STATE.teams;
 
-  const teamSelectors = ['db-team','rep-team','att-team','links-filter','emp-filter-team','new-emp-team','new-client-team'];
+  const teamSelectors = ['db-team','rep-team','att-team','links-filter','emp-filter-team','new-emp-team','new-client-team','clients-filter-team'];
   teamSelectors.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    const isFilter = ['db-team','rep-team','att-team','links-filter','emp-filter-team'].includes(id);
+    const isFilter = ['db-team','rep-team','att-team','links-filter','emp-filter-team','clients-filter-team'].includes(id);
     if (id === 'new-client-team') {
       el.innerHTML = '<option value="">كل الفرق (مشترك)</option>';
+    } else if (id === 'clients-filter-team') {
+      el.innerHTML = '<option value="">كل الفرق</option>';
     } else {
       el.innerHTML = isFilter ? '<option value="">كل التيمات</option>' : '<option value="">اختر التيم</option>';
     }
@@ -1653,10 +1703,14 @@ async function removeEmployee(id, name) {
 function renderClientsList() {
   const el = document.getElementById('clients-list');
   const searchVal = document.getElementById('clients-search-input')?.value.toLowerCase().trim() || '';
+  const filterTeam = document.getElementById('clients-filter-team')?.value || '';
   
   let filteredClients = STATE.clients;
   if (searchVal) {
     filteredClients = filteredClients.filter(c => c.name.toLowerCase().includes(searchVal));
+  }
+  if (filterTeam) {
+    filteredClients = filteredClients.filter(c => c.team_id === filterTeam);
   }
 
   document.getElementById('clients-count').textContent = `${filteredClients.length} عميل`;
@@ -1667,9 +1721,7 @@ function renderClientsList() {
   }
   
   el.innerHTML = filteredClients.map(c => {
-    const deleteBtn = !c.isDefault 
-      ? `<button class="btn btn-danger btn-sm" onclick="removeClient('${c.id}','${escapeHtml(c.name)}')">حذف</button>`
-      : '<span style="font-size:11px;color:var(--text3);">افتراضي</span>';
+    const deleteBtn = `<button class="btn btn-danger btn-sm" onclick="removeClient('${c.id}','${escapeHtml(c.name)}')">حذف</button>`;
     return `
       <div class="mgmt-item">
         <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(c.name)}')" title="اضغط لعرض تفاصيل وأداء العميل">${c.name}</div>
@@ -1855,6 +1907,32 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('att-month').value = today.slice(0,7);
 
   initLogin();
+
+  // ─── Cursor glow ───
+  document.addEventListener('mousemove', e => {
+    const g = document.getElementById('cursorGlow');
+    if(g) {
+      g.style.left = e.clientX + 'px';
+      g.style.top = e.clientY + 'px';
+    }
+  });
+
+  // ─── Particles ───
+  (function() {
+    const c = document.getElementById('particles');
+    if(c) {
+      for (let i = 0; i < 25; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.top = (60 + Math.random() * 40) + '%';
+        p.style.animationDelay = (Math.random() * 8) + 's';
+        p.style.animationDuration = (6 + Math.random() * 6) + 's';
+        p.style.width = p.style.height = (1 + Math.random() * 2) + 'px';
+        c.appendChild(p);
+      }
+    }
+  })();
 });
 
 // ══════════════════════════════════════════════════════
@@ -2169,23 +2247,27 @@ function escapeHtml(str) {
 // CLIENT RESOLVER & DETAILS MODAL HELPERS (التفاعلية الفائقة للعملاء)
 // ══════════════════════════════════════════════════════
 function parseClientsResponse(clientsR) {
+  const delList = clientsR.deletedDefaultClients || [];
   const isTeam1 = STATE.role === 'admin' || (STATE.teamId && (STATE.teamId.toLowerCase().includes('team-1') || STATE.teamId.includes('تيم 1') || STATE.teamId.toLowerCase().includes('team_1')));
+  const baseDefaults = DEFAULT_CLIENTS.filter(name => !delList.includes(name));
+  
   if (clientsR.ok && clientsR.clients) {
     const fromDb = clientsR.clients.map(c => c.name || c);
     const mergedNames = isTeam1 
-      ? [...new Set([...DEFAULT_CLIENTS, ...fromDb])] 
+      ? [...new Set([...baseDefaults, ...fromDb])] 
       : fromDb;
     return mergedNames.map((name, index) => {
       const dbCli = clientsR.clients.find(c => (c.name || c) === name);
       return {
         id: dbCli ? (dbCli.id || dbCli) : `def_${index}`,
         name: name,
-        isDefault: !dbCli
+        isDefault: !dbCli,
+        team_id: dbCli ? (dbCli.team_id || '') : 'team_1'
       };
     });
   } else {
     return isTeam1 
-      ? DEFAULT_CLIENTS.map((name, index) => ({ id: `def_${index}`, name: name, isDefault: true }))
+      ? baseDefaults.map((name, index) => ({ id: `def_${index}`, name: name, isDefault: true, team_id: 'team_1' }))
       : [];
   }
 }
