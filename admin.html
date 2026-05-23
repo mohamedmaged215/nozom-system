@@ -666,6 +666,7 @@ tbody tr:hover{background:var(--bg4);}
           <div style="padding:1rem 1.25rem;border-top:1px solid var(--border)">
             <div class="add-row">
               <input type="text" id="new-client-name" placeholder="اسم العميل الجديد">
+              <select id="new-client-team" style="max-width:200px; display:none;"><option value="">كل الفرق (مشترك)</option></select>
               <button class="btn btn-primary" onclick="addClient()">إضافة</button>
             </div>
           </div>
@@ -1029,6 +1030,8 @@ function enterDashboard(role, teamId, teamName) {
     document.getElementById('nav-teams').style.display = 'flex';
   }
 
+  document.getElementById('new-client-team').style.display = role === 'admin' ? 'block' : 'none';
+
   // Date
   document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('ar-SA', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 
@@ -1048,7 +1051,7 @@ async function initDashboard() {
     const [teamsR, empsR, clientsR] = await Promise.all([
       apiFetch({ action: 'getTeams' }),
       apiFetch({ action: 'getEmployees' }),
-      apiFetch({ action: 'getClients' }),
+      apiFetch(STATE.role === 'supervisor' ? { action: 'getClients', teamId: STATE.teamId } : { action: 'getClients' }),
     ]);
     if (teamsR.ok)   STATE.teams     = teamsR.teams || [];
     if (empsR.ok)    STATE.employees = empsR.employees || [];
@@ -1080,12 +1083,16 @@ function populateFilters() {
     ? STATE.teams.filter(t => t.id === STATE.teamId)
     : STATE.teams;
 
-  const teamSelectors = ['db-team','rep-team','att-team','links-filter','emp-filter-team','new-emp-team'];
+  const teamSelectors = ['db-team','rep-team','att-team','links-filter','emp-filter-team','new-emp-team','new-client-team'];
   teamSelectors.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     const isFilter = ['db-team','rep-team','att-team','links-filter','emp-filter-team'].includes(id);
-    el.innerHTML = isFilter ? '<option value="">كل التيمات</option>' : '<option value="">اختر التيم</option>';
+    if (id === 'new-client-team') {
+      el.innerHTML = '<option value="">كل الفرق (مشترك)</option>';
+    } else {
+      el.innerHTML = isFilter ? '<option value="">كل التيمات</option>' : '<option value="">اختر التيم</option>';
+    }
     teams.forEach(t => {
       el.innerHTML += `<option value="${t.id}">${t['اسم التيم']}</option>`;
     });
@@ -1675,8 +1682,11 @@ function renderClientsList() {
 async function addClient() {
   const name = document.getElementById('new-client-name').value.trim();
   if (!name) { showToast('أدخل اسم العميل'); return; }
+  const teamId = STATE.role === 'admin' 
+    ? document.getElementById('new-client-team').value 
+    : STATE.teamId;
   try {
-    const r = await apiPost('addClient', { name });
+    const r = await apiPost('addClient', { name, teamId: teamId || '' });
     if (r.ok) {
       showToast('تمت الإضافة', 'success');
       document.getElementById('new-client-name').value = '';
@@ -1763,7 +1773,7 @@ async function refreshData() {
   const [teamsR, empsR, clientsR] = await Promise.all([
     apiFetch({ action: 'getTeams' }),
     apiFetch({ action: 'getEmployees' }),
-    apiFetch({ action: 'getClients' }),
+    apiFetch(STATE.role === 'supervisor' ? { action: 'getClients', teamId: STATE.teamId } : { action: 'getClients' }),
   ]);
   if (teamsR.ok)   STATE.teams     = teamsR.teams || [];
   if (empsR.ok)    STATE.employees = empsR.employees || [];
@@ -2159,9 +2169,12 @@ function escapeHtml(str) {
 // CLIENT RESOLVER & DETAILS MODAL HELPERS (التفاعلية الفائقة للعملاء)
 // ══════════════════════════════════════════════════════
 function parseClientsResponse(clientsR) {
+  const isTeam1 = STATE.role === 'admin' || (STATE.teamId && (STATE.teamId.toLowerCase().includes('team-1') || STATE.teamId.includes('تيم 1') || STATE.teamId.toLowerCase().includes('team_1')));
   if (clientsR.ok && clientsR.clients) {
     const fromDb = clientsR.clients.map(c => c.name || c);
-    const mergedNames = [...new Set([...DEFAULT_CLIENTS, ...fromDb])];
+    const mergedNames = isTeam1 
+      ? [...new Set([...DEFAULT_CLIENTS, ...fromDb])] 
+      : fromDb;
     return mergedNames.map((name, index) => {
       const dbCli = clientsR.clients.find(c => (c.name || c) === name);
       return {
@@ -2171,7 +2184,9 @@ function parseClientsResponse(clientsR) {
       };
     });
   } else {
-    return DEFAULT_CLIENTS.map((name, index) => ({ id: `def_${index}`, name: name, isDefault: true }));
+    return isTeam1 
+      ? DEFAULT_CLIENTS.map((name, index) => ({ id: `def_${index}`, name: name, isDefault: true }))
+      : [];
   }
 }
 
