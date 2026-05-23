@@ -471,23 +471,19 @@ tbody tr:hover{background:var(--bg4);}
       <!-- Charts -->
       <div class="charts-grid">
         <div class="chart-card">
-          <div class="chart-title">⏱️ ساعات كل تيم</div>
+          <div class="chart-title" id="title-chart-hours">⏱️ ساعات كل تيم</div>
           <div class="chart-wrap"><canvas id="chart-hours"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="chart-title">✅ معدل حضور التيمات</div>
+          <div class="chart-title" id="title-chart-att">✅ معدل حضور التيمات</div>
           <div class="chart-wrap"><canvas id="chart-att"></canvas></div>
-        </div>
-        <div class="chart-card wide">
-          <div class="chart-title">📈 الساعات اليومية</div>
-          <div class="chart-wrap" style="height:180px"><canvas id="chart-daily"></canvas></div>
         </div>
         <div class="chart-card">
           <div class="chart-title">🏢 أكثر العملاء مهاماً</div>
           <div class="chart-wrap"><canvas id="chart-clients"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="chart-title">🍩 توزيع الساعات بين التيمات</div>
+          <div class="chart-title" id="title-chart-donut">🍩 توزيع الساعات بين التيمات</div>
           <div class="chart-wrap"><canvas id="chart-donut"></canvas></div>
         </div>
       </div>
@@ -1080,6 +1076,16 @@ function enterDashboard(role, teamId, teamName) {
 
   document.getElementById('new-client-team').style.display = role === 'admin' ? 'block' : 'none';
 
+  if (role === 'supervisor') {
+    document.getElementById('title-chart-hours').textContent = '⏱️ ساعات كل موظف';
+    document.getElementById('title-chart-att').textContent = '✅ معدل حضور الموظفين';
+    document.getElementById('title-chart-donut').textContent = '🍩 توزيع الساعات بين الموظفين';
+  } else {
+    document.getElementById('title-chart-hours').textContent = '⏱️ ساعات كل تيم';
+    document.getElementById('title-chart-att').textContent = '✅ معدل حضور التيمات';
+    document.getElementById('title-chart-donut').textContent = '🍩 توزيع الساعات بين التيمات';
+  }
+
   // Date
   document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('ar-SA', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 
@@ -1281,7 +1287,9 @@ function renderAttChart(data) {
 
 function renderDailyChart(data) {
   destroyChart('daily');
-  const ctx = document.getElementById('chart-daily').getContext('2d');
+  const el = document.getElementById('chart-daily');
+  if (!el) return;
+  const ctx = el.getContext('2d');
   charts['daily'] = new Chart(ctx, {
     type: 'line',
     data: {
