@@ -433,7 +433,8 @@ tbody tr:hover{background:var(--bg4);}
           <span class="card-title" style="color:var(--warning); display:flex; align-items:center; gap:6px;">🏢 استكشاف تفاصيل عميل تفاعلي</span>
           <div style="display:flex; align-items:center; gap:8px;">
             <label style="font-size:12px; color:var(--text3); font-weight:500;">اختر العميل:</label>
-            <select id="db-client-explorer" onchange="exploreClientDetails()" style="font-size:12px; padding:5px 12px; width:220px;"></select>
+            <input type="text" id="db-client-explorer" placeholder="ابحث عن عميل..." list="db-client-explorer-dl" oninput="exploreClientDetails()" style="font-size:12px; padding:5px 12px; width:220px; background:var(--bg4); border:1px solid var(--border); color:var(--text); border-radius:var(--radius-s); outline:none;">
+            <datalist id="db-client-explorer-dl"></datalist>
           </div>
         </div>
         <div class="table-wrap" id="client-explorer-result" style="display:none; padding:1.25rem;">
@@ -1160,12 +1161,9 @@ function populateFilters() {
   populateEmpFilter('att-emp', 'att-team');
 
   // Populate client select for Dashboard Client Explorer
-  const clientExplorerSel = document.getElementById('db-client-explorer');
-  if (clientExplorerSel) {
-    clientExplorerSel.innerHTML = '<option value="">اختر عميل...</option>';
-    STATE.clients.forEach(c => {
-      clientExplorerSel.innerHTML += `<option value="${c.name || c}">${c.name || c}</option>`;
-    });
+  const clientExplorerDl = document.getElementById('db-client-explorer-dl');
+  if (clientExplorerDl) {
+    clientExplorerDl.innerHTML = STATE.clients.map(c => `<option value="${c.name || c}">`).join('');
   }
 
   // Populate task assign employee select
