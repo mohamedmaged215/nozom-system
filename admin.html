@@ -850,7 +850,7 @@ tbody tr:hover{background:var(--bg4);}
       <span style="font-size:13px; font-weight:600; color:var(--warning);">📌 التكليفات المسندة للموظف وحالتها</span>
     </div>
     
-    <div class="table-wrap" style="max-height: 180px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
+    <div class="table-wrap" style="max-height: 180px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; margin-bottom: 1rem;">
       <table style="font-size:11px;">
         <thead>
           <tr style="background:var(--bg4);">
@@ -863,6 +863,25 @@ tbody tr:hover{background:var(--bg4);}
         </thead>
         <tbody id="emp-perf-tasks-tbody">
           <tr><td colspan="5" style="text-align:center; color:var(--text3);">لا توجد تكليفات مسندة</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-bottom:0.75rem; border-bottom:1px solid var(--border); padding-bottom:4px;">
+      <span style="font-size:13px; font-weight:600; color:var(--success);">📅 سجل حضور وغياب الموظف هذا الشهر</span>
+    </div>
+    
+    <div class="table-wrap" style="max-height: 180px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
+      <table style="font-size:11px;">
+        <thead>
+          <tr style="background:var(--bg4);">
+            <th>التاريخ</th>
+            <th>الحالة</th>
+            <th>ملاحظة</th>
+          </tr>
+        </thead>
+        <tbody id="emp-perf-attendance-tbody">
+          <tr><td colspan="3" style="text-align:center; color:var(--text3);">لا توجد سجلات حضور مسجلة</td></tr>
         </tbody>
       </table>
     </div>
@@ -1526,7 +1545,7 @@ async function loadAttendance() {
     tbody.innerHTML = rows.map(row => {
       const bc = row['الحالة']==='حاضر'?'badge-present':row['الحالة']==='غياب'?'badge-absent':row['الحالة'].includes('رسمية')?'badge-holiday':'badge-leave';
       return `<tr>
-        <td><strong>${row['اسم الموظف']||''}</strong></td>
+        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${row.emp_id}','${escapeHtml(row['اسم الموظف'])}','${row.team_id}')" title="اضغط لعرض كارت الأداء التفصيلي وسجل الحضور">${row['اسم الموظف']||''}</strong></td>
         <td style="font-size:11px;color:var(--text3)">${teamMap[row.team_id]||''}</td>
         <td>${row['التاريخ']||''}</td>
         <td><span class="badge ${bc}">${row['الحالة']||''}</span></td>
@@ -2150,8 +2169,11 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
 
   const rTbody = document.getElementById('emp-perf-reports-tbody');
   const tTbody = document.getElementById('emp-perf-tasks-tbody');
+  const aTbody = document.getElementById('emp-perf-attendance-tbody');
+  
   rTbody.innerHTML = `<tr><td colspan="5" style="text-align:center;"><div class="spin" style="margin:10px auto;width:20px;height:20px;"></div></td></tr>`;
   tTbody.innerHTML = `<tr><td colspan="5" style="text-align:center;"><div class="spin" style="margin:10px auto;width:20px;height:20px;"></div></td></tr>`;
+  aTbody.innerHTML = `<tr><td colspan="3" style="text-align:center;"><div class="spin" style="margin:10px auto;width:20px;height:20px;"></div></td></tr>`;
 
   document.getElementById('emp-perf-hours').textContent = '—';
   document.getElementById('emp-perf-present').textContent = '—';
@@ -2201,10 +2223,29 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
 
     let present = 0, absent = 0;
     if (attR.ok && attR.rows) {
-      attR.rows.forEach(row => {
+      const rows = attR.rows;
+      rows.forEach(row => {
         if (row['الحالة'] === 'حاضر') present++;
         else if (row['الحالة'] === 'غياب') absent++;
       });
+      
+      if (rows.length === 0) {
+        aTbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text3);">لا توجد سجلات حضور هذا الشهر</td></tr>`;
+      } else {
+        const sortedRows = [...rows].sort((a,b) => String(a['التاريخ']).localeCompare(String(b['التاريخ'])));
+        aTbody.innerHTML = sortedRows.map(row => {
+          const bc = row['الحالة']==='حاضر'?'badge-present':row['الحالة']==='غياب'?'badge-absent':row['الحالة'].includes('رسمية')?'badge-holiday':'badge-leave';
+          return `
+            <tr>
+              <td>${row['التاريخ'] || ''}</td>
+              <td><span class="badge ${bc}">${row['الحالة'] || ''}</span></td>
+              <td style="color:var(--text3);">${row['ملاحظة'] || ''}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    } else {
+      aTbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--danger);">فشل تحميل سجل الحضور</td></tr>`;
     }
     document.getElementById('emp-perf-present').textContent = present;
     document.getElementById('emp-perf-absent').textContent = absent;
