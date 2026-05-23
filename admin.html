@@ -991,6 +991,7 @@ let STATE = {
 };
 let charts = {};
 let editingAtt = null;
+const DAYS_AR = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 
 // ══════════════════════════════════════════════════════
 // API HELPERS
@@ -1521,36 +1522,96 @@ async function loadAttendance() {
   try {
     const r = await apiFetch(params);
     if (!r.ok) return;
-    const rows = r.rows || [];
+    const currentAttendance = r.rows || [];
 
-    // Stats
-    let present=0, absent=0, holiday=0;
-    rows.forEach(r => {
-      if      (r['الحالة']==='حاضر')         present++;
-      else if (r['الحالة']==='غياب')          absent++;
-      else if (r['الحالة'].includes('إجازة')) holiday++;
+    if (!month) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">📅</div><div class="empty-text">يرجى تحديد الشهر</div></div></td></tr>`;
+      return;
+    }
+
+    const [y, m] = month.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const todayStr = new Date().toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
+
+    // فلترة الموظفين حسب التيم والموظف المختارين
+    let empsToShow = STATE.employees.filter(e => e['نشط'] === 'نعم');
+    if (team) {
+      empsToShow = empsToShow.filter(e => e.team_id === team);
+    }
+    if (emp) {
+      empsToShow = empsToShow.filter(e => e.id === emp);
+    }
+
+    const rows = [];
+    empsToShow.forEach(employee => {
+      for (let d = 1; d <= daysInMonth; d++) {
+        const date = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const dayOfWeek = new Date(y, m - 1, d).getDay();
+        const isFriday = dayOfWeek === 5;
+        const existing = currentAttendance.find(x => x.emp_id === employee.id && x['التاريخ'] === date);
+
+        let status;
+        if (existing?.['الحالة']) status = existing['الحالة'];
+        else if (isFriday) status = 'إجازة رسمية';
+        else if (date > todayStr) status = '—';
+        else status = 'غياب';
+
+        rows.push({
+          empId: employee.id,
+          empName: employee['الاسم'],
+          teamId: employee.team_id,
+          date,
+          day: DAYS_AR[dayOfWeek],
+          status,
+          note: existing ? existing['ملاحظة'] : '',
+          isFriday
+        });
+      }
     });
+
+    // حساب الإحصائيات للأيام الفعالة غير الجمعة
+    let present = 0, absent = 0, holiday = 0;
+    rows.forEach(r => {
+      if (!r.isFriday && r.status !== '—') {
+        if (r.status === 'حاضر') present++;
+        else if (r.status === 'غياب') absent++;
+        else holiday++;
+      }
+    });
+
     document.getElementById('att-present').textContent = present;
     document.getElementById('att-absent').textContent  = absent;
     document.getElementById('att-holiday').textContent = holiday;
-    document.getElementById('att-total').textContent   = rows.length;
+
+    // إجمالي أيام العمل المنقضية (دون الجمعة)
+    const evaluatedDays = rows.filter(r => !r.isFriday && r.status !== '—').length;
+    document.getElementById('att-total').textContent = evaluatedDays;
 
     if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">📅</div><div class="empty-text">لا توجد سجلات</div></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">📅</div><div class="empty-text">لا توجد سجلات للموظفين</div></div></td></tr>`;
       return;
     }
+
     const teamMap = {};
     STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
 
-    tbody.innerHTML = rows.map(row => {
-      const bc = row['الحالة']==='حاضر'?'badge-present':row['الحالة']==='غياب'?'badge-absent':row['الحالة'].includes('رسمية')?'badge-holiday':'badge-leave';
-      return `<tr>
-        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${row.emp_id}','${escapeHtml(row['اسم الموظف'])}','${row.team_id}')" title="اضغط لعرض كارت الأداء التفصيلي وسجل الحضور">${row['اسم الموظف']||''}</strong></td>
-        <td style="font-size:11px;color:var(--text3)">${teamMap[row.team_id]||''}</td>
-        <td>${row['التاريخ']||''}</td>
-        <td><span class="badge ${bc}">${row['الحالة']||''}</span></td>
-        <td style="color:var(--text3);font-size:12px">${row['ملاحظة']||''}</td>
-        <td><button class="btn btn-secondary btn-sm" onclick="openAttEdit('${row.emp_id}','${row['اسم الموظف']}','${row.team_id}','${row['التاريخ']}','${row['الحالة']}','${row['ملاحظة']||''}')">تعديل</button></td>
+    // ترتيب الصفوف زمنياً بالأيام، ثم بأسماء الموظفين
+    const sortedRows = [...rows].sort((a, b) => {
+      const cmpDate = a.date.localeCompare(b.date);
+      if (cmpDate !== 0) return cmpDate;
+      return a.empName.localeCompare(b.empName, 'ar');
+    });
+
+    tbody.innerHTML = sortedRows.map(row => {
+      const bc = row.status === 'حاضر' ? 'badge-present' : row.status === 'غياب' ? 'badge-absent' : row.status.includes('رسمية') ? 'badge-holiday' : 'badge-leave';
+      const opacityStyle = row.isFriday ? 'style="opacity: 0.55;"' : '';
+      return `<tr ${opacityStyle}>
+        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${row.empId}','${escapeHtml(row.empName)}','${row.teamId}')" title="اضغط لعرض كارت الأداء التفصيلي وسجل الحضور">${row.empName}</strong></td>
+        <td style="font-size:11px;color:var(--text3)">${teamMap[row.teamId] || ''}</td>
+        <td>${row.date} (${row.day})</td>
+        <td><span class="badge ${bc}">${row.status}</span></td>
+        <td style="color:var(--text3);font-size:12px">${row.note || ''}</td>
+        <td><button class="btn btn-secondary btn-sm" onclick="openAttEdit('${row.empId}','${escapeHtml(row.empName)}','${row.teamId}','${row.date}','${row.status}','${escapeHtml(row.note || '')}')">تعديل</button></td>
       </tr>`;
     }).join('');
   } catch(e) {
@@ -1561,7 +1622,11 @@ async function loadAttendance() {
 function openAttEdit(empId, empName, teamId, date, status, note) {
   editingAtt = { empId, empName, teamId, date };
   document.getElementById('att-modal-info').textContent = `${empName} — ${date}`;
-  document.getElementById('att-status-sel').value = status;
+  
+  // إذا كانت الحالة غير مقيمة بعد "—"، نقوم بوضع القيمة الافتراضية "حاضر" لتسهيل الاختيار للمشرف
+  const allowedStatuses = ['حاضر', 'غياب', 'إجازة رسمية', 'إجازة'];
+  document.getElementById('att-status-sel').value = allowedStatuses.includes(status) ? status : 'حاضر';
+  
   document.getElementById('att-note-input').value = note || '';
   openModal('modal-att');
 }
@@ -2223,27 +2288,53 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
 
     let present = 0, absent = 0;
     if (attR.ok && attR.rows) {
-      const rows = attR.rows;
-      rows.forEach(row => {
-        if (row['الحالة'] === 'حاضر') present++;
-        else if (row['الحالة'] === 'غياب') absent++;
+      const [y, m] = month.split('-').map(Number);
+      const daysInMonth = new Date(y, m, 0).getDate();
+      const todayStr = new Date().toLocaleDateString('en-CA');
+      
+      const modalRows = [];
+      for (let d = 1; d <= daysInMonth; d++) {
+        const date = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const dayOfWeek = new Date(y, m - 1, d).getDay();
+        const isFriday = dayOfWeek === 5;
+        const existing = attR.rows.find(x => x.emp_id === empId && x['التاريخ'] === date);
+        
+        let status;
+        if (existing?.['الحالة']) status = existing['الحالة'];
+        else if (isFriday) status = 'إجازة رسمية';
+        else if (date > todayStr) status = '—';
+        else status = 'غياب';
+        
+        modalRows.push({
+          date,
+          day: DAYS_AR[dayOfWeek],
+          status,
+          note: existing ? existing['ملاحظة'] : '',
+          isFriday
+        });
+      }
+
+      // حساب أيام الحضور والغياب للموظف (دون الجمعة)
+      modalRows.forEach(r => {
+        if (!r.isFriday && r.status !== '—') {
+          if (r.status === 'حاضر') present++;
+          else if (r.status === 'غياب') absent++;
+        }
       });
       
-      if (rows.length === 0) {
-        aTbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text3);">لا توجد سجلات حضور هذا الشهر</td></tr>`;
-      } else {
-        const sortedRows = [...rows].sort((a,b) => String(a['التاريخ']).localeCompare(String(b['التاريخ'])));
-        aTbody.innerHTML = sortedRows.map(row => {
-          const bc = row['الحالة']==='حاضر'?'badge-present':row['الحالة']==='غياب'?'badge-absent':row['الحالة'].includes('رسمية')?'badge-holiday':'badge-leave';
-          return `
-            <tr>
-              <td>${row['التاريخ'] || ''}</td>
-              <td><span class="badge ${bc}">${row['الحالة'] || ''}</span></td>
-              <td style="color:var(--text3);">${row['ملاحظة'] || ''}</td>
-            </tr>
-          `;
-        }).join('');
-      }
+      const sortedModalRows = [...modalRows].sort((a, b) => a.date.localeCompare(b.date));
+      
+      aTbody.innerHTML = sortedModalRows.map(row => {
+        const bc = row.status === 'حاضر' ? 'badge-present' : row.status === 'غياب' ? 'badge-absent' : row.status.includes('رسمية') ? 'badge-holiday' : 'badge-leave';
+        const opacityStyle = row.isFriday ? 'style="opacity: 0.55;"' : '';
+        return `
+          <tr ${opacityStyle}>
+            <td>${row.date} (${row.day})</td>
+            <td><span class="badge ${bc}">${row.status}</span></td>
+            <td style="color:var(--text3); font-size:12px;">${row.note || ''}</td>
+          </tr>
+        `;
+      }).join('');
     } else {
       aTbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--danger);">فشل تحميل سجل الحضور</td></tr>`;
     }
