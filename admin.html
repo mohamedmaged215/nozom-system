@@ -825,65 +825,110 @@ tbody tr:hover{background:var(--bg4);}
       <div class="kpi-card c-purple" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">التكليفات المنجزة</div><div class="kpi-value c-purple" id="emp-perf-tasks-done" style="font-size:18px;">0</div></div>
     </div>
 
-    <div style="margin-bottom:0.75rem; border-bottom:1px solid var(--border); padding-bottom:4px;">
-      <span style="font-size:13px; font-weight:600; color:var(--text2);">📋 تفاصيل المهام المنجزة هذا الشهر</span>
-    </div>
-    
-    <div class="table-wrap" style="max-height: 250px; overflow-y:auto; margin-bottom:1rem; border:1px solid var(--border); border-radius:6px;">
-      <table style="font-size:11px;">
-        <thead>
-          <tr style="background:var(--bg4);">
-            <th>التاريخ</th>
-            <th>العميل</th>
-            <th>نوع المهمة</th>
-            <th>المدة</th>
-            <th>الوصف</th>
-          </tr>
-        </thead>
-        <tbody id="emp-perf-reports-tbody">
-          <tr><td colspan="5" style="text-align:center; color:var(--text3);">لا توجد مهام مسجلة</td></tr>
-        </tbody>
-      </table>
+    <!-- Tabs Header -->
+    <div class="perf-tabs-container" style="display: flex; gap: 8px; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+      <button class="perf-tab active" onclick="switchPerfTab('tasks')" id="perf-tab-tasks" style="flex: 1; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
+        📌 التكليفات المسندة
+      </button>
+      <button class="perf-tab" onclick="switchPerfTab('reports')" id="perf-tab-reports" style="flex: 1; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
+        📋 المهام المنجزة
+      </button>
+      <button class="perf-tab perf-tab-success" onclick="switchPerfTab('present')" id="perf-tab-present" style="flex: 1; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
+        🟢 أيام الحضور
+      </button>
+      <button class="perf-tab perf-tab-danger" onclick="switchPerfTab('absent')" id="perf-tab-absent" style="flex: 1; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
+        🔴 أيام الغياب
+      </button>
     </div>
 
-    <div style="margin-bottom:0.75rem; border-bottom:1px solid var(--border); padding-bottom:4px;">
-      <span style="font-size:13px; font-weight:600; color:var(--warning);">📌 التكليفات المسندة للموظف وحالتها</span>
-    </div>
-    
-    <div class="table-wrap" style="max-height: 180px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; margin-bottom: 1rem;">
-      <table style="font-size:11px;">
-        <thead>
-          <tr style="background:var(--bg4);">
-            <th>تاريخ الإسناد</th>
-            <th>العميل</th>
-            <th>نوع المهمة</th>
-            <th>الحالة</th>
-            <th>تاريخ الاكتمال</th>
-          </tr>
-        </thead>
-        <tbody id="emp-perf-tasks-tbody">
-          <tr><td colspan="5" style="text-align:center; color:var(--text3);">لا توجد تكليفات مسندة</td></tr>
-        </tbody>
-      </table>
+    <!-- Tab Contents -->
+
+    <!-- Tab 1: Assigned Tasks -->
+    <div class="perf-tab-content active" id="perf-content-tasks">
+      <div style="margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:13px; font-weight:600; color:var(--warning);">📌 التكليفات المسندة للموظف وحالتها</span>
+      </div>
+      <div class="table-wrap" style="height: 250px; max-height: 250px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
+        <table style="font-size:11px;">
+          <thead>
+            <tr style="background:var(--bg4);">
+              <th>تاريخ الإسناد</th>
+              <th>العميل</th>
+              <th>نوع المهمة</th>
+              <th>الحالة</th>
+              <th>تاريخ الاكتمال</th>
+            </tr>
+          </thead>
+          <tbody id="emp-perf-tasks-tbody">
+            <tr><td colspan="5" style="text-align:center; color:var(--text3);">لا توجد تكليفات مسندة</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
-    <div style="margin-bottom:0.75rem; border-bottom:1px solid var(--border); padding-bottom:4px;">
-      <span style="font-size:13px; font-weight:600; color:var(--success);">📅 سجل حضور وغياب الموظف هذا الشهر</span>
+    <!-- Tab 2: Completed Tasks Details -->
+    <div class="perf-tab-content" id="perf-content-reports" style="display: none;">
+      <div style="margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:13px; font-weight:600; color:var(--text2);">📋 تفاصيل المهام المنجزة هذا الشهر</span>
+      </div>
+      <div class="table-wrap" style="height: 250px; max-height: 250px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
+        <table style="font-size:11px;">
+          <thead>
+            <tr style="background:var(--bg4);">
+              <th>التاريخ</th>
+              <th>العميل</th>
+              <th>نوع المهمة</th>
+              <th>المدة</th>
+              <th>الوصف</th>
+            </tr>
+          </thead>
+          <tbody id="emp-perf-reports-tbody">
+            <tr><td colspan="5" style="text-align:center; color:var(--text3);">لا توجد مهام مسجلة</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-    
-    <div class="table-wrap" style="max-height: 180px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
-      <table style="font-size:11px;">
-        <thead>
-          <tr style="background:var(--bg4);">
-            <th>التاريخ</th>
-            <th>الحالة</th>
-            <th>ملاحظة</th>
-          </tr>
-        </thead>
-        <tbody id="emp-perf-attendance-tbody">
-          <tr><td colspan="3" style="text-align:center; color:var(--text3);">لا توجد سجلات حضور مسجلة</td></tr>
-        </tbody>
-      </table>
+
+    <!-- Tab 3: Attendance Days (Green Theme!) -->
+    <div class="perf-tab-content" id="perf-content-present" style="display: none;">
+      <div style="margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:13px; font-weight:600; color:var(--green);">🟢 أيام الحضور والتواجد الفعلي هذا الشهر</span>
+      </div>
+      <div class="table-wrap" style="height: 250px; max-height: 250px; overflow-y:auto; border:1px solid rgba(74,222,128,0.2); border-radius:6px; background: rgba(74,222,128,0.01);">
+        <table style="font-size:11px;">
+          <thead>
+            <tr style="background:rgba(74,222,128,0.06); color: var(--green);">
+              <th>التاريخ</th>
+              <th>الحالة</th>
+              <th>ملاحظة</th>
+            </tr>
+          </thead>
+          <tbody id="emp-perf-attendance-present-tbody">
+            <tr><td colspan="3" style="text-align:center; color:var(--text3);">لا توجد سجلات حضور مسجلة</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 4: Absence Days (Red Theme!) -->
+    <div class="perf-tab-content" id="perf-content-absent" style="display: none;">
+      <div style="margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:13px; font-weight:600; color:var(--red);">🔴 أيام الغياب والتقصير المسجلة هذا الشهر</span>
+      </div>
+      <div class="table-wrap" style="height: 250px; max-height: 250px; overflow-y:auto; border:1px solid rgba(248,113,113,0.2); border-radius:6px; background: rgba(248,113,113,0.01);">
+        <table style="font-size:11px;">
+          <thead>
+            <tr style="background:rgba(248,113,113,0.06); color: var(--red);">
+              <th>التاريخ</th>
+              <th>الحالة</th>
+              <th>ملاحظة</th>
+            </tr>
+          </thead>
+          <tbody id="emp-perf-attendance-absent-tbody">
+            <tr><td colspan="3" style="text-align:center; color:var(--text3);">لا توجد سجلات غياب مسجلة</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
     
     <div class="modal-actions" style="margin-top:1.25rem;">
@@ -2234,11 +2279,13 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
 
   const rTbody = document.getElementById('emp-perf-reports-tbody');
   const tTbody = document.getElementById('emp-perf-tasks-tbody');
-  const aTbody = document.getElementById('emp-perf-attendance-tbody');
+  const aTbodyPresent = document.getElementById('emp-perf-attendance-present-tbody');
+  const aTbodyAbsent = document.getElementById('emp-perf-attendance-absent-tbody');
   
   rTbody.innerHTML = `<tr><td colspan="5" style="text-align:center;"><div class="spin" style="margin:10px auto;width:20px;height:20px;"></div></td></tr>`;
   tTbody.innerHTML = `<tr><td colspan="5" style="text-align:center;"><div class="spin" style="margin:10px auto;width:20px;height:20px;"></div></td></tr>`;
-  aTbody.innerHTML = `<tr><td colspan="3" style="text-align:center;"><div class="spin" style="margin:10px auto;width:20px;height:20px;"></div></td></tr>`;
+  aTbodyPresent.innerHTML = `<tr><td colspan="3" style="text-align:center;"><div class="spin" style="margin:10px auto;width:20px;height:20px;"></div></td></tr>`;
+  aTbodyAbsent.innerHTML = `<tr><td colspan="3" style="text-align:center;"><div class="spin" style="margin:10px auto;width:20px;height:20px;"></div></td></tr>`;
 
   document.getElementById('emp-perf-hours').textContent = '—';
   document.getElementById('emp-perf-present').textContent = '—';
@@ -2246,6 +2293,7 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
   document.getElementById('emp-perf-tasks-done').textContent = '—';
 
   openModal('modal-emp-performance');
+  switchPerfTab('tasks'); // وضع التبويب الأول كافتراضي عند الفتح
 
   try {
     const firstDay = `${month}-01`;
@@ -2261,7 +2309,7 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
     if (repR.ok && repR.rows) {
       const rows = repR.rows;
       if (rows.length === 0) {
-        rTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text3);">لا توجد مهام مسجلة هذا الشهر</td></tr>`;
+        rTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text3); padding: 1.5rem 0;">لا توجد مهام مسجلة هذا الشهر</td></tr>`;
       } else {
         rTbody.innerHTML = rows.map(r => {
           const dur = r['المدة'] || '';
@@ -2281,7 +2329,7 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
         }).join('');
       }
     } else {
-      rTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">فشل تحميل التقارير</td></tr>`;
+      rTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger); padding: 1.5rem 0;">فشل تحميل التقارير</td></tr>`;
     }
     
     document.getElementById('emp-perf-hours').textContent = (totalMinutes / 60).toFixed(1);
@@ -2324,19 +2372,42 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
       
       const sortedModalRows = [...modalRows].sort((a, b) => a.date.localeCompare(b.date));
       
-      aTbody.innerHTML = sortedModalRows.map(row => {
-        const bc = row.status === 'حاضر' ? 'badge-present' : row.status === 'غياب' ? 'badge-absent' : row.status.includes('رسمية') ? 'badge-holiday' : 'badge-leave';
-        const opacityStyle = row.isFriday ? 'style="opacity: 0.55;"' : '';
-        return `
-          <tr ${opacityStyle}>
-            <td>${row.date} (${row.day})</td>
-            <td><span class="badge ${bc}">${row.status}</span></td>
-            <td style="color:var(--text3); font-size:12px;">${row.note || ''}</td>
-          </tr>
-        `;
-      }).join('');
+      // تفريغ الأيام الخضراء (حضور، إجازات)
+      const presentRows = sortedModalRows.filter(r => r.status !== 'غياب' && r.status !== '—');
+      if (presentRows.length === 0) {
+        aTbodyPresent.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text3); padding: 1.5rem 0;">لا توجد أيام حضور أو إجازات مسجلة</td></tr>`;
+      } else {
+        aTbodyPresent.innerHTML = presentRows.map(row => {
+          const bc = row.status === 'حاضر' ? 'badge-present' : row.status.includes('رسمية') ? 'badge-holiday' : 'badge-leave';
+          return `
+            <tr>
+              <td>${row.date} (${row.day})</td>
+              <td><span class="badge ${bc}">${row.status}</span></td>
+              <td style="color:var(--text3); font-size:12px;">${row.note || ''}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // تفريغ أيام الغياب (أحمر)
+      const absentRows = sortedModalRows.filter(r => r.status === 'غياب');
+      if (absentRows.length === 0) {
+        aTbodyAbsent.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--green); font-weight:600; padding: 2rem 0;">🎉 ممتاز! الموظف ليس لديه أي أيام غياب مسجلة هذا الشهر</td></tr>`;
+      } else {
+        aTbodyAbsent.innerHTML = absentRows.map(row => {
+          const bc = 'badge-absent';
+          return `
+            <tr style="background: rgba(248,113,113,0.015);">
+              <td>${row.date} (${row.day})</td>
+              <td><span class="badge ${bc}">${row.status}</span></td>
+              <td style="color:var(--danger); font-size:12px;">${row.note || 'غياب غير مبرر'}</td>
+            </tr>
+          `;
+        }).join('');
+      }
     } else {
-      aTbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--danger);">فشل تحميل سجل الحضور</td></tr>`;
+      aTbodyPresent.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--danger); padding: 1.5rem 0;">فشل تحميل سجل الحضور</td></tr>`;
+      aTbodyAbsent.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--danger); padding: 1.5rem 0;">فشل تحميل سجل الغياب</td></tr>`;
     }
     document.getElementById('emp-perf-present').textContent = present;
     document.getElementById('emp-perf-absent').textContent = absent;
@@ -2347,7 +2418,7 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
       tasksCompletedCount = tasks.filter(t => t['الحالة'] === 'مكتملة').length;
       
       if (tasks.length === 0) {
-        tTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text3);">لا توجد تكليفات مسندة للموظف بعد</td></tr>`;
+        tTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text3); padding: 1.5rem 0;">لا توجد تكليفات مسندة للموظف بعد</td></tr>`;
       } else {
         tTbody.innerHTML = tasks.map(t => {
           const statusBadge = t['الحالة'] === 'معلقة' 
@@ -2365,14 +2436,59 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
         }).join('');
       }
     } else {
-      tTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">فشل تحميل التكليفات</td></tr>`;
+      tTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger); padding: 1.5rem 0;">فشل تحميل التكليفات</td></tr>`;
     }
     
     document.getElementById('emp-perf-tasks-done').textContent = tasksCompletedCount;
 
   } catch(e) {
-    rTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">تعذر تحميل كارت الأداء بالكامل</td></tr>`;
-    tTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">تعذر تحميل كارت الأداء بالكامل</td></tr>`;
+    rTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger); padding: 1.5rem 0;">تعذر تحميل كارت الأداء بالكامل</td></tr>`;
+    tTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger); padding: 1.5rem 0;">تعذر تحميل كارت الأداء بالكامل</td></tr>`;
+  }
+}
+
+function switchPerfTab(tabName) {
+  // إخفاء جميع محتويات التبويبات
+  document.querySelectorAll('.perf-tab-content').forEach(el => el.style.display = 'none');
+  
+  // إلغاء تفعيل جميع الأزرار وإعادة تنسيقها الافتراضي
+  document.querySelectorAll('.perf-tab').forEach(el => {
+    el.classList.remove('active');
+    el.style.borderColor = 'var(--border)';
+    el.style.color = 'var(--text2)';
+    el.style.background = 'var(--bg4)';
+    el.style.boxShadow = 'none';
+  });
+
+  // إظهار المحتوى المختار وتفعيل زر التبويب الخاص به بتأثير توهج لوني مخصص
+  const activeContent = document.getElementById(`perf-content-${tabName}`);
+  if (activeContent) activeContent.style.display = 'block';
+
+  const activeTab = document.getElementById(`perf-tab-${tabName}`);
+  if (activeTab) {
+    activeTab.classList.add('active');
+    
+    if (tabName === 'present') {
+      activeTab.style.borderColor = 'var(--green)';
+      activeTab.style.color = 'var(--green)';
+      activeTab.style.background = 'rgba(74,222,128,0.12)';
+      activeTab.style.boxShadow = '0 0 12px rgba(74,222,128,0.15)';
+    } else if (tabName === 'absent') {
+      activeTab.style.borderColor = 'var(--red)';
+      activeTab.style.color = 'var(--red)';
+      activeTab.style.background = 'rgba(248,113,113,0.12)';
+      activeTab.style.boxShadow = '0 0 12px rgba(248,113,113,0.15)';
+    } else if (tabName === 'tasks') {
+      activeTab.style.borderColor = 'var(--warning)';
+      activeTab.style.color = 'var(--warning)';
+      activeTab.style.background = 'rgba(251,191,36,0.12)';
+      activeTab.style.boxShadow = '0 0 12px rgba(251,191,36,0.15)';
+    } else {
+      activeTab.style.borderColor = 'var(--accent)';
+      activeTab.style.color = 'var(--accent-l)';
+      activeTab.style.background = 'var(--accent-soft2)';
+      activeTab.style.boxShadow = '0 0 12px rgba(79,110,247,0.15)';
+    }
   }
 }
 
