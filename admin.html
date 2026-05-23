@@ -657,7 +657,10 @@ tbody tr:hover{background:var(--bg4);}
         <div class="mgmt-card" style="grid-column:1/-1">
           <div class="mgmt-card-header">
             <span class="mgmt-card-title">🏢 العملاء</span>
-            <span id="clients-count" style="font-size:12px;color:var(--text3)"></span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <input type="text" id="clients-search-input" placeholder="بحث عن عميل..." oninput="renderClientsList()" style="font-size:12px; padding:6px 12px; max-width:200px; height: 32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text); outline:none;">
+              <span id="clients-count" style="font-size:12px;color:var(--text3)"></span>
+            </div>
           </div>
           <div class="mgmt-card-body" id="clients-list"></div>
           <div style="padding:1rem 1.25rem;border-top:1px solid var(--border)">
@@ -824,6 +827,48 @@ tbody tr:hover{background:var(--bg4);}
   </div>
 </div>
 
+<!-- Client Details Modal (تفاصيل العميل والتقارير المرتبطة به) -->
+<div class="modal-overlay" id="modal-client-details">
+  <div class="modal" style="width: 760px; max-width: 95%;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+      <div class="modal-title" id="client-details-title" style="margin-bottom:0; font-size:17px;">تفاصيل العميل وتحليلاته</div>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-client-details')" style="padding:4px 10px;">✕</button>
+    </div>
+    
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:1.25rem;">
+      <div class="kpi-card c-blue" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">إجمالي ساعات العمل للعميل</div><div class="kpi-value c-blue" id="cli-details-hours" style="font-size:18px;">0</div></div>
+      <div class="kpi-card c-purple" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">عدد الفرق المشاركة</div><div class="kpi-value c-purple" id="cli-details-teams" style="font-size:18px;">0</div></div>
+      <div class="kpi-card c-yellow" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">الموظفون المشاركون</div><div class="kpi-value c-yellow" id="cli-details-emps" style="font-size:18px;">0</div></div>
+    </div>
+
+    <div style="margin-bottom:0.75rem; border-bottom:1px solid var(--border); padding-bottom:4px;">
+      <span style="font-size:13px; font-weight:600; color:var(--success);">📋 قائمة السجلات والمهام الخاصة بالعميل</span>
+    </div>
+    
+    <div class="table-wrap" style="max-height: 300px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
+      <table style="font-size:11px;">
+        <thead>
+          <tr style="background:var(--bg4);">
+            <th>التاريخ</th>
+            <th>الموظف</th>
+            <th>التيم</th>
+            <th>نوع المهمة</th>
+            <th>المدة</th>
+            <th>الوصف</th>
+          </tr>
+        </thead>
+        <tbody id="cli-details-reports-tbody">
+          <tr><td colspan="6" style="text-align:center; color:var(--text3);">لا توجد مهام مسجلة</td></tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="modal-actions" style="margin-top:1.25rem;">
+      <button class="btn-sm-cancel" onclick="closeModal('modal-client-details')">إغلاق</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast">
   <span class="t-icon" id="t-icon">✓</span>
@@ -837,6 +882,36 @@ tbody tr:hover{background:var(--bg4);}
 const API = 'https://script.google.com/macros/s/AKfycbzgYKZQiepr-XJwn928zSTpUnWFznF8SLi4ENwNOCmql6280H2zr3mPh3QumHErifWUWQ/exec';
 const EMPLOYEE_URL = 'employee.html'; // هيتغير لو Netlify URL مختلف
 const TASK_TYPES = ['مبيعات','مشتريات','بنوك','تسجيلات','إقفالات شهرية','إقفالات سنوية','تقارير','إقرارات شهرية','إقرارات ربع سنوية','تفريغ','قوائم مالية','متابعة عملاء يومية','اجتماع','اجتماع العمل الأسبوعي','أمور تقنية','إضافي'];
+
+const DEFAULT_CLIENTS = [
+  'مطعم جبنة حلوم لتقديم الوجبات',
+  'شركة الطريق الصحي (أورورا)',
+  'شركة الجلسة',
+  'شركة مراس المحدودة',
+  'شركة الفأس التجارية',
+  'صالون كوكب الريان للحلاقة',
+  'شركة تنفس الطبية',
+  'مؤسسة أناقة بالعربي',
+  'مؤسسة أعمار لأمير',
+  'شركة عبدالملك عبدالله سليمان',
+  'شركة تكتيك',
+  'شركة توصيل الخليجية',
+  'مؤسسة مركز طيف الطبية',
+  'شركة مراسم المستقبل',
+  'مؤسسة شيماء للتجارة',
+  'مؤسسة عالية السعودية',
+  'مؤسسة وفاء للمقاولات',
+  'مؤسسة ماجد أنعام للمقاولات',
+  'شركة السور الوطني لخدمات النفط والغاز',
+  'شركة أرض الحصاد للتجارة',
+  'شركة جياد التطوير',
+  'مؤسسة واحة الأسرار',
+  'مغاسل KH',
+  'رنك للأقمشة',
+  'مؤسسة بلوك آند فوليوم',
+  'شركة أنماط البيانات',
+  'عام'
+];
 
 // ══════════════════════════════════════════════════════
 // STATE
@@ -977,7 +1052,7 @@ async function initDashboard() {
     ]);
     if (teamsR.ok)   STATE.teams     = teamsR.teams || [];
     if (empsR.ok)    STATE.employees = empsR.employees || [];
-    if (clientsR.ok) STATE.clients   = clientsR.clients || [];
+    STATE.clients = parseClientsResponse(clientsR);
 
     // للمشرف: فلتر بالتيم
     if (STATE.role === 'supervisor') {
@@ -1236,7 +1311,7 @@ async function loadReports() {
         <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}')" title="اضغط لعرض الأداء الشهري">${r['اسم الموظف']||''}</strong></td>
         <td><span style="font-size:11px;color:var(--text3)">${teamMap[r.team_id]||r.team_id||''}</span></td>
         <td>${r['التاريخ']||''}</td>
-        <td>${r['العميل']||''}</td>
+        <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(r['العميل'])}')" title="عرض تفاصيل العميل">${r['العميل']||''}</span></td>
         <td>${r['نوع المهمة']||''}</td>
         <td>${r['من']||''}</td>
         <td>${r['إلى']||''}</td>
@@ -1570,16 +1645,31 @@ async function removeEmployee(id, name) {
 // ══════════════════════════════════════════════════════
 function renderClientsList() {
   const el = document.getElementById('clients-list');
-  document.getElementById('clients-count').textContent = `${STATE.clients.length} عميل`;
-  if (!STATE.clients.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-text">لا يوجد عملاء</div></div>`;
+  const searchVal = document.getElementById('clients-search-input')?.value.toLowerCase().trim() || '';
+  
+  let filteredClients = STATE.clients;
+  if (searchVal) {
+    filteredClients = filteredClients.filter(c => c.name.toLowerCase().includes(searchVal));
+  }
+
+  document.getElementById('clients-count').textContent = `${filteredClients.length} عميل`;
+  
+  if (!filteredClients.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-text">لا يوجد عملاء مطابقين للبحث</div></div>`;
     return;
   }
-  el.innerHTML = STATE.clients.map(c => `
-    <div class="mgmt-item">
-      <div class="item-name">${c.name}</div>
-      <button class="btn btn-danger btn-sm" onclick="removeClient('${c.id}','${c.name}')">حذف</button>
-    </div>`).join('');
+  
+  el.innerHTML = filteredClients.map(c => {
+    const deleteBtn = !c.isDefault 
+      ? `<button class="btn btn-danger btn-sm" onclick="removeClient('${c.id}','${escapeHtml(c.name)}')">حذف</button>`
+      : '<span style="font-size:11px;color:var(--text3);">افتراضي</span>';
+    return `
+      <div class="mgmt-item">
+        <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(c.name)}')" title="اضغط لعرض تفاصيل وأداء العميل">${c.name}</div>
+        <div class="mgmt-item-actions">${deleteBtn}</div>
+      </div>
+    `;
+  }).join('');
 }
 
 async function addClient() {
@@ -1677,7 +1767,7 @@ async function refreshData() {
   ]);
   if (teamsR.ok)   STATE.teams     = teamsR.teams || [];
   if (empsR.ok)    STATE.employees = empsR.employees || [];
-  if (clientsR.ok) STATE.clients   = clientsR.clients || [];
+  STATE.clients = parseClientsResponse(clientsR);
   if (STATE.role === 'supervisor') {
     STATE.employees = STATE.employees.filter(e => e.team_id === STATE.teamId);
   }
@@ -1930,7 +2020,7 @@ async function exploreClientDetails() {
 
       const eid = row['emp_id'];
       if (eid) {
-        if (!empStats[eid]) empStats[eid] = { name: row['اسم الموظف'] || eid, team: teamMap[tid] || tid, minutes: 0 };
+        if (!empStats[eid]) empStats[eid] = { name: row['اسم الموظف'] || eid, team: teamMap[tid] || tid, teamId: tid, minutes: 0 };
         empStats[eid].minutes += mins;
       }
     });
@@ -1948,9 +2038,9 @@ async function exploreClientDetails() {
       .map(t => `<tr><td><strong>${t.name}</strong></td><td><span style="color:var(--success);font-weight:600;">${(t.minutes/60).toFixed(1)} ساعة</span></td></tr>`)
       .join('');
 
-    document.getElementById('exp-emps-tbody').innerHTML = Object.values(empStats)
-      .sort((a,b) => b.minutes - a.minutes)
-      .map(e => `<tr><td><strong>${e.name}</strong></td><td style="color:var(--text3);font-size:11px;">${e.team}</td><td><span style="color:var(--accent-l);font-weight:600;">${(e.minutes/60).toFixed(1)} ساعة</span></td></tr>`)
+    document.getElementById('exp-emps-tbody').innerHTML = Object.entries(empStats)
+      .sort((a,b) => b[1].minutes - a[1].minutes)
+      .map(([eid, e]) => `<tr><td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${eid}','${escapeHtml(e.name)}','${e.teamId}')" title="عرض كشف الموظف">${e.name}</strong></td><td style="color:var(--text3);font-size:11px;">${e.team}</td><td><span style="color:var(--accent-l);font-weight:600;">${(e.minutes/60).toFixed(1)} ساعة</span></td></tr>`)
       .join('');
 
     resultDiv.style.display = 'block';
@@ -2063,6 +2153,91 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+// ══════════════════════════════════════════════════════
+// CLIENT RESOLVER & DETAILS MODAL HELPERS (التفاعلية الفائقة للعملاء)
+// ══════════════════════════════════════════════════════
+function parseClientsResponse(clientsR) {
+  if (clientsR.ok && clientsR.clients) {
+    const fromDb = clientsR.clients.map(c => c.name || c);
+    const mergedNames = [...new Set([...DEFAULT_CLIENTS, ...fromDb])];
+    return mergedNames.map((name, index) => {
+      const dbCli = clientsR.clients.find(c => (c.name || c) === name);
+      return {
+        id: dbCli ? (dbCli.id || dbCli) : `def_${index}`,
+        name: name,
+        isDefault: !dbCli
+      };
+    });
+  } else {
+    return DEFAULT_CLIENTS.map((name, index) => ({ id: `def_${index}`, name: name, isDefault: true }));
+  }
+}
+
+async function openClientDetailsModal(clientName) {
+  document.getElementById('client-details-title').textContent = `تفاصيل العميل وتحليلاته: ${clientName}`;
+  const tbody = document.getElementById('cli-details-reports-tbody');
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;"><div class="spin" style="margin:10px auto;width:20px;height:20px;"></div></td></tr>`;
+  
+  document.getElementById('cli-details-hours').textContent = '—';
+  document.getElementById('cli-details-teams').textContent = '—';
+  document.getElementById('cli-details-emps').textContent = '—';
+
+  openModal('modal-client-details');
+
+  try {
+    const r = await apiFetch({ action: 'getReports', client: clientName });
+    if (!r.ok) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--danger);">فشل تحميل تقارير العميل</td></tr>`;
+      return;
+    }
+    const rows = r.rows || [];
+    
+    if (rows.length === 0) {
+      document.getElementById('cli-details-hours').textContent = '0';
+      document.getElementById('cli-details-teams').textContent = '0';
+      document.getElementById('cli-details-emps').textContent = '0';
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text3);">لا توجد ساعات عمل مسجلة لهذا العميل بعد</td></tr>`;
+      return;
+    }
+
+    let totalMinutes = 0;
+    const uniqueTeams = new Set();
+    const uniqueEmps = new Set();
+    const teamMap = {};
+    STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+
+    rows.forEach(row => {
+      const dur = row['المدة'] || '';
+      let mins = 0;
+      if (dur.includes(':')) {
+        const parts = dur.split(':').map(Number);
+        mins = (parts[0] || 0) * 60 + (parts[1] || 0);
+      }
+      totalMinutes += mins;
+
+      if (row.team_id) uniqueTeams.add(row.team_id);
+      if (row.emp_id) uniqueEmps.add(row.emp_id);
+    });
+
+    document.getElementById('cli-details-hours').textContent = (totalMinutes / 60).toFixed(1);
+    document.getElementById('cli-details-teams').textContent = uniqueTeams.size;
+    document.getElementById('cli-details-emps').textContent = uniqueEmps.size;
+
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td>${r['التاريخ'] || ''}</td>
+        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="closeModal('modal-client-details'); setTimeout(() => openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}'), 200)" title="عرض كشف الموظف">${r['اسم الموظف'] || ''}</strong></td>
+        <td><span style="font-size:10px; color:var(--text3);">${teamMap[r.team_id] || r.team_id || ''}</span></td>
+        <td>${r['نوع المهمة'] || ''}</td>
+        <td style="color:var(--success); font-weight:600;">${r['المدة'] || ''}</td>
+        <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(r['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${r['وصف المهمة'] || ''}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--danger);">تعذر تحميل كارت التفاصيل بالكامل</td></tr>`;
+  }
 }
 </script>
 </body>
