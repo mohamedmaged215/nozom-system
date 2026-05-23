@@ -409,7 +409,7 @@ function addTask(){
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <span class="task-dur-pill empty" id="pill-${id}">0:00</span>
-        ${taskIds.length>1?`<button class="btn-remove" onclick="removeTask(${id})">✕</button>`:''}
+        <button class="btn-remove" id="btn-remove-${id}" onclick="removeTask(${id})">✕</button>
       </div>
     </div>
     <div class="grid2">
@@ -478,6 +478,7 @@ function addTask(){
   }
   calcDur(id);
   updateStats();
+  updateRemoveButtons();
 }
 
 function removeTask(id){
@@ -491,6 +492,17 @@ function removeTask(id){
     delete completedTasksMap[id];
   }
   calcTotal(); updateStats();
+  updateRemoveButtons();
+}
+
+function updateRemoveButtons() {
+  const showRemove = taskIds.length > 1;
+  taskIds.forEach(id => {
+    const btn = document.getElementById(`btn-remove-${id}`);
+    if (btn) {
+      btn.style.display = showRemove ? 'block' : 'none';
+    }
+  });
 }
 
 function to24(h, period) {
