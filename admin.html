@@ -2248,7 +2248,27 @@ function escapeHtml(str) {
 // ══════════════════════════════════════════════════════
 function parseClientsResponse(clientsR) {
   const delList = clientsR.deletedDefaultClients || [];
-  const isTeam1 = STATE.role === 'admin' || (STATE.teamId && (STATE.teamId.toLowerCase().includes('team-1') || STATE.teamId.includes('تيم 1') || STATE.teamId.toLowerCase().includes('team_1')));
+  
+  let isTeam1 = STATE.role === 'admin';
+  if (!isTeam1 && STATE.teamId) {
+    if (STATE.teamId.toLowerCase() === 'team-1' || STATE.teamId.toLowerCase() === 'team_1') {
+      isTeam1 = true;
+    } else {
+      const tName = STATE.teamName || '';
+      if (tName.includes('تيم 1') || tName.toLowerCase().includes('team 1') || tName.toLowerCase().includes('team-1')) {
+        isTeam1 = true;
+      } else if (STATE.teams) {
+        const t = STATE.teams.find(team => team.id === STATE.teamId);
+        if (t) {
+          const name = t['اسم التيم'] || '';
+          if (name.includes('تيم 1') || name.toLowerCase().includes('team 1') || name.toLowerCase().includes('team-1')) {
+            isTeam1 = true;
+          }
+        }
+      }
+    }
+  }
+
   const baseDefaults = DEFAULT_CLIENTS.filter(name => !delList.includes(name));
   
   if (clientsR.ok && clientsR.clients) {
