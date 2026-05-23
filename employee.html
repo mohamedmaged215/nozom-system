@@ -141,6 +141,18 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
     </div>
   </div>
 
+  <!-- قسم التكليفات المسندة -->
+  <div id="assigned-tasks-section" style="display:none; margin-bottom: 1.5rem;">
+    <div class="section-header" style="margin-bottom: 0.75rem;">
+      <span class="section-title" style="color:var(--warning); display:flex; align-items:center; gap:6px;">
+        📌 المهام المسندة إليك اليوم
+      </span>
+    </div>
+    <div id="assigned-tasks-container" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;">
+      <!-- سيتم ملؤه ديناميكياً -->
+    </div>
+  </div>
+
   <div class="stats-row">
     <div class="stat-card"><div class="stat-label">عدد المهام</div><div class="stat-value accent" id="stat-tasks">0</div></div>
     <div class="stat-card"><div class="stat-label">إجمالي الوقت</div><div class="stat-value success" id="stat-time">0:00</div></div>
@@ -196,7 +208,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
 const API = 'https://script.google.com/macros/s/AKfycbzgYKZQiepr-XJwn928zSTpUnWFznF8SLi4ENwNOCmql6280H2zr3mPh3QumHErifWUWQ/exec';
 const HOURS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 const MINS  = ['00','05','10','15','20','25','30','35','40','45','50','55'];
-const TASK_TYPES = ['مبيعات','مشتريات','بنوك','تسجيلات','إقفالات','تقارير','إقرارات','تفريغ','قوائم مالية','اجتماع','اجتماع العمل الأسبوعي','أمور تقنية','إضافي'];
+const TASK_TYPES = ['مبيعات','مشتريات','بنوك','تسجيلات','إقفالات شهرية','إقفالات سنوية','تقارير','إقرارات شهرية','إقرارات ربع سنوية','تفريغ','قوائم مالية','متابعة عملاء يومية','اجتماع','اجتماع العمل الأسبوعي','أمور تقنية','إضافي'];
 
 const DEFAULT_CLIENTS = [
   'مطعم جبنة حلوم لتقديم الوجبات',
@@ -230,6 +242,7 @@ const DEFAULT_CLIENTS = [
 
 let EMP_ID='', EMP_NAME='', TEAM_ID='';
 let clients=[], taskIds=[], taskCounter=0, activeClientTaskId=null;
+let completedTasksMap={};
 
 async function apiFetch(p){const r=await fetch(API+'?'+new URLSearchParams(p));return r.json();}
 async function apiPost(a,d){const r=await fetch(API,{method:'POST',body:JSON.stringify({action:a,...d})});return r.json();}
@@ -263,6 +276,13 @@ async function init(){
     }
   }catch(e){clients=[...DEFAULT_CLIENTS];}
   checkExistingReport();
+  // جلب التكليفات المسندة للموظف
+  try {
+    const tr = await apiFetch({ action: 'getAssignedTasks', empId: EMP_ID, status: 'معلقة' });
+    if (tr.ok && tr.tasks && tr.tasks.length > 0) {
+      renderAssignedTasks(tr.tasks);
+    }
+  } catch(e) {}
   addTask();
   document.getElementById('loading-overlay').style.display='none';
   document.getElementById('main-content').style.display='block';
@@ -364,6 +384,13 @@ function addTask(){
 function removeTask(id){
   document.getElementById(`task-${id}`)?.remove();
   taskIds=taskIds.filter(i=>i!==id);
+  // لو كان الكارت تابعاً لتكليف مسند، نعيد إظهار التكليف في القائمة العلوية
+  if (completedTasksMap[id]) {
+    const taskId = completedTasksMap[id];
+    const el = document.getElementById(`assigned-task-card-${taskId}`);
+    if (el) el.style.display = 'block';
+    delete completedTasksMap[id];
+  }
   calcTotal(); updateStats();
 }
 
@@ -428,6 +455,7 @@ async function confirmAddClient(){
 function collectData(){
   const date=document.getElementById('report-date').value;
   const rows=[];
+  const completedTaskIds=[];
   taskIds.forEach(id=>{
     if(!document.getElementById(`task-${id}`))return;
     const fh=document.getElementById(`tp-from-h-${id}`).value;
@@ -445,8 +473,12 @@ function collectData(){
       dur:pill&&!pill.classList.contains('empty')?pill.textContent:'0:00',
       desc:document.getElementById(`desc-${id}`)?.value.trim()||''
     });
+    // لو كانت المهمة تابعة لتكليف مسند، نضيف معرف التكليف المكتمل
+    if (completedTasksMap[id]) {
+      completedTaskIds.push(completedTasksMap[id]);
+    }
   });
-  return{empId:EMP_ID,empName:EMP_NAME,teamId:TEAM_ID,date,rows};
+  return{empId:EMP_ID,empName:EMP_NAME,teamId:TEAM_ID,date,rows,completedTaskIds};
 }
 
 function exportExcel(){
@@ -483,6 +515,10 @@ async function submitReport(){
       const b=document.getElementById('period-banner');
       document.getElementById('period-text').textContent=`✓ تم الإرسال بنجاح — ${data.rows.length} مهام ليوم ${data.date}`;
       b.style.cssText='display:flex;background:var(--success-s);border-color:rgba(52,211,153,0.2);color:var(--success)';
+      
+      // إخفاء قسم التكليفات المسندة بعد إرسالها واكتمالها
+      document.getElementById('assigned-tasks-section').style.display = 'none';
+      completedTasksMap = {};
     }else showToast('حدث خطأ: '+(r.error||''),'error');
   }catch(e){showToast('تعذر الاتصال بالسيرفر','error');}
   btn.disabled=false;
@@ -509,6 +545,58 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   document.getElementById('report-date').addEventListener('change',checkExistingReport);
 });
+
+// ══════════════════════════════════════════════════════
+// ASSIGNED TASKS HELPERS (التكليفات)
+// ══════════════════════════════════════════════════════
+function renderAssignedTasks(tasks) {
+  const container = document.getElementById('assigned-tasks-container');
+  const section = document.getElementById('assigned-tasks-section');
+  if (!tasks || tasks.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  container.innerHTML = tasks.map(t => `
+    <div class="task-card" id="assigned-task-card-${t.id}" style="margin-bottom:0; padding:12px; border-color:rgba(251, 191, 36, 0.2); background:var(--bg3);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+        <span style="font-size:11px; background:var(--warning-s); color:var(--warning); padding:2px 8px; border-radius:10px; font-weight:600; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(t['العميل'])}">${escapeHtml(t['العميل'])}</span>
+        <span style="font-size:11px; color:var(--text3); font-weight:600;">تكليف معلق</span>
+      </div>
+      <div style="font-weight:600; font-size:13px; margin-bottom:4px; color:var(--text);">${escapeHtml(t['نوع المهمة'])}</div>
+      <div style="font-size:12px; color:var(--text2); margin-bottom:10px; line-height:1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="${escapeHtml(t['وصف المهمة'])}">${escapeHtml(t['وصف المهمة']) || 'لا يوجد وصف تفصيلي'}</div>
+      <button class="btn btn-warning btn-sm" style="width:100%; justify-content:center; padding:6px; font-size:12px; background:var(--warning-s); color:var(--warning); border:1px solid rgba(251,191,36,0.2);" onclick="importAssignedTask('${t.id}', \`${escapeHtml(t['العميل'])}\`, \`${escapeHtml(t['نوع المهمة'])}\`, \`${escapeHtml(t['وصف المهمة'])}\`)">
+        ➕ إضافة للتقرير
+      </button>
+    </div>
+  `).join('');
+  section.style.display = 'block';
+}
+
+function importAssignedTask(taskId, client, tasktype, desc) {
+  // إضافة بطاقة مهمة جديدة في التقرير
+  addTask();
+  const id = taskCounter;
+  
+  // تعبئة البيانات بالقيم
+  document.getElementById(`client-${id}`).value = client;
+  document.getElementById(`tasktype-${id}`).value = tasktype;
+  document.getElementById(`desc-${id}`).value = desc;
+  
+  // ربط بطاقة التقرير مع التكليف المستورد
+  completedTasksMap[id] = taskId;
+  
+  // إخفاء بطاقة التكليف من القسم العلوي لتفادي التكرار
+  const el = document.getElementById(`assigned-task-card-${taskId}`);
+  if (el) el.style.display = 'none';
+  
+  updateStats();
+  showToast('تم إدراج التكليف في تقريرك بنجاح. يرجى إدخال الوقت الفعلي.', 'success');
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
 
 init();
 </script>
