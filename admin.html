@@ -430,7 +430,7 @@ tbody tr:hover{background:var(--bg4);}
       <!-- Client Explorer (استكشاف تفاصيل العميل) -->
       <div class="card" style="margin-bottom:1.75rem;">
         <div class="card-header" style="background:var(--bg4);">
-          <span class="card-title" style="color:var(--warning); display:flex; align-items:center; gap:6px;">🏢 استكشاف تفاصيل عميل تفاعلي</span>
+          <span class="card-title" style="color:var(--warning); display:flex; align-items:center; gap:6px;">تفاصيل المهام للعميل</span>
           <div style="display:flex; align-items:center; gap:8px;">
             <label style="font-size:12px; color:var(--text3); font-weight:500;">اختر العميل:</label>
             <input type="text" id="db-client-explorer" placeholder="ابحث عن عميل..." list="db-client-explorer-dl" oninput="exploreClientDetails()" style="font-size:12px; padding:5px 12px; width:220px; background:var(--bg4); border:1px solid var(--border); color:var(--text); border-radius:var(--radius-s); outline:none;">
@@ -1321,8 +1321,11 @@ async function loadDashboard() {
     if (!r.ok) return;
     const d = r;
 
-    // KPIs
-    document.getElementById('kpi-hours').textContent  = d.kpis.totalHours;
+    // KPIs (تحويل إجمالي الساعات لصيغة ساعات:دقائق)
+    const totalMinutes = d.hoursByTeam.reduce((acc, x) => acc + (x.minutes || 0), 0);
+    const hrs = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    document.getElementById('kpi-hours').textContent  = `${hrs}:${String(mins).padStart(2, '0')}`;
     document.getElementById('kpi-att').textContent    = d.kpis.attendanceRate;
     document.getElementById('kpi-rep').textContent    = d.kpis.totalReports;
     document.getElementById('kpi-emp').textContent    = d.kpis.totalEmployees;
@@ -1355,7 +1358,22 @@ function renderHoursChart(data) {
       datasets: [{ label: 'الساعات', data: data.map(d => (d.minutes/60).toFixed(1)),
         backgroundColor: CHART_COLORS, borderRadius: 6 }]
     },
-    options: chartOpts('الساعات')
+    options: {
+      ...chartOpts('الساعات'),
+      plugins: {
+        ...chartOpts('الساعات').plugins,
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const minutes = data[context.dataIndex].minutes || 0;
+              const hrs = Math.floor(minutes / 60);
+              const mins = minutes % 60;
+              return `المدة: ${hrs}:${String(mins).padStart(2, '0')}`;
+            }
+          }
+        }
+      }
+    }
   });
 }
 
@@ -1416,7 +1434,22 @@ function renderDonutChart(data) {
       datasets: [{ data: data.map(d => (d.minutes/60).toFixed(1)),
         backgroundColor: CHART_COLORS, borderWidth: 0, hoverOffset: 6 }]
     },
-    options: { plugins: { legend: { labels: { color: '#8b92b8', font: { family: 'IBM Plex Sans Arabic' } } } }, cutout: '65%' }
+    options: {
+      plugins: {
+        legend: { labels: { color: '#8b92b8', font: { family: 'IBM Plex Sans Arabic' } } },
+        cutout: '65%',
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const minutes = data[context.dataIndex].minutes || 0;
+              const hrs = Math.floor(minutes / 60);
+              const mins = minutes % 60;
+              return ` ${context.label}: ${hrs}:${String(mins).padStart(2, '0')}`;
+            }
+          }
+        }
+      }
+    }
   });
 }
 
@@ -2334,22 +2367,32 @@ async function exploreClientDetails() {
       }
     });
 
-    const totalHours = (totalMinutes / 60).toFixed(1);
+    const expHrs = Math.floor(totalMinutes / 60);
+    const expMins = totalMinutes % 60;
+    const expTotalHoursStr = `${expHrs}:${String(expMins).padStart(2, '0')}`;
     const uniqueTeamsCount = Object.keys(teamStats).length;
     const uniqueEmpsCount = Object.keys(empStats).length;
 
-    document.getElementById('exp-total-hours').textContent = totalHours;
+    document.getElementById('exp-total-hours').textContent = expTotalHoursStr;
     document.getElementById('exp-teams-count').textContent = uniqueTeamsCount;
     document.getElementById('exp-emps-count').textContent = uniqueEmpsCount;
 
     document.getElementById('exp-teams-tbody').innerHTML = Object.values(teamStats)
       .sort((a,b) => b.minutes - a.minutes)
-      .map(t => `<tr><td><strong>${t.name}</strong></td><td><span style="color:var(--success);font-weight:600;">${(t.minutes/60).toFixed(1)} ساعة</span></td></tr>`)
+      .map(t => {
+        const th = Math.floor(t.minutes / 60);
+        const tm = t.minutes % 60;
+        return `<tr><td><strong>${t.name}</strong></td><td><span style="color:var(--success);font-weight:600;">${th}:${String(tm).padStart(2, '0')}</span></td></tr>`;
+      })
       .join('');
 
     document.getElementById('exp-emps-tbody').innerHTML = Object.entries(empStats)
       .sort((a,b) => b[1].minutes - a[1].minutes)
-      .map(([eid, e]) => `<tr><td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${eid}','${escapeHtml(e.name)}','${e.teamId}')" title="عرض كشف الموظف">${e.name}</strong></td><td style="color:var(--text3);font-size:11px;">${e.team}</td><td><span style="color:var(--accent-l);font-weight:600;">${(e.minutes/60).toFixed(1)} ساعة</span></td></tr>`)
+      .map(([eid, e]) => {
+        const eh = Math.floor(e.minutes / 60);
+        const em = e.minutes % 60;
+        return `<tr><td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${eid}','${escapeHtml(e.name)}','${e.teamId}')" title="عرض كشف الموظف">${e.name}</strong></td><td style="color:var(--text3);font-size:11px;">${e.team}</td><td><span style="color:var(--accent-l);font-weight:600;">${eh}:${String(em).padStart(2, '0')}</span></td></tr>`;
+      })
       .join('');
 
     resultDiv.style.display = 'block';
@@ -2441,7 +2484,9 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
       rTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger); padding: 1.5rem 0;">فشل تحميل التقارير</td></tr>`;
     }
     
-    document.getElementById('emp-perf-hours').textContent = (totalMinutes / 60).toFixed(1);
+    const perfH = Math.floor(totalMinutes / 60);
+    const perfM = totalMinutes % 60;
+    document.getElementById('emp-perf-hours').textContent = `${perfH}:${String(perfM).padStart(2,'0')}`;
 
     let present = 0, absent = 0;
     if (attR.ok && attR.rows) {
