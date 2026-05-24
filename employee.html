@@ -197,13 +197,13 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
   </div>
 
   <div style="margin-bottom:1.75rem">
-    <div style="font-family:'Tajawal',sans-serif;font-size:24px;font-weight:800">تقرير المهام اليومي</div>
-    <div style="font-size:13px;color:var(--text3);margin-top:4px">أدخل مهامك ليوم العمل ثم أرسل التقرير</div>
+    <div id="emp-title-banner" style="font-family:'Tajawal',sans-serif;font-size:24px;font-weight:800">تقرير المهام اليومي</div>
+    <div id="emp-subtitle-banner" style="font-size:13px;color:var(--text3);margin-top:4px">أدخل مهامك ليوم العمل ثم أرسل التقرير</div>
   </div>
 
   <div class="info-card">
     <div class="field-group">
-      <label>الموظف</label>
+      <label id="emp-label">الموظف</label>
       <input type="text" id="emp-display" readonly style="color:var(--accent-l);font-weight:600;cursor:default;">
     </div>
     <div class="field-group">
@@ -321,6 +321,7 @@ async function apiPost(a,d){const r=await fetch(API,{method:'POST',body:JSON.str
 async function init(){
   const p=new URLSearchParams(window.location.search);
   EMP_ID=p.get('empId')||''; EMP_NAME=p.get('name')||''; TEAM_ID=p.get('teamId')||'';
+  const role=p.get('role')||'موظف';
   if(!EMP_ID||!EMP_NAME){
     document.getElementById('loading-overlay').style.display='none';
     document.getElementById('error-screen').style.display='flex';
@@ -330,7 +331,18 @@ async function init(){
   document.getElementById('emp-display').value=EMP_NAME;
   document.getElementById('header-date').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('report-date').value=new Date().toISOString().slice(0,10);
-  document.title=`تقرير ${EMP_NAME} — نظم وحلول`;
+  
+  if (role === 'مشرف') {
+    const lbl = document.getElementById('emp-label');
+    if (lbl) lbl.textContent = 'المشرف';
+    const titleBanner = document.getElementById('emp-title-banner');
+    if (titleBanner) titleBanner.textContent = 'تقرير المهام اليومي للمشرف';
+    const subtitleBanner = document.getElementById('emp-subtitle-banner');
+    if (subtitleBanner) subtitleBanner.textContent = 'أدخل مهامك ليوم العمل ثم أرسل تقرير المشرف';
+    document.title=`تقرير المشرف ${EMP_NAME} — نظم وحلول`;
+  } else {
+    document.title=`تقرير ${EMP_NAME} — نظم وحلول`;
+  }
   let isTeam1 = false;
   if (TEAM_ID.toLowerCase() === 'team-1' || TEAM_ID.toLowerCase() === 'team_1') {
     isTeam1 = true;
