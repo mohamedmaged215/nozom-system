@@ -170,6 +170,16 @@ th{padding:10px 14px;font-weight:600;color:var(--text2);text-align:right;white-s
 td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
 tbody tr:hover{background:var(--bg4);}
+tr.row-has-note td {
+  background: rgba(251, 191, 36, 0.04) !important;
+  transition: background 0.2s;
+}
+tr.row-has-note:hover td {
+  background: rgba(251, 191, 36, 0.08) !important;
+}
+tr.row-has-note td:first-child {
+  border-right: 3px solid var(--warning) !important;
+}
 .td-trunc{max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 /* ── BADGES ── */
@@ -310,7 +320,14 @@ tbody tr:hover{background:var(--bg4);}
     </div>
     <div class="login-field">
       <label>كلمة المرور</label>
-      <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(e.key==='Enter')doLogin()">
+      <div style="position: relative;">
+        <input type="password" id="login-pass" placeholder="••••••••" style="padding-left: 40px;" onkeydown="if(event.key==='Enter')doLogin()">
+        <button type="button" onclick="togglePasswordVisibility('login-pass', this)" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; outline: none; padding: 0;">👁️</button>
+      </div>
+    </div>
+    <div class="login-field" style="display: flex; align-items: center; gap: 8px; margin-top: 10px; margin-bottom: 15px; cursor: pointer; user-select: none;">
+      <input type="checkbox" id="login-remember" style="width: auto; cursor: pointer;">
+      <label for="login-remember" style="margin-bottom: 0; cursor: pointer; color: var(--text2); font-size: 12.5px; font-weight: 500;">تذكرني على هذا الجهاز</label>
     </div>
     <button class="login-btn" onclick="doLogin()">دخول</button>
     <div class="login-err" id="login-err"></div>
@@ -533,6 +550,7 @@ tbody tr:hover{background:var(--bg4);}
                 <th>إلى</th>
                 <th>المدة</th>
                 <th>الوصف</th>
+                <th>ملاحظات المشرف</th>
               </tr>
             </thead>
             <tbody id="rep-tbody">
@@ -761,20 +779,29 @@ tbody tr:hover{background:var(--bg4);}
     <div class="panel" id="panel-settings">
       <div class="settings-grid">
         <div class="settings-card">
-          <div class="settings-title">🔑 كلمة مرور الـ Admin</div>
+          <div class="settings-title" id="settings-pw-title">🔑 كلمة مرور الـ Admin</div>
           <div class="modal-field">
             <label>كلمة المرور الحالية</label>
-            <input type="password" id="pw-current" placeholder="••••••••">
+            <div style="position: relative;">
+              <input type="password" id="pw-current" placeholder="••••••••" style="padding-left: 40px; width: 100%;">
+              <button type="button" onclick="togglePasswordVisibility('pw-current', this)" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; outline: none; padding: 0;">👁️</button>
+            </div>
           </div>
           <div class="modal-field">
             <label>كلمة المرور الجديدة</label>
-            <input type="password" id="pw-new" placeholder="••••••••">
+            <div style="position: relative;">
+              <input type="password" id="pw-new" placeholder="••••••••" style="padding-left: 40px; width: 100%;">
+              <button type="button" onclick="togglePasswordVisibility('pw-new', this)" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; outline: none; padding: 0;">👁️</button>
+            </div>
           </div>
           <div class="modal-field">
             <label>تأكيد كلمة المرور</label>
-            <input type="password" id="pw-confirm" placeholder="••••••••">
+            <div style="position: relative;">
+              <input type="password" id="pw-confirm" placeholder="••••••••" style="padding-left: 40px; width: 100%;">
+              <button type="button" onclick="togglePasswordVisibility('pw-confirm', this)" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; outline: none; padding: 0;">👁️</button>
+            </div>
           </div>
-          <button class="btn btn-primary" style="margin-top:8px" onclick="changePassword()">تغيير كلمة المرور</button>
+          <button class="btn btn-primary" style="margin-top:12px" onclick="changePassword()">تغيير كلمة المرور</button>
         </div>
         <div class="settings-card">
           <div class="settings-title">ℹ️ معلومات النظام</div>
@@ -803,7 +830,13 @@ tbody tr:hover{background:var(--bg4);}
     <input type="hidden" id="team-edit-id">
     <div class="modal-field"><label>اسم التيم</label><input type="text" id="team-name-input" placeholder="مثال: تيم المحاسبة"></div>
     <div class="modal-field"><label>اسم المشرف</label><input type="text" id="team-sup-input" placeholder="اسم المشرف"></div>
-    <div class="modal-field"><label>كلمة مرور المشرف</label><input type="password" id="team-pw-input" placeholder="••••••••"></div>
+    <div class="modal-field">
+      <label>كلمة مرور المشرف</label>
+      <div style="position: relative;">
+        <input type="password" id="team-pw-input" placeholder="••••••••" style="padding-left: 40px; width: 100%;">
+        <button type="button" onclick="togglePasswordVisibility('team-pw-input', this)" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; outline: none; padding: 0;">👁️</button>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn-sm-cancel" onclick="closeModal('modal-team')">إلغاء</button>
       <button class="btn-sm-confirm" onclick="confirmTeam()">حفظ</button>
@@ -1003,6 +1036,22 @@ tbody tr:hover{background:var(--bg4);}
   </div>
 </div>
 
+<!-- Edit Supervisor Note Modal -->
+<div class="modal-overlay" id="modal-report-note">
+  <div class="modal">
+    <div class="modal-title">📝 ملاحظة المشرف على التقرير</div>
+    <input type="hidden" id="note-report-id">
+    <div class="modal-field">
+      <label>الملاحظة (مثال: المهمة أخذت وقتاً طويلاً جداً أو ملاحظات على التسليم)</label>
+      <textarea id="note-text-input" rows="4" style="width: 100%; background: var(--bg4); border: 1px solid var(--border); border-radius: var(--radius-s); color: var(--text); padding: 10px; font-family: var(--sans); font-size: 13px; outline: none; resize: vertical;" placeholder="اكتب ملاحظتك على التقرير هنا..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sm-cancel" onclick="closeModal('modal-report-note')">إلغاء</button>
+      <button class="btn-sm-confirm" onclick="saveReportNote()">حفظ</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast">
   <span class="t-icon" id="t-icon">✓</span>
@@ -1089,11 +1138,35 @@ async function initLogin() {
     if (r.ok) {
       STATE.teams = r.teams || [];
       const sel = document.getElementById('login-team');
+      sel.innerHTML = '';
       STATE.teams.forEach(t => {
         sel.innerHTML += `<option value="${t.id}">${t['اسم التيم']}</option>`;
       });
     }
   } catch(e) {}
+  
+  // فحص تسجيل الدخول التلقائي (تذكرني)
+  if (localStorage.getItem('nuzum_remember') === 'true') {
+    const role = localStorage.getItem('nuzum_role');
+    const pass = localStorage.getItem('nuzum_password');
+    const teamId = localStorage.getItem('nuzum_team_id');
+    if (role && pass) {
+      document.getElementById('login-role').value = role;
+      onRoleChange();
+      document.getElementById('login-pass').value = pass;
+      if (role === 'supervisor' && teamId) {
+        document.getElementById('login-team').value = teamId;
+      }
+      document.getElementById('login-remember').checked = true;
+      
+      // دخول تلقائي سريع
+      setTimeout(() => {
+        doLogin();
+      }, 200);
+      return;
+    }
+  }
+  
   document.getElementById('loading-overlay').style.display = 'none';
 }
 
@@ -1121,13 +1194,13 @@ async function doLogin() {
     if (!r.ok || r.error === 'unknown action: verifyLogin') {
       // fallback: مؤقتاً نقبل admin2025 للـ admin
       if (role === 'admin' && pass === 'admin2025') {
-        enterDashboard(role, null, null);
+        enterDashboard(role, null, null, pass);
         return;
       }
       if (role === 'supervisor') {
         const team = STATE.teams.find(t => t.id === teamId);
         if (team && pass === team['كلمة مرور المشرف']) {
-          enterDashboard(role, teamId, team['اسم التيم']);
+          enterDashboard(role, teamId, team['اسم التيم'], pass);
           return;
         }
       }
@@ -1136,7 +1209,7 @@ async function doLogin() {
     }
     if (r.valid) {
       const team = STATE.teams.find(t => t.id === teamId);
-      enterDashboard(role, role === 'supervisor' ? teamId : null, team ? team['اسم التيم'] : null);
+      enterDashboard(role, role === 'supervisor' ? teamId : null, team ? team['اسم التيم'] : null, pass);
     } else {
       errEl.textContent = 'كلمة المرور غلط';
     }
@@ -1145,10 +1218,21 @@ async function doLogin() {
   }
 }
 
-function enterDashboard(role, teamId, teamName) {
+function enterDashboard(role, teamId, teamName, password) {
   STATE.role = role;
   STATE.teamId = teamId;
   STATE.teamName = teamName;
+
+  // Save "Remember Me"
+  const remember = document.getElementById('login-remember').checked;
+  if (remember && password) {
+    localStorage.setItem('nuzum_remember', 'true');
+    localStorage.setItem('nuzum_role', role);
+    localStorage.setItem('nuzum_password', password);
+    if (role === 'supervisor') {
+      localStorage.setItem('nuzum_team_id', teamId);
+    }
+  }
 
   document.getElementById('login-wrap').style.display = 'none';
   document.getElementById('sidebar').style.display = 'flex';
@@ -1162,6 +1246,12 @@ function enterDashboard(role, teamId, teamName) {
     document.getElementById('nav-teams').style.display = 'none';
   } else {
     document.getElementById('nav-teams').style.display = 'flex';
+  }
+
+  // Settings password title
+  const pwTitle = document.getElementById('settings-pw-title');
+  if (pwTitle) {
+    pwTitle.textContent = role === 'admin' ? '🔑 كلمة مرور الـ Admin' : '🔑 كلمة مرور المشرف';
   }
 
   document.getElementById('new-client-team').style.display = role === 'admin' ? 'block' : 'none';
@@ -1183,6 +1273,10 @@ function enterDashboard(role, teamId, teamName) {
 }
 
 function doLogout() {
+  localStorage.removeItem('nuzum_remember');
+  localStorage.removeItem('nuzum_role');
+  localStorage.removeItem('nuzum_password');
+  localStorage.removeItem('nuzum_team_id');
   location.reload();
 }
 
@@ -1494,18 +1588,32 @@ async function loadReports() {
     const teamMap = {};
     STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
 
-    tbody.innerHTML = rows.map(r => `
-      <tr>
-        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}')" title="اضغط لعرض الأداء الشهري">${r['اسم الموظف']||''}</strong></td>
-        <td><span style="font-size:11px;color:var(--text3)">${teamMap[r.team_id]||r.team_id||''}</span></td>
-        <td>${r['التاريخ']||''}</td>
-        <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(r['العميل'])}')" title="عرض تفاصيل العميل">${r['العميل']||''}</span></td>
-        <td>${r['نوع المهمة']||''}</td>
-        <td>${r['من']||''}</td>
-        <td>${r['إلى']||''}</td>
-        <td><span style="color:var(--success);font-weight:600">${r['المدة']||''}</span></td>
-        <td class="td-trunc" title="${(r['وصف المهمة']||'').replace(/"/g,'&quot;')}">${r['وصف المهمة']||''}</td>
-      </tr>`).join('');
+    tbody.innerHTML = rows.map(r => {
+      const hasNoteClass = r['ملاحظات المشرف'] ? 'row-has-note' : '';
+      const noteText = r['ملاحظات المشرف'] || '';
+      const editBtn = (STATE.role === 'supervisor' || STATE.role === 'admin')
+        ? `<button class="btn btn-secondary btn-sm" onclick="openEditNoteModal('${r.id}')" style="padding:2px 6px; font-size:10px; flex-shrink: 0;" title="إضافة/تعديل ملاحظة">📝</button>`
+        : '';
+
+      return `
+        <tr class="${hasNoteClass}">
+          <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}')" title="اضغط لعرض الأداء الشهري">${r['اسم الموظف']||''}</strong></td>
+          <td><span style="font-size:11px;color:var(--text3)">${teamMap[r.team_id]||r.team_id||''}</span></td>
+          <td>${r['التاريخ']||''}</td>
+          <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(r['العميل'])}')" title="عرض تفاصيل العميل">${r['العميل']||''}</span></td>
+          <td>${r['نوع المهمة']||''}</td>
+          <td>${r['من']||''}</td>
+          <td>${r['إلى']||''}</td>
+          <td><span style="color:var(--success);font-weight:600">${r['المدة']||''}</span></td>
+          <td class="td-trunc" title="${(r['وصف المهمة']||'').replace(/"/g,'&quot;')}">${r['وصف المهمة']||''}</td>
+          <td>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; min-width: 140px;">
+              <span style="font-size:12px; color:var(--warning); font-weight:600; white-space: normal; word-break: break-word;">${noteText}</span>
+              ${editBtn}
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
 
     window._reportData = rows;
   } catch(e) {
@@ -1521,8 +1629,8 @@ function exportReports() {
   STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
 
   const wb = XLSX.utils.book_new();
-  const headers = ['اسم الموظف','التاريخ','العميل','نوع المهمة','من','إلى','المدة','وصف المهمة'];
-  const colWidths = [20, 14, 28, 18, 10, 10, 10, 35];
+  const headers = ['اسم الموظف','التاريخ','العميل','نوع المهمة','من','إلى','المدة','وصف المهمة','ملاحظات المشرف'];
+  const colWidths = [20, 14, 28, 18, 10, 10, 10, 35, 25];
 
   // جمع التيمات الموجودة في البيانات
   const teamIds = [...new Set(data.map(r => r.team_id))];
@@ -1539,7 +1647,7 @@ function exportReports() {
     const wsData = [];
 
     // سطر العنوان
-    wsData.push([`التيم: ${teamName}`, '', '', `الفترة: ${period}`, '', '', '', '']);
+    wsData.push([`التيم: ${teamName}`, '', '', `الفترة: ${period}`, '', '', '', '', '']);
     wsData.push([]); // فراغ
     wsData.push(headers);
 
@@ -1564,7 +1672,8 @@ function exportReports() {
         r['من']||'',
         r['إلى']||'',
         r['المدة']||'',
-        r['وصف المهمة']||''
+        r['وصف المهمة']||'',
+        r['ملاحظات المشرف']||''
       ]);
       lastEmp = r['اسم الموظف'];
     });
@@ -2060,9 +2169,26 @@ async function changePassword() {
   if (!current || !nw) { showToast('أدخل كل الحقول'); return; }
   if (nw !== confirm)  { showToast('كلمة المرور الجديدة غير متطابقة', 'error'); return; }
   try {
-    const r = await apiPost('changeAdminPassword', { current, newPassword: nw });
-    if (r.ok) showToast('تم تغيير كلمة المرور', 'success');
-    else showToast(r.error || 'خطأ', 'error');
+    let r;
+    if (STATE.role === 'supervisor') {
+      r = await apiPost('changeSupervisorPassword', { teamId: STATE.teamId, current, newPassword: nw });
+    } else {
+      r = await apiPost('changeAdminPassword', { current, newPassword: nw });
+    }
+    
+    if (r.ok) {
+      showToast(r.message || 'تم تغيير كلمة المرور بنجاح', 'success');
+      document.getElementById('pw-current').value = '';
+      document.getElementById('pw-new').value = '';
+      document.getElementById('pw-confirm').value = '';
+      
+      // تحديث الباسورد المخزن محلياً لو مفعل تذكرني
+      if (localStorage.getItem('nuzum_remember') === 'true') {
+        localStorage.setItem('nuzum_password', nw);
+      }
+    } else {
+      showToast(r.error || 'خطأ في التغيير', 'error');
+    }
   } catch(e) { showToast('تعذر الاتصال', 'error'); }
 }
 
@@ -2762,6 +2888,59 @@ async function openClientDetailsModal(clientName) {
     `).join('');
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--danger);">تعذر تحميل كارت التفاصيل بالكامل</td></tr>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// NEW HELPERS FOR CREDENTIALS & NOTES
+// ══════════════════════════════════════════════════════
+function togglePasswordVisibility(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    inp.type = 'password';
+    btn.textContent = '👁️';
+  }
+}
+
+function openEditNoteModal(id) {
+  const report = (window._reportData || []).find(r => String(r.id) === String(id));
+  if (!report) return;
+  document.getElementById('note-report-id').value = id;
+  document.getElementById('note-text-input').value = report['ملاحظات المشرف'] || '';
+  openModal('modal-report-note');
+}
+
+async function saveReportNote() {
+  const id = document.getElementById('note-report-id').value;
+  const note = document.getElementById('note-text-input').value.trim();
+  
+  document.getElementById('loading-overlay').style.display = 'flex';
+  try {
+    const r = await apiPost('updateReportNote', { id, note });
+    if (r.ok) {
+      showToast('تم حفظ ملاحظة المشرف بنجاح!', 'success');
+      closeModal('modal-report-note');
+      
+      // تحديث البيانات محلياً في الجدول فوراً لتفادي الانتظار
+      if (window._reportData) {
+        const found = window._reportData.find(x => String(x.id) === String(id));
+        if (found) {
+          found['ملاحظات المشرف'] = note;
+          // إعادة بناء الجدول
+          loadReports();
+        }
+      }
+    } else {
+      showToast(r.error || 'فشل حفظ الملاحظة', 'error');
+      document.getElementById('loading-overlay').style.display = 'none';
+    }
+  } catch (e) {
+    showToast('تعذر الاتصال بقاعدة البيانات', 'error');
+    document.getElementById('loading-overlay').style.display = 'none';
   }
 }
 </script>
