@@ -344,6 +344,30 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-report-conflict">
+  <div class="modal" style="width: 440px; max-width:90%;">
+    <div class="modal-title" style="color: var(--warning); font-size: 15px; font-weight:750; display:flex; align-items:center; gap:6px;">
+      ⚠️ تقرير مرسل مسبقاً لهذا اليوم
+    </div>
+    <div style="font-size: 13px; color: var(--text2); margin-bottom: 18px; line-height: 1.6;">
+      لقد قمت بإرسال تقرير لهذا اليوم (<span id="conflict-report-date" style="color:var(--accent-l); font-weight:700;"></span>) مسبقاً.
+      <br><br>
+      يرجى اختيار الإجراء المطلوب:
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <button class="btn" style="background:var(--success); color:#fff; width:100%; justify-content:flex-start; padding:12px 16px; font-family:var(--sans); font-weight:600;" onclick="confirmSubmitWithAppend(true)">
+        ➕ إضافة تراكمية (إضافة المهام الحالية للتقرير السابق)
+      </button>
+      <button class="btn" style="background:var(--danger); color:#fff; width:100%; justify-content:flex-start; padding:12px 16px; font-family:var(--sans); font-weight:600;" onclick="confirmSubmitWithAppend(false)">
+        🔄 استبدال بالكامل (مسح التقرير السابق واعتماد الحالي)
+      </button>
+    </div>
+    <div class="modal-actions" style="margin-top: 15px;">
+      <button class="btn-sm-cancel" onclick="closeModal('modal-report-conflict')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast">
   <span class="t-icon" id="t-icon">✓</span>
   <span id="t-msg"></span>
@@ -504,7 +528,7 @@ async function checkExistingReport(){
     const r=await apiFetch({action:'getReports',empId:EMP_ID,dateFrom:date,dateTo:date});
     if(r.ok&&r.rows&&r.rows.length>0){
       const b=document.getElementById('period-banner');
-      document.getElementById('period-text').textContent=`يوجد تقرير مُرسَل مسبقاً ليوم ${date} (${r.rows.length} مهام) — الإرسال مجدداً سيستبدله.`;
+      document.getElementById('period-text').textContent=`يوجد تقرير مُرسَل مسبقاً ليوم ${date} (${r.rows.length} مهام) — يمكنك الإضافة التراكمية عليه أو استبداله بالكامل.`;
       b.style.display='flex';
     } else {
       document.getElementById('period-banner').style.display='none';
@@ -743,15 +767,58 @@ function exportExcel(){
   showToast('تم التصدير','success');
 }
 
-async function submitReport(){
+async function submitReport(appendOverride){
   const data=collectData();
-  if(!data.date){showToast('حدد تاريخ التقرير');return;}
-  if(!data.rows.length){showToast('أضف مهمة واحدة على الأقل');return;}
-  if(!data.rows[0].client){showToast('أدخل اسم العميل للمهمة الأولى');return;}
+  if(!data.date){showToast('حدد تاريخ التقرير','error');return;}
+  if(!data.rows.length){showToast('أضف مهمة واحدة على الأقل','error');return;}
+  if(!data.rows[0].client){showToast('أدخل اسم العميل للمهمة الأولى','error');return;}
   const btn=document.getElementById('btn-submit');
   btn.disabled=true;
   btn.innerHTML='<div class="spin" style="width:18px;height:18px;border-width:2px"></div> جاري الإرسال...';
   try{
+    // 1️⃣ التسجيل التلقائي للعملاء الجدد في الخلفية
+    const pendingClients = [];
+    data.rows.forEach(r => {
+      if (r.client && !clients.includes(r.client) && !pendingClients.includes(r.client)) {
+        pendingClients.push(r.client);
+      }
+    });
+    if (pendingClients.length > 0) {
+      btn.innerHTML = '<div class="spin" style="width:18px;height:18px;border-width:2px"></div> تسجيل العملاء...';
+      for (const cName of pendingClients) {
+        try {
+          await apiPost('addClient', { name: cName, teamId: TEAM_ID });
+          clients.push(cName);
+        } catch(e) {
+          console.error("Auto client registration failed:", e);
+        }
+      }
+      // تحديث قوائم العملاء المنسدلة في الصفحة
+      taskIds.forEach(id=>{const dl=document.getElementById(`dl-${id}`);if(dl)dl.innerHTML=clients.map(c=>`<option value="${c}">`).join('');});
+      const supDl = document.getElementById('sup-manual-clients-dl');
+      if (supDl) supDl.innerHTML = clients.map(c => `<option value="${c}">`).join('');
+    }
+
+    // 2️⃣ التحقق من التقارير السابقة لنفس اليوم في حال لم يحدد الموظف مسبقاً (تراكمي أم استبدال)
+    if (appendOverride === undefined) {
+      btn.innerHTML = '<div class="spin" style="width:18px;height:18px;border-width:2px"></div> فحص التقارير...';
+      const checkRes = await apiFetch({ action: 'getReports', empId: EMP_ID, dateFrom: data.date, dateTo: data.date });
+      if (checkRes.ok && checkRes.rows && checkRes.rows.length > 0) {
+        // تعارض! إظهار نافذة الاختيار
+        document.getElementById('conflict-report-date').textContent = data.date;
+        openModal('modal-report-conflict');
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg> إرسال التقرير';
+        return;
+      } else {
+        appendOverride = false;
+      }
+    }
+
+    // 3️⃣ إرسال التقرير مع تفعيل خيار الإضافة أو الاستبدال المختار
+    data.append = appendOverride;
+    btn.innerHTML = '<div class="spin" style="width:18px;height:18px;border-width:2px"></div> جاري الحفظ...';
+
     const r=await apiPost('submitReport',data);
     if(r.ok){
       showToast(`✓ تم إرسال تقرير ${EMP_NAME} بنجاح`,'success');
@@ -762,10 +829,18 @@ async function submitReport(){
       // إخفاء قسم التكليفات المسندة بعد إرسالها واكتمالها
       document.getElementById('assigned-tasks-section').style.display = 'none';
       completedTasksMap = {};
+      
+      // تحديث حالة البانر بوجود التقرير
+      checkExistingReport();
     }else showToast('حدث خطأ: '+(r.error||''),'error');
   }catch(e){showToast('تعذر الاتصال بالسيرفر','error');}
   btn.disabled=false;
   btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg> إرسال التقرير';
+}
+
+function confirmSubmitWithAppend(isAppend) {
+  closeModal('modal-report-conflict');
+  submitReport(isAppend);
 }
 
 function openModal(id){document.getElementById(id).classList.add('open');}
@@ -946,12 +1021,27 @@ async function submitSupTaskCompletion() {
   const btn = document.getElementById('btn-sup-comp-confirm');
   btn.disabled = true;
   btn.textContent = 'جاري الإرسال...';
+
+  // التحقق من وجود العميل محلياً وإضافته خلف الكواليس إذا لم يكن مسجلاً
+  if (client && !clients.includes(client)) {
+    try {
+      await apiPost('addClient', { name: client, teamId: TEAM_ID });
+      clients.push(client);
+      // تحديث قوائم العملاء المنسدلة في الصفحة
+      taskIds.forEach(id=>{const dl=document.getElementById(`dl-${id}`);if(dl)dl.innerHTML=clients.map(c=>`<option value="${c}">`).join('');});
+      const supDl = document.getElementById('sup-manual-clients-dl');
+      if (supDl) supDl.innerHTML = clients.map(c => `<option value="${c}">`).join('');
+    } catch(e) {
+      console.error("Auto-client creation failed in task completion:", e);
+    }
+  }
   
   const payload = {
     empId: EMP_ID,
     empName: EMP_NAME,
     teamId: TEAM_ID,
     date: date,
+    append: true, // تفعيل الإضافة التراكمية دون حذف التقارير السابقة لنفس اليوم
     rows: [{
       client: client,
       tasktype: tasktype,
@@ -1007,12 +1097,27 @@ async function submitSupManualTask() {
   const btn = document.getElementById('btn-sup-manual-submit');
   btn.disabled = true;
   btn.textContent = 'جاري الإرسال...';
+
+  // التحقق من وجود العميل محلياً وإضافته خلف الكواليس إذا لم يكن مسجلاً
+  if (client && !clients.includes(client)) {
+    try {
+      await apiPost('addClient', { name: client, teamId: TEAM_ID });
+      clients.push(client); // إضافة محلياً لمنع تكرار الإضافة
+      // تحديث قوائم العملاء المنسدلة في الصفحة
+      taskIds.forEach(id=>{const dl=document.getElementById(`dl-${id}`);if(dl)dl.innerHTML=clients.map(c=>`<option value="${c}">`).join('');});
+      const supDl = document.getElementById('sup-manual-clients-dl');
+      if (supDl) supDl.innerHTML = clients.map(c => `<option value="${c}">`).join('');
+    } catch(e) {
+      console.error("Auto-client creation failed in manual task submission:", e);
+    }
+  }
   
   const payload = {
     empId: EMP_ID,
     empName: EMP_NAME,
     teamId: TEAM_ID,
     date: date,
+    append: true, // تفعيل الإضافة التراكمية دون حذف التقارير السابقة لنفس اليوم
     rows: [{
       client: client,
       tasktype: tasktype,
