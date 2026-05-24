@@ -1790,16 +1790,42 @@ function renderEmployeesList() {
   const teamMap = {};
   STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
 
-  el.innerHTML = emps.map(e => `
-    <div class="mgmt-item">
-      <div class="mgmt-item-info">
-        <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openEmployeePerformanceModal('${e.id}','${escapeHtml(e['الاسم'])}','${e.team_id}')" title="اضغط لعرض الأداء الشهري">${e['الاسم']}</div>
-        <div class="item-meta">${teamMap[e.team_id]||''} • ${e['الدور']||'موظف'}</div>
-      </div>
-      <div class="mgmt-item-actions">
-        <button class="btn btn-danger btn-sm" onclick="removeEmployee('${e.id}','${e['الاسم']}')">حذف</button>
-      </div>
-    </div>`).join('');
+  // فصل المشرفين عن الموظفين العاديين
+  const supervisors = emps.filter(e => e['الدور'] === 'مشرف');
+  const staff = emps.filter(e => e['الدور'] !== 'مشرف');
+
+  let html = '';
+
+  if (supervisors.length > 0) {
+    html += `<div style="padding:6px 12px; background:rgba(251,191,36,0.06); border-bottom:1px solid var(--border); font-size:12px; font-weight:700; color:var(--warning);">👑 المشرفين (${supervisors.length})</div>`;
+    html += supervisors.map(e => `
+      <div class="mgmt-item" style="border-bottom:1px solid var(--border); padding-left:12px; padding-right:12px;">
+        <div class="mgmt-item-info">
+          <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openEmployeePerformanceModal('${e.id}','${escapeHtml(e['الاسم'])}','${e.team_id}')" title="اضغط لعرض الأداء الشهري">${e['الاسم']}</div>
+          <div class="item-meta" style="color:var(--warning); font-size:11px;">${teamMap[e.team_id]||''} • مشرف التيم</div>
+        </div>
+        <div class="mgmt-item-actions">
+          <button class="btn btn-danger btn-sm" onclick="removeEmployee('${e.id}','${e['الاسم']}')">حذف</button>
+        </div>
+      </div>`).join('');
+  }
+
+  if (staff.length > 0) {
+    if (supervisors.length > 0) html += `<div style="margin-top:12px;"></div>`;
+    html += `<div style="padding:6px 12px; background:rgba(74,222,128,0.06); border-bottom:1px solid var(--border); font-size:12px; font-weight:700; color:var(--success);">👥 الموظفين (${staff.length})</div>`;
+    html += staff.map(e => `
+      <div class="mgmt-item" style="border-bottom:1px solid var(--border); padding-left:12px; padding-right:12px;">
+        <div class="mgmt-item-info">
+          <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openEmployeePerformanceModal('${e.id}','${escapeHtml(e['الاسم'])}','${e.team_id}')" title="اضغط لعرض الأداء الشهري">${e['الاسم']}</div>
+          <div class="item-meta" style="font-size:11px;">${teamMap[e.team_id]||''} • موظف</div>
+        </div>
+        <div class="mgmt-item-actions">
+          <button class="btn btn-danger btn-sm" onclick="removeEmployee('${e.id}','${e['الاسم']}')">حذف</button>
+        </div>
+      </div>`).join('');
+  }
+
+  el.innerHTML = html;
 }
 
 async function addEmployee() {
@@ -1911,21 +1937,53 @@ function renderLinks() {
 
   const base = window.location.origin + window.location.pathname.replace('admin.html','') + 'employee.html';
 
-  grid.innerHTML = emps.map(e => {
-    const url = `${base}?empId=${e.id}&name=${encodeURIComponent(e['الاسم'])}&teamId=${e.team_id}`;
-    const roleColor = e['الدور']==='مشرف' ? 'var(--warning)' : 'var(--success)';
-    return `<div class="link-card">
-      <div class="link-emp">${e['الاسم']}</div>
-      <div class="link-role" style="color:${roleColor}">${e['الدور']||'موظف'} • ${teamMap[e.team_id]||''}</div>
-      <div class="link-url">${url}</div>
-      <div style="display:flex;gap:6px;margin-top:6px">
-        <button class="btn-copy" onclick="copyLink('${url}')">📋 نسخ الرابط</button>
-        <a href="${url}" target="_blank" style="text-decoration:none">
-          <button class="btn-copy">🔗 فتح</button>
-        </a>
-      </div>
-    </div>`;
-  }).join('');
+  const supervisors = emps.filter(e => e['الدور'] === 'مشرف');
+  const staff = emps.filter(e => e['الدور'] !== 'مشرف');
+
+  let html = '';
+
+  if (supervisors.length > 0) {
+    html += `<div style="grid-column: 1 / -1; padding: 8px 14px; background: rgba(251,191,36,0.06); border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 700; color: var(--warning); border-radius: 6px; margin-bottom: 6px; margin-top: 10px;">👑 روابط المشرفين (${supervisors.length})</div>`;
+    html += supervisors.map(e => {
+      const url = `${base}?empId=${e.id}&name=${encodeURIComponent(e['الاسم'])}&teamId=${e.team_id}&role=${encodeURIComponent(e['الدور'] || 'موظف')}`;
+      const roleColor = 'var(--warning)';
+      return `<div class="link-card">
+        <div class="link-emp">${e['الاسم']}</div>
+        <div class="link-role" style="color:${roleColor}">${e['الدور']||'موظف'} • ${teamMap[e.team_id]||''}</div>
+        <div class="link-url">${url}</div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="btn-copy" onclick="copyLink('${url}')">📋 نسخ الرابط</button>
+          <a href="${url}" target="_blank" style="text-decoration:none">
+            <button class="btn-copy">🔗 فتح</button>
+          </a>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  if (staff.length > 0) {
+    if (supervisors.length > 0) {
+      html += `<div style="grid-column: 1 / -1; margin-top: 12px;"></div>`;
+    }
+    html += `<div style="grid-column: 1 / -1; padding: 8px 14px; background: rgba(74,222,128,0.06); border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 700; color: var(--success); border-radius: 6px; margin-bottom: 6px; margin-top: 10px;">👥 روابط الموظفين (${staff.length})</div>`;
+    html += staff.map(e => {
+      const url = `${base}?empId=${e.id}&name=${encodeURIComponent(e['الاسم'])}&teamId=${e.team_id}&role=${encodeURIComponent(e['الدور'] || 'موظف')}`;
+      const roleColor = 'var(--success)';
+      return `<div class="link-card">
+        <div class="link-emp">${e['الاسم']}</div>
+        <div class="link-role" style="color:${roleColor}">${e['الدور']||'موظف'} • ${teamMap[e.team_id]||''}</div>
+        <div class="link-url">${url}</div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="btn-copy" onclick="copyLink('${url}')">📋 نسخ الرابط</button>
+          <a href="${url}" target="_blank" style="text-decoration:none">
+            <button class="btn-copy">🔗 فتح</button>
+          </a>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  grid.innerHTML = html;
 }
 
 function copyLink(url) {
