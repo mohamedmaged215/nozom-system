@@ -843,7 +843,7 @@ tbody tr:hover{background:var(--bg4);}
     </div>
     
     <div id="emp-perf-kpis-container" style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:1.25rem;">
-      <div class="kpi-card c-blue" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">إجمالي ساعات العمل</div><div class="kpi-value c-blue" id="emp-perf-hours" style="font-size:18px;">0</div></div>
+      <div class="kpi-card c-blue" id="emp-perf-card-hours" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">إجمالي ساعات العمل</div><div class="kpi-value c-blue" id="emp-perf-hours" style="font-size:18px;">0</div></div>
       <div class="kpi-card c-green" id="emp-perf-card-present" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">أيام الحضور</div><div class="kpi-value c-green" id="emp-perf-present" style="font-size:18px;">0</div></div>
       <div class="kpi-card c-red" id="emp-perf-card-absent" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">أيام الغياب</div><div class="kpi-value c-red" id="emp-perf-absent" style="font-size:18px;">0</div></div>
       <div class="kpi-card c-purple" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">التكليفات المنجزة</div><div class="kpi-value c-purple" id="emp-perf-tasks-done" style="font-size:18px;">0</div></div>
@@ -902,7 +902,7 @@ tbody tr:hover{background:var(--bg4);}
               <th>التاريخ</th>
               <th>العميل</th>
               <th>نوع المهمة</th>
-              <th>المدة</th>
+              <th id="emp-perf-th-dur">المدة</th>
               <th>الوصف</th>
             </tr>
           </thead>
@@ -2365,18 +2365,22 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
 
   if (isSupervisor) {
     document.getElementById('emp-perf-title').textContent = `كشف أداء المشرف: ${empName}`;
+    document.getElementById('emp-perf-card-hours').style.display = 'none';
     document.getElementById('emp-perf-card-present').style.display = 'none';
     document.getElementById('emp-perf-card-absent').style.display = 'none';
     document.getElementById('perf-tab-present').style.display = 'none';
     document.getElementById('perf-tab-absent').style.display = 'none';
-    document.getElementById('emp-perf-kpis-container').style.gridTemplateColumns = 'repeat(2, 1fr)';
+    document.getElementById('emp-perf-kpis-container').style.gridTemplateColumns = '1fr';
+    document.getElementById('emp-perf-th-dur').style.display = 'none';
   } else {
     document.getElementById('emp-perf-title').textContent = `كشف أداء وحضور الموظف: ${empName}`;
+    document.getElementById('emp-perf-card-hours').style.display = 'block';
     document.getElementById('emp-perf-card-present').style.display = 'block';
     document.getElementById('emp-perf-card-absent').style.display = 'block';
     document.getElementById('perf-tab-present').style.display = 'flex';
     document.getElementById('perf-tab-absent').style.display = 'flex';
     document.getElementById('emp-perf-kpis-container').style.gridTemplateColumns = 'repeat(4, 1fr)';
+    document.getElementById('emp-perf-th-dur').style.display = '';
   }
 
   const month = document.getElementById('att-month').value || new Date().toISOString().slice(0,7);
@@ -2421,12 +2425,13 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
             const parts = dur.split(':').map(Number);
             totalMinutes += (parts[0] || 0) * 60 + (parts[1] || 0);
           }
+          const durCell = isSupervisor ? '' : `<td style="color:var(--success); font-weight:600;">${r['المدة'] || ''}</td>`;
           return `
             <tr>
               <td>${r['التاريخ'] || ''}</td>
               <td><strong>${r['العميل'] || ''}</strong></td>
               <td>${r['نوع المهمة'] || ''}</td>
-              <td style="color:var(--success); font-weight:600;">${r['المدة'] || ''}</td>
+              ${durCell}
               <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(r['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${r['وصف المهمة'] || ''}</td>
             </tr>
           `;
