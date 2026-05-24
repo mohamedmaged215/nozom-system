@@ -94,7 +94,7 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .error-sub{font-size:14px;color:var(--text3);max-width:400px;line-height:1.6;}
 .main{max-width:860px;margin:0 auto;padding:2rem 1.5rem 5rem;}
 .period-banner{background:var(--accent-s);border:1px solid rgba(79,110,247,0.2);border-radius:var(--radius);padding:11px 16px;margin-bottom:1.5rem;display:none;align-items:center;gap:10px;font-size:13px;color:var(--accent-l);}
-.info-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.5rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.info-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.5rem;display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1.25rem;}
 .field-group{display:flex;flex-direction:column;gap:7px;}
 label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;}
 select,input[type=text],input[type=date],textarea{background:var(--bg4);border:1px solid var(--border);border-radius:var(--radius-s);color:var(--text);font-family:'IBM Plex Sans Arabic',sans-serif;font-size:14px;padding:10px 14px;width:100%;transition:border-color .2s,box-shadow .2s;outline:none;appearance:none;-webkit-appearance:none;}
@@ -205,6 +205,10 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
     <div class="field-group">
       <label id="emp-label">الموظف</label>
       <input type="text" id="emp-display" readonly style="color:var(--accent-l);font-weight:600;cursor:default;">
+    </div>
+    <div class="field-group" id="team-switcher-group" style="display:none;">
+      <label style="color:var(--warning); font-weight:700;">التيم الحالي للعمل</label>
+      <select id="team-switcher" onchange="onTeamSwitch()" style="border-color:var(--warning); color:var(--warning); font-weight:600;"></select>
     </div>
     <div class="field-group">
       <label>تاريخ التقرير</label>
@@ -414,110 +418,223 @@ let clients=[], taskIds=[], taskCounter=0, activeClientTaskId=null;
 let completedTasksMap={};
 let activeSupTaskId=null;
 let currentSupRole='موظف';
+let globalTeamsList = [];
+let employeeRecords = [];
 
 async function apiFetch(p){const r=await fetch(API+'?'+new URLSearchParams(p));return r.json();}
 async function apiPost(a,d){const r=await fetch(API,{method:'POST',body:JSON.stringify({action:a,...d})});return r.json();}
 
 async function init(){
   const p=new URLSearchParams(window.location.search);
-  EMP_ID=p.get('empId')||''; EMP_NAME=p.get('name')||''; TEAM_ID=p.get('teamId')||'';
-  const role=p.get('role')||'موظف';
-  if(!EMP_ID||!EMP_NAME){
+  EMP_NAME=p.get('name')||'';
+  let urlEmpId = p.get('empId')||'';
+  let urlTeamId = p.get('teamId')||'';
+  
+  if(!EMP_NAME){
     document.getElementById('loading-overlay').style.display='none';
     document.getElementById('error-screen').style.display='flex';
     return;
   }
-  document.getElementById('emp-badge').textContent=EMP_NAME;
-  document.getElementById('emp-display').value=EMP_NAME;
+
+  // 1️⃣ جلب الفرق والموظفين للتحقق من الفرق المشترك فيها
+  try {
+    const [tr, er] = await Promise.all([
+      apiFetch({action:'getTeams'}),
+      apiFetch({action:'getEmployees'})
+    ]);
+
+    if (tr.ok && tr.teams) {
+      globalTeamsList = tr.teams;
+    }
+    
+    if (er.ok && er.employees) {
+      employeeRecords = er.employees.filter(e => e['الاسم'] === EMP_NAME && e['نشط'] === 'نعم');
+    }
+  } catch(e) {
+    console.error("Failed to load initial teams/employees:", e);
+  }
+
+  if (employeeRecords.length === 0) {
+    document.getElementById('loading-overlay').style.display='none';
+    document.getElementById('error-screen').style.display='flex';
+    return;
+  }
+
+  // 2️⃣ إعداد مبدل الفرق إذا كان مشتركاً في أكثر من فريق
+  const switcherGroup = document.getElementById('team-switcher-group');
+  const switcher = document.getElementById('team-switcher');
+  
+  if (employeeRecords.length > 1) {
+    const teamMap = {};
+    globalTeamsList.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+
+    switcher.innerHTML = employeeRecords.map(r => {
+      const tName = teamMap[r.team_id] || r.team_id;
+      return `<option value="${r.id}">${tName}</option>`;
+    }).join('');
+    
+    // محاولة اختيار الفريق الممرر في الرابط كافتراضي
+    if (urlTeamId && employeeRecords.some(r => r.team_id === urlTeamId)) {
+      const matched = employeeRecords.find(r => r.team_id === urlTeamId);
+      switcher.value = matched.id;
+    } else if (urlEmpId && employeeRecords.some(r => r.id === urlEmpId)) {
+      switcher.value = urlEmpId;
+    }
+    
+    switcherGroup.style.display = 'block';
+  } else {
+    switcherGroup.style.display = 'none';
+  }
+
+  // 3️⃣ تفعيل الفريق الافتراضي والبدء
+  const activeRecord = employeeRecords.find(r => r.id === switcher.value) || employeeRecords[0];
+  EMP_ID = activeRecord.id;
+  TEAM_ID = activeRecord.team_id;
+  const role = activeRecord.role || activeRecord['الدور'] || 'موظف';
+  currentSupRole = role;
+
   document.getElementById('header-date').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('report-date').value=new Date().toISOString().slice(0,10);
-  
-  if (role === 'مشرف') {
+
+  // تشغيل التهيئة والتنبيهات للفريق الحالي
+  await onTeamSwitch();
+}
+
+async function onTeamSwitch() {
+  document.getElementById('loading-overlay').style.display='flex';
+  document.getElementById('main-content').style.display='none';
+
+  const selectedEmpId = document.getElementById('team-switcher').value || EMP_ID;
+  const record = employeeRecords.find(r => r.id === selectedEmpId);
+  if (record) {
+    EMP_ID = record.id;
+    TEAM_ID = record.team_id;
+    const role = record.role || record['الدور'] || 'موظف';
+    currentSupRole = role;
+
+    // تحديث الشارات والنصوص في الهيدر
+    document.getElementById('emp-badge').textContent=EMP_NAME;
+    document.getElementById('emp-display').value=EMP_NAME;
+    
+    // تحديث نوع الدور
     const lbl = document.getElementById('emp-label');
-    if (lbl) lbl.textContent = 'المشرف';
     const titleBanner = document.getElementById('emp-title-banner');
-    if (titleBanner) titleBanner.textContent = 'تقرير المهام اليومي للمشرف';
     const subtitleBanner = document.getElementById('emp-subtitle-banner');
-    if (subtitleBanner) subtitleBanner.textContent = 'أدخل مهامك ليوم العمل ثم أرسل تقرير المشرف';
-    document.title=`تقرير المشرف ${EMP_NAME} — نظم وحلول`;
-  } else {
-    document.title=`تقرير ${EMP_NAME} — نظم وحلول`;
-  }
-  let isTeam1 = false;
-  if (TEAM_ID.toLowerCase() === 'team-1' || TEAM_ID.toLowerCase() === 'team_1') {
-    isTeam1 = true;
-  }
-  try{
-    const tr=await apiFetch({action:'getTeams'});
-    if(tr.ok&&tr.teams){
-      const t=tr.teams.find(t=>t.id===TEAM_ID);
-      if(t){
-        const teamName = t['اسم التيم'] || '';
-        document.getElementById('team-badge').textContent=teamName;
-        isTeam1 = teamName.includes('تيم 1') || teamName.toLowerCase().includes('team 1') || teamName.toLowerCase().includes('team-1') || TEAM_ID.toLowerCase() === 'team-1' || TEAM_ID.toLowerCase() === 'team_1';
-      } else {
-        document.getElementById('team-badge').textContent=TEAM_ID;
-      }
-    }
-  }catch(e){}
-  try{
-    const cr=await apiFetch({action:'getClients', teamId: TEAM_ID});
-    const delList = cr.deletedDefaultClients || [];
-    const baseDefaults = DEFAULT_CLIENTS.filter(name => !delList.includes(name));
-    if(cr.ok&&cr.clients){
-      const fromSheet = cr.clients.map(c=>c.name||c);
-      if (isTeam1) {
-        const merged = [...new Set([...baseDefaults, ...fromSheet])];
-        clients = merged;
-      } else {
-        clients = fromSheet;
-      }
+    
+    if (role === 'مشرف') {
+      if (lbl) lbl.textContent = 'المشرف';
+      if (titleBanner) titleBanner.textContent = 'تقرير المهام اليومي للمشرف';
+      if (subtitleBanner) subtitleBanner.textContent = 'أدخل مهامك ليوم العمل ثم أرسل تقرير المشرف';
+      document.title=`تقرير المشرف ${EMP_NAME} — نظم وحلول`;
     } else {
-      clients = isTeam1 ? [...baseDefaults] : [];
+      if (lbl) lbl.textContent = 'الموظف';
+      if (titleBanner) titleBanner.textContent = 'تقرير المهام اليومي';
+      if (subtitleBanner) subtitleBanner.textContent = 'أدخل مهامك ليوم العمل ثم أرسل التقرير';
+      document.title=`تقرير ${EMP_NAME} — نظم وحلول`;
     }
-  }catch(e){
-    clients=isTeam1 ? [...DEFAULT_CLIENTS] : [];
-  }
-  checkExistingReport();
-  currentSupRole = role;
-  if (role === 'مشرف') {
-    // إخفاء مكونات تقرير الموظف ذو الوقت
-    const statsRow = document.querySelector('.stats-row');
-    if (statsRow) statsRow.style.display = 'none';
-    const sectionHeaders = document.querySelectorAll('.section-header');
-    sectionHeaders.forEach(el => {
-      // نخفي بس الميقاتي العادي
-      if (!el.parentElement.id || el.parentElement.id !== 'supervisor-board') {
-        el.style.display = 'none';
-      }
-    });
-    const tasksCont = document.getElementById('tasks-container');
-    if (tasksCont) tasksCont.style.display = 'none';
-    const btnAddTask = document.querySelector('.btn-add-task');
-    if (btnAddTask) btnAddTask.style.display = 'none';
-    const divider = document.querySelector('.divider');
-    if (divider) divider.style.display = 'none';
-    const actions = document.querySelector('.actions');
-    if (actions) actions.style.display = 'none';
-    const assignedSection = document.getElementById('assigned-tasks-section');
-    if (assignedSection) assignedSection.style.display = 'none';
 
-    // إظهار لوحة المشرفين
-    document.getElementById('supervisor-board').style.display = 'block';
+    // جلب اسم الفريق وتحديث الشارة
+    let isTeam1 = false;
+    if (TEAM_ID.toLowerCase() === 'team-1' || TEAM_ID.toLowerCase() === 'team_1') {
+      isTeam1 = true;
+    }
+    const t = globalTeamsList.find(t=>t.id===TEAM_ID);
+    if(t){
+      const teamName = t['اسم التيم'] || '';
+      document.getElementById('team-badge').textContent=teamName;
+      isTeam1 = teamName.includes('تيم 1') || teamName.toLowerCase().includes('team 1') || teamName.toLowerCase().includes('team-1') || TEAM_ID.toLowerCase() === 'team-1' || TEAM_ID.toLowerCase() === 'team_1';
+    } else {
+      document.getElementById('team-badge').textContent=TEAM_ID;
+    }
 
-    // تحميل لوحة مهام المشرف
-    await loadSupervisorBoard();
-  } else {
-    // جلب التكليفات المسندة للموظف العادي
-    try {
-      const tr = await apiFetch({ action: 'getAssignedTasks', empId: EMP_ID, status: 'معلقة' });
-      if (tr.ok && tr.tasks && tr.tasks.length > 0) {
-        renderAssignedTasks(tr.tasks);
+    // جلب العملاء للفريق المختار
+    try{
+      const cr=await apiFetch({action:'getClients', teamId: TEAM_ID});
+      const delList = cr.deletedDefaultClients || [];
+      const baseDefaults = DEFAULT_CLIENTS.filter(name => !delList.includes(name));
+      if(cr.ok&&cr.clients){
+        const fromSheet = cr.clients.map(c=>c.name||c);
+        if (isTeam1) {
+          clients = [...new Set([...baseDefaults, ...fromSheet])];
+        } else {
+          clients = fromSheet;
+        }
+      } else {
+        clients = isTeam1 ? [...baseDefaults] : [];
       }
-    } catch(e) {}
-    addTask();
+    }catch(e){
+      clients=isTeam1 ? [...DEFAULT_CLIENTS] : [];
+    }
+
+    // مسح الحاويات والبطاقات الحالية وإعادة التهيئة
+    document.getElementById('tasks-container').innerHTML = '';
+    taskIds = [];
+    taskCounter = 0;
+    completedTasksMap = {};
+
+    // إخفاء أو إظهار لوحة المشرف والعادي
+    if (role === 'مشرف') {
+      // إخفاء مكونات تقرير الموظف ذو الوقت
+      const statsRow = document.querySelector('.stats-row');
+      if (statsRow) statsRow.style.display = 'none';
+      const sectionHeaders = document.querySelectorAll('.section-header');
+      sectionHeaders.forEach(el => {
+        if (!el.parentElement.id || el.parentElement.id !== 'supervisor-board') {
+          el.style.display = 'none';
+        }
+      });
+      const tasksCont = document.getElementById('tasks-container');
+      if (tasksCont) tasksCont.style.display = 'none';
+      const btnAddTask = document.querySelector('.btn-add-task');
+      if (btnAddTask) btnAddTask.style.display = 'none';
+      const divider = document.querySelector('.divider');
+      if (divider) divider.style.display = 'none';
+      const actions = document.querySelector('.actions');
+      if (actions) actions.style.display = 'none';
+      const assignedSection = document.getElementById('assigned-tasks-section');
+      if (assignedSection) assignedSection.style.display = 'none';
+
+      // إظهار لوحة المشرفين
+      document.getElementById('supervisor-board').style.display = 'block';
+
+      // تحميل لوحة مهام المشرف
+      await loadSupervisorBoard();
+    } else {
+      // إظهار مكونات تقرير الموظف
+      const statsRow = document.querySelector('.stats-row');
+      if (statsRow) statsRow.style.display = 'grid';
+      const sectionHeaders = document.querySelectorAll('.section-header');
+      sectionHeaders.forEach(el => {
+        if (!el.parentElement.id || el.parentElement.id !== 'supervisor-board') {
+          el.style.display = 'block';
+        }
+      });
+      const tasksCont = document.getElementById('tasks-container');
+      if (tasksCont) tasksCont.style.display = 'block';
+      const btnAddTask = document.querySelector('.btn-add-task');
+      if (btnAddTask) btnAddTask.style.display = 'flex';
+      const divider = document.querySelector('.divider');
+      if (divider) divider.style.display = 'block';
+      const actions = document.querySelector('.actions');
+      if (actions) actions.style.display = 'grid';
+      document.getElementById('supervisor-board').style.display = 'none';
+
+      // جلب التكليفات المسندة للموظف العادي
+      try {
+        const tr = await apiFetch({ action: 'getAssignedTasks', empId: EMP_ID, status: 'معلقة' });
+        if (tr.ok && tr.tasks && tr.tasks.length > 0) {
+          renderAssignedTasks(tr.tasks);
+        } else {
+          document.getElementById('assigned-tasks-section').style.display = 'none';
+        }
+      } catch(e) {}
+      addTask();
+    }
+
+    // تحديث التنبيه بالتقرير المسبق
+    await checkExistingReport();
   }
-  
+
   document.getElementById('loading-overlay').style.display='none';
   document.getElementById('main-content').style.display='block';
 }
@@ -976,8 +1093,7 @@ function renderSupervisorTasks(tasks) {
   if (!tasks || tasks.length === 0) {
     container.innerHTML = `
       <div class="empty" style="grid-column: 1 / -1; padding: 3rem; background: var(--bg3); border-radius: var(--radius); border: 1px dashed var(--border);">
-        <div class="empty-icon" style="font-size: 28px;">🎉</div>
-        <div class="empty-text" style="color: var(--success); font-weight:600; font-size:13.5px;">ممتاز! لا توجد أي تكليفات معلقة مسندة إليك حالياً.</div>
+        <div class="empty-text" style="color: var(--text3); font-weight:600; font-size:13.5px;">ليس لديك مهام مرسله اليك حتي الان</div>
       </div>
     `;
     return;
