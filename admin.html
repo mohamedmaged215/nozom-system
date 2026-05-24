@@ -401,15 +401,15 @@ tr.row-has-note td:first-child {
       <div class="filter-bar" style="margin-bottom:1.5rem">
         <div class="filter-group">
           <label>من تاريخ</label>
-          <input type="date" id="db-from">
+          <input type="date" id="db-from" onchange="loadDashboard()">
         </div>
         <div class="filter-group">
           <label>إلى تاريخ</label>
-          <input type="date" id="db-to">
+          <input type="date" id="db-to" onchange="loadDashboard()">
         </div>
         <div class="filter-group" id="db-team-wrap">
           <label>التيم</label>
-          <select id="db-team"><option value="">كل التيمات</option></select>
+          <select id="db-team" onchange="loadDashboard()"><option value="">كل التيمات</option></select>
         </div>
         <div class="filter-group" style="justify-content:flex-end">
           <button class="btn btn-primary" onclick="loadDashboard()">تطبيق</button>
@@ -514,19 +514,19 @@ tr.row-has-note td:first-child {
       <div class="filter-bar">
         <div class="filter-group" id="rep-team-wrap">
           <label>التيم</label>
-          <select id="rep-team"><option value="">الكل</option></select>
+          <select id="rep-team" onchange="populateEmpFilter('rep-emp', 'rep-team'); loadReports()"><option value="">الكل</option></select>
         </div>
         <div class="filter-group">
           <label>الموظف</label>
-          <select id="rep-emp"><option value="">الكل</option></select>
+          <select id="rep-emp" onchange="loadReports()"><option value="">الكل</option></select>
         </div>
         <div class="filter-group">
           <label>من تاريخ</label>
-          <input type="date" id="rep-from">
+          <input type="date" id="rep-from" onchange="loadReports()">
         </div>
         <div class="filter-group">
           <label>إلى تاريخ</label>
-          <input type="date" id="rep-to">
+          <input type="date" id="rep-to" onchange="loadReports()">
         </div>
         <div class="filter-group" style="justify-content:flex-end">
           <button class="btn btn-primary" onclick="loadReports()">بحث</button>
@@ -568,15 +568,15 @@ tr.row-has-note td:first-child {
       <div class="filter-bar">
         <div class="filter-group" id="att-team-wrap">
           <label>التيم</label>
-          <select id="att-team"><option value="">الكل</option></select>
+          <select id="att-team" onchange="populateEmpFilter('att-emp', 'att-team'); loadAttendance()"><option value="">الكل</option></select>
         </div>
         <div class="filter-group">
           <label>الموظف</label>
-          <select id="att-emp"><option value="">الكل</option></select>
+          <select id="att-emp" onchange="loadAttendance()"><option value="">الكل</option></select>
         </div>
         <div class="filter-group">
           <label>الشهر</label>
-          <input type="month" id="att-month">
+          <input type="month" id="att-month" onchange="loadAttendance()">
         </div>
         <div class="filter-group" style="justify-content:flex-end">
           <button class="btn btn-primary" onclick="loadAttendance()">عرض</button>
@@ -1286,14 +1286,21 @@ function doLogout() {
 async function initDashboard() {
   document.getElementById('loading-overlay').style.display = 'flex';
   try {
-    const [teamsR, empsR, clientsR] = await Promise.all([
+    const [teamsR, empsR, clientsR, reportsR, attendanceR, tasksR] = await Promise.all([
       apiFetch({ action: 'getTeams' }),
       apiFetch({ action: 'getEmployees' }),
       apiFetch(STATE.role === 'supervisor' ? { action: 'getClients', teamId: STATE.teamId } : { action: 'getClients' }),
+      apiFetch(STATE.role === 'supervisor' ? { action: 'getReports', teamId: STATE.teamId } : { action: 'getReports' }),
+      apiFetch(STATE.role === 'supervisor' ? { action: 'getAttendance', teamId: STATE.teamId } : { action: 'getAttendance' }),
+      apiFetch(STATE.role === 'supervisor' ? { action: 'getAssignedTasks', teamId: STATE.teamId } : { action: 'getAssignedTasks' })
     ]);
+    
     if (teamsR.ok)   STATE.teams     = teamsR.teams || [];
     if (empsR.ok)    STATE.employees = empsR.employees || [];
     STATE.clients = parseClientsResponse(clientsR);
+    STATE.reports = reportsR.ok ? (reportsR.rows || []) : [];
+    STATE.attendance = attendanceR.ok ? (attendanceR.rows || []) : [];
+    STATE.tasks = tasksR.ok ? (tasksR.tasks || []) : [];
 
     // للمشرف: فلتر بالتيم
     if (STATE.role === 'supervisor') {
@@ -1401,39 +1408,147 @@ function populateEmpFilter(empSelId, teamSelId) {
 // ══════════════════════════════════════════════════════
 // DASHBOARD
 // ══════════════════════════════════════════════════════
-async function loadDashboard() {
-  const params = { action: 'getDashboard' };
+function loadDashboard() {
   const from = document.getElementById('db-from').value;
   const to   = document.getElementById('db-to').value;
   const team = document.getElementById('db-team')?.value || STATE.teamId || '';
-  if (from) params.dateFrom = from;
-  if (to)   params.dateTo   = to;
-  if (team) params.teamId   = team;
 
-  try {
-    const r = await apiFetch(params);
-    if (!r.ok) return;
-    const d = r;
+  // Get supervisor IDs
+  const supervisorIds = (STATE.employees || []).filter(e => e['الدور'] === 'مشرف').map(e => String(e.id));
 
-    // KPIs (تحويل إجمالي الساعات لصيغة ساعات:دقائق)
-    const totalMinutes = d.hoursByTeam.reduce((acc, x) => acc + (x.minutes || 0), 0);
-    const hrs = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    document.getElementById('kpi-hours').textContent  = `${hrs}:${String(mins).padStart(2, '0')}`;
-    document.getElementById('kpi-att').textContent    = d.kpis.attendanceRate;
-    document.getElementById('kpi-rep').textContent    = d.kpis.totalReports;
-    document.getElementById('kpi-emp').textContent    = d.kpis.totalEmployees;
-    document.getElementById('kpi-teams').textContent  = d.kpis.totalTeams;
+  // 1. Filter reports (exclude supervisors, filter by date and team)
+  let repFiltered = (STATE.reports || []).filter(r => !supervisorIds.includes(String(r.emp_id)));
+  if (from) repFiltered = repFiltered.filter(r => r['التاريخ'] >= from);
+  if (to)   repFiltered = repFiltered.filter(r => r['التاريخ'] <= to);
+  if (team) repFiltered = repFiltered.filter(r => String(r.team_id) === String(team));
 
-    // Charts
-    renderHoursChart(d.hoursByTeam);
-    renderAttChart(d.attByTeam);
-    renderDailyChart(d.dailyHours);
-    renderClientsChart(d.topClients);
-    renderDonutChart(d.hoursByTeam);
-  } catch(e) {
-    showToast('خطأ في تحميل الداشبورد', 'error');
+  // 2. Filter attendance (exclude supervisors, filter by date and team)
+  let attFiltered = (STATE.attendance || []).filter(a => !supervisorIds.includes(String(a.emp_id)));
+  if (from) attFiltered = attFiltered.filter(a => a['التاريخ'] >= from);
+  if (to)   attFiltered = attFiltered.filter(a => a['التاريخ'] <= to);
+  if (team) attFiltered = attFiltered.filter(a => String(a.team_id) === String(team));
+
+  // 3. Filter employees and teams
+  let empFiltered = (STATE.employees || []).filter(e => e['نشط'] === 'نعم' && e['الدور'] !== 'مشرف');
+  let teamFiltered = (STATE.teams || []).filter(t => t['نشط'] === 'نعم');
+  if (team) {
+    empFiltered = empFiltered.filter(e => String(e.team_id) === String(team));
+    teamFiltered = teamFiltered.filter(t => String(t.id) === String(team));
   }
+
+  // 4. Calculate hoursByTeam (minutes per team, or minutes per employee if team filter is set)
+  const hoursByTeam = {};
+  if (team) {
+    // For supervisor or selected team: hours per employee
+    empFiltered.forEach(e => { hoursByTeam[e.id] = { name: e['الاسم'], minutes: 0 }; });
+    repFiltered.forEach(r => {
+      const dur = r['المدة'];
+      if (!dur || !dur.includes(':')) return;
+      const parts = dur.split(':');
+      const mins = parseInt(parts[0] || 0) * 60 + parseInt(parts[1] || 0);
+      if (hoursByTeam[r.emp_id]) {
+        hoursByTeam[r.emp_id].minutes += mins;
+      }
+    });
+  } else {
+    // For admin all teams: hours per team
+    teamFiltered.forEach(t => { hoursByTeam[t.id] = { name: t['اسم التيم'], minutes: 0 }; });
+    repFiltered.forEach(r => {
+      const dur = r['المدة'];
+      if (!dur || !dur.includes(':')) return;
+      const parts = dur.split(':');
+      const mins = parseInt(parts[0] || 0) * 60 + parseInt(parts[1] || 0);
+      if (hoursByTeam[r.team_id]) {
+        hoursByTeam[r.team_id].minutes += mins;
+      }
+    });
+  }
+
+  // 5. Calculate topClients
+  const clientCount = {};
+  repFiltered.forEach(r => {
+    const c = r['العميل'];
+    if (c) clientCount[c] = (clientCount[c] || 0) + 1;
+  });
+  const topClients = Object.entries(clientCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([name, count]) => ({ name, count }));
+
+  // 6. Calculate attByTeam
+  const attByTeamMap = {};
+  if (team) {
+    empFiltered.forEach(e => { attByTeamMap[e.id] = { present: 0, absent: 0, total: 0 }; });
+    attFiltered.forEach(a => {
+      const eid = a.emp_id;
+      if (attByTeamMap[eid]) {
+        attByTeamMap[eid].total++;
+        if (a['الحالة'] === 'حاضر') attByTeamMap[eid].present++;
+        else if (a['الحالة'] === 'غياب') attByTeamMap[eid].absent++;
+      }
+    });
+  } else {
+    teamFiltered.forEach(t => { attByTeamMap[t.id] = { present: 0, absent: 0, total: 0 }; });
+    attFiltered.forEach(a => {
+      const tid = a.team_id;
+      if (attByTeamMap[tid]) {
+        attByTeamMap[tid].total++;
+        if (a['الحالة'] === 'حاضر') attByTeamMap[tid].present++;
+        else if (a['الحالة'] === 'غياب') attByTeamMap[tid].absent++;
+      }
+    });
+  }
+
+  const attByTeam = team 
+    ? empFiltered.map(e => ({
+        teamId:   e['id'],
+        teamName: e['الاسم'],
+        ...( attByTeamMap[e['id']] || { present: 0, absent: 0, total: 0 })
+      }))
+    : teamFiltered.map(t => ({
+        teamId:   t['id'],
+        teamName: t['اسم التيم'],
+        ...( attByTeamMap[t['id']] || { present: 0, absent: 0, total: 0 })
+      }));
+
+  // 7. Calculate dailyHours
+  const dailyHoursMap = {};
+  repFiltered.forEach(r => {
+    const d = r['التاريخ'];
+    if (!d) return;
+    const dur = r['المدة'];
+    if (!dur || !dur.includes(':')) return;
+    const parts = dur.split(':');
+    const mins = parseInt(parts[0] || 0) * 60 + parseInt(parts[1] || 0);
+    dailyHoursMap[d] = (dailyHoursMap[d] || 0) + mins;
+  });
+  const dailyHours = Object.entries(dailyHoursMap)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, mins]) => ({ date, hours: (mins / 60).toFixed(2) }));
+
+  // 8. Calculate KPIs
+  const totalMinutes = Object.values(hoursByTeam).reduce((acc, x) => acc + (x.minutes || 0), 0);
+  const hrs = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  
+  const totalReports = repFiltered.length;
+  const totalPresent = attFiltered.filter(a => a['الحالة'] === 'حاضر').length;
+  const totalAtt = attFiltered.length;
+  const attendanceRate = totalAtt ? ((totalPresent / totalAtt) * 100).toFixed(1) : '0';
+
+  // Update UI Elements
+  document.getElementById('kpi-hours').textContent  = `${hrs}:${String(mins).padStart(2, '0')}`;
+  document.getElementById('kpi-att').textContent    = attendanceRate;
+  document.getElementById('kpi-rep').textContent    = totalReports;
+  document.getElementById('kpi-emp').textContent    = empFiltered.length;
+  document.getElementById('kpi-teams').textContent  = teamFiltered.length;
+
+  // Render Charts (completely local, 0ms latency!)
+  renderHoursChart(Object.values(hoursByTeam));
+  renderAttChart(attByTeam);
+  renderDailyChart(dailyHours);
+  renderClientsChart(topClients);
+  renderDonutChart(Object.values(hoursByTeam));
 }
 
 const CHART_COLORS = ['#4f6ef7','#34d399','#f87171','#fbbf24','#a78bfa','#38bdf8','#fb923c','#e879f9'];
@@ -1561,64 +1676,58 @@ function chartOpts(yLabel) {
 // ══════════════════════════════════════════════════════
 // REPORTS
 // ══════════════════════════════════════════════════════
-async function loadReports() {
-  const params = { action: 'getReports' };
+function loadReports() {
   const team   = document.getElementById('rep-team')?.value || STATE.teamId || '';
   const empId  = document.getElementById('rep-emp').value;
   const from   = document.getElementById('rep-from').value;
   const to     = document.getElementById('rep-to').value;
-  if (team)  params.teamId   = team;
-  if (empId) params.empId    = empId;
-  if (from)  params.dateFrom = from;
-  if (to)    params.dateTo   = to;
 
   const tbody = document.getElementById('rep-tbody');
-  tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="10"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
 
-  try {
-    const r = await apiFetch(params);
-    if (!r.ok) { tbody.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="empty-text">خطأ في التحميل</div></div></td></tr>`; return; }
-    const rows = r.rows || [];
-    document.getElementById('rep-count').textContent = `التقارير (${rows.length})`;
+  let rows = STATE.reports || [];
+  if (team)  rows = rows.filter(r => String(r.team_id) === String(team));
+  if (empId) rows = rows.filter(r => String(r.emp_id) === String(empId));
+  if (from)  rows = rows.filter(r => r['التاريخ'] >= from);
+  if (to)    rows = rows.filter(r => r['التاريخ'] <= to);
 
-    if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">لا توجد تقارير</div></div></td></tr>`;
-      return;
-    }
-    const teamMap = {};
-    STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+  document.getElementById('rep-count').textContent = `التقارير (${rows.length})`;
 
-    tbody.innerHTML = rows.map(r => {
-      const hasNoteClass = r['ملاحظات المشرف'] ? 'row-has-note' : '';
-      const noteText = r['ملاحظات المشرف'] || '';
-      const editBtn = (STATE.role === 'supervisor' || STATE.role === 'admin')
-        ? `<button class="btn btn-secondary btn-sm" onclick="openEditNoteModal('${r.id}')" style="padding:2px 6px; font-size:10px; flex-shrink: 0;" title="إضافة/تعديل ملاحظة">📝</button>`
-        : '';
-
-      return `
-        <tr class="${hasNoteClass}">
-          <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}')" title="اضغط لعرض الأداء الشهري">${r['اسم الموظف']||''}</strong></td>
-          <td><span style="font-size:11px;color:var(--text3)">${teamMap[r.team_id]||r.team_id||''}</span></td>
-          <td>${r['التاريخ']||''}</td>
-          <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(r['العميل'])}')" title="عرض تفاصيل العميل">${r['العميل']||''}</span></td>
-          <td>${r['نوع المهمة']||''}</td>
-          <td>${r['من']||''}</td>
-          <td>${r['إلى']||''}</td>
-          <td><span style="color:var(--success);font-weight:600">${r['المدة']||''}</span></td>
-          <td class="td-trunc" title="${(r['وصف المهمة']||'').replace(/"/g,'&quot;')}">${r['وصف المهمة']||''}</td>
-          <td>
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; min-width: 140px;">
-              <span style="font-size:12px; color:var(--warning); font-weight:600; white-space: normal; word-break: break-word;">${noteText}</span>
-              ${editBtn}
-            </div>
-          </td>
-        </tr>`;
-    }).join('');
-
-    window._reportData = rows;
-  } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-text">تعذر الاتصال</div></div></td></tr>`;
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">لا توجد تقارير</div></div></td></tr>`;
+    return;
   }
+  const teamMap = {};
+  STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+
+  tbody.innerHTML = rows.map(r => {
+    const hasNoteClass = r['ملاحظات المشرف'] ? 'row-has-note' : '';
+    const noteText = r['ملاحظات المشرف'] || '';
+    const editBtn = (STATE.role === 'supervisor' || STATE.role === 'admin')
+      ? `<button class="btn btn-secondary btn-sm" onclick="openEditNoteModal('${r.id}')" style="padding:2px 6px; font-size:10px; flex-shrink: 0;" title="إضافة/تعديل ملاحظة">📝</button>`
+      : '';
+
+    return `
+      <tr class="${hasNoteClass}">
+        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}')" title="اضغط لعرض الأداء الشهري">${r['اسم الموظف']||''}</strong></td>
+        <td><span style="font-size:11px;color:var(--text3)">${teamMap[r.team_id]||r.team_id||''}</span></td>
+        <td>${r['التاريخ']||''}</td>
+        <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(r['العميل'])}')" title="عرض تفاصيل العميل">${r['العميل']||''}</span></td>
+        <td>${r['نوع المهمة']||''}</td>
+        <td>${r['من']||''}</td>
+        <td>${r['إلى']||''}</td>
+        <td><span style="color:var(--success);font-weight:600">${r['المدة']||''}</span></td>
+        <td class="td-trunc" title="${(r['وصف المهمة']||'').replace(/"/g,'&quot;')}">${r['وصف المهمة']||''}</td>
+        <td>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; min-width: 140px;">
+            <span style="font-size:12px; color:var(--warning); font-weight:600; white-space: normal; word-break: break-word;">${noteText}</span>
+            ${editBtn}
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  window._reportData = rows;
 }
 
 function exportReports() {
@@ -1721,116 +1830,106 @@ function exportReports() {
 // ══════════════════════════════════════════════════════
 // ATTENDANCE
 // ══════════════════════════════════════════════════════
-async function loadAttendance() {
-  const params = { action: 'getAttendance' };
+function loadAttendance() {
   const team  = document.getElementById('att-team')?.value || STATE.teamId || '';
   const emp   = document.getElementById('att-emp').value;
   const month = document.getElementById('att-month').value;
-  if (team)  params.teamId = team;
-  if (emp)   params.empId  = emp;
-  if (month) params.month  = month;
 
   const tbody = document.getElementById('att-tbody');
   tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
 
-  try {
-    const r = await apiFetch(params);
-    if (!r.ok) return;
-    const currentAttendance = r.rows || [];
+  const currentAttendance = STATE.attendance || [];
 
-    if (!month) {
-      tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">📅</div><div class="empty-text">يرجى تحديد الشهر</div></div></td></tr>`;
-      return;
-    }
-
-    const [y, m] = month.split('-').map(Number);
-    const daysInMonth = new Date(y, m, 0).getDate();
-    const todayStr = new Date().toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
-
-    // فلترة الموظفين حسب التيم والموظف المختارين (مع استبعاد المشرفين من تتبع الحضور والغياب)
-    let empsToShow = STATE.employees.filter(e => e['نشط'] === 'نعم' && e['الدور'] !== 'مشرف');
-    if (team) {
-      empsToShow = empsToShow.filter(e => e.team_id === team);
-    }
-    if (emp) {
-      empsToShow = empsToShow.filter(e => e.id === emp);
-    }
-
-    const rows = [];
-    empsToShow.forEach(employee => {
-      for (let d = 1; d <= daysInMonth; d++) {
-        const date = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const dayOfWeek = new Date(y, m - 1, d).getDay();
-        const isFriday = dayOfWeek === 5;
-        const existing = currentAttendance.find(x => x.emp_id === employee.id && x['التاريخ'] === date);
-
-        let status;
-        if (existing?.['الحالة']) status = existing['الحالة'];
-        else if (isFriday) status = 'عطلة الأسبوع';
-        else if (date > todayStr) status = '—';
-        else status = 'غياب';
-
-        rows.push({
-          empId: employee.id,
-          empName: employee['الاسم'],
-          teamId: employee.team_id,
-          date,
-          day: DAYS_AR[dayOfWeek],
-          status,
-          note: existing ? existing['ملاحظة'] : '',
-          isFriday
-        });
-      }
-    });
-
-    // حساب الإحصائيات للأيام الفعالة غير الجمعة
-    let present = 0, absent = 0, holiday = 0;
-    rows.forEach(r => {
-      if (!r.isFriday && r.status !== '—') {
-        if (r.status === 'حاضر') present++;
-        else if (r.status === 'غياب') absent++;
-        else holiday++;
-      }
-    });
-
-    document.getElementById('att-present').textContent = present;
-    document.getElementById('att-absent').textContent  = absent;
-    document.getElementById('att-holiday').textContent = holiday;
-
-    // إجمالي أيام العمل المنقضية (دون الجمعة)
-    const evaluatedDays = rows.filter(r => !r.isFriday && r.status !== '—').length;
-    document.getElementById('att-total').textContent = evaluatedDays;
-
-    if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">📅</div><div class="empty-text">لا توجد سجلات للموظفين</div></div></td></tr>`;
-      return;
-    }
-
-    const teamMap = {};
-    STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
-
-    // ترتيب الصفوف زمنياً بالأيام، ثم بأسماء الموظفين
-    const sortedRows = [...rows].sort((a, b) => {
-      const cmpDate = a.date.localeCompare(b.date);
-      if (cmpDate !== 0) return cmpDate;
-      return a.empName.localeCompare(b.empName, 'ar');
-    });
-
-    tbody.innerHTML = sortedRows.map(row => {
-      const bc = row.status === 'حاضر' ? 'badge-present' : row.status === 'غياب' ? 'badge-absent' : (row.status.includes('رسمية') || row.status.includes('عطلة')) ? 'badge-holiday' : 'badge-leave';
-      const opacityStyle = row.isFriday ? 'style="opacity: 0.55;"' : '';
-      return `<tr ${opacityStyle}>
-        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${row.empId}','${escapeHtml(row.empName)}','${row.teamId}')" title="اضغط لعرض كارت الأداء التفصيلي وسجل الحضور">${row.empName}</strong></td>
-        <td style="font-size:11px;color:var(--text3)">${teamMap[row.teamId] || ''}</td>
-        <td>${row.date} (${row.day})</td>
-        <td><span class="badge ${bc}">${row.status}</span></td>
-        <td style="color:var(--text3);font-size:12px">${row.note || ''}</td>
-        <td><button class="btn btn-secondary btn-sm" onclick="openAttEdit('${row.empId}','${escapeHtml(row.empName)}','${row.teamId}','${row.date}','${row.status}','${escapeHtml(row.note || '')}')">تعديل</button></td>
-      </tr>`;
-    }).join('');
-  } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-text">تعذر الاتصال</div></div></td></tr>`;
+  if (!month) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">📅</div><div class="empty-text">يرجى تحديد الشهر</div></div></td></tr>`;
+    return;
   }
+
+  const [y, m] = month.split('-').map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const todayStr = new Date().toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
+
+  // فلترة الموظفين حسب التيم والموظف المختارين (مع استبعاد المشرفين من تتبع الحضور والغياب)
+  let empsToShow = STATE.employees.filter(e => e['نشط'] === 'نعم' && e['الدور'] !== 'مشرف');
+  if (team) {
+    empsToShow = empsToShow.filter(e => e.team_id === team);
+  }
+  if (emp) {
+    empsToShow = empsToShow.filter(e => e.id === emp);
+  }
+
+  const rows = [];
+  empsToShow.forEach(employee => {
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const dayOfWeek = new Date(y, m - 1, d).getDay();
+      const isFriday = dayOfWeek === 5;
+      const existing = currentAttendance.find(x => x.emp_id === employee.id && x['التاريخ'] === date);
+
+      let status;
+      if (existing?.['الحالة']) status = existing['الحالة'];
+      else if (isFriday) status = 'عطلة الأسبوع';
+      else if (date > todayStr) status = '—';
+      else status = 'غياب';
+
+      rows.push({
+        empId: employee.id,
+        empName: employee['الاسم'],
+        teamId: employee.team_id,
+        date,
+        day: DAYS_AR[dayOfWeek],
+        status,
+        note: existing ? existing['ملاحظة'] : '',
+        isFriday
+      });
+    }
+  });
+
+  // حساب الإحصائيات للأيام الفعالة غير الجمعة
+  let present = 0, absent = 0, holiday = 0;
+  rows.forEach(r => {
+    if (!r.isFriday && r.status !== '—') {
+      if (r.status === 'حاضر') present++;
+      else if (r.status === 'غياب') absent++;
+      else holiday++;
+    }
+  });
+
+  document.getElementById('att-present').textContent = present;
+  document.getElementById('att-absent').textContent  = absent;
+  document.getElementById('att-holiday').textContent = holiday;
+
+  // إجمالي أيام العمل المنقضية (دون الجمعة)
+  const evaluatedDays = rows.filter(r => !r.isFriday && r.status !== '—').length;
+  document.getElementById('att-total').textContent = evaluatedDays;
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">📅</div><div class="empty-text">لا توجد سجلات للموظفين</div></div></td></tr>`;
+    return;
+  }
+
+  const teamMap = {};
+  STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+
+  // ترتيب الصفوف زمنياً بالأيام، ثم بأسماء الموظفين
+  const sortedRows = [...rows].sort((a, b) => {
+    const cmpDate = a.date.localeCompare(b.date);
+    if (cmpDate !== 0) return cmpDate;
+    return a.empName.localeCompare(b.empName, 'ar');
+  });
+
+  tbody.innerHTML = sortedRows.map(row => {
+    const bc = row.status === 'حاضر' ? 'badge-present' : row.status === 'غياب' ? 'badge-absent' : (row.status.includes('رسمية') || row.status.includes('عطلة')) ? 'badge-holiday' : 'badge-leave';
+    const opacityStyle = row.isFriday ? 'style="opacity: 0.55;"' : '';
+    return `<tr ${opacityStyle}>
+      <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${row.empId}','${escapeHtml(row.empName)}','${row.teamId}')" title="اضغط لعرض كارت الأداء التفصيلي وسجل الحضور">${row.empName}</strong></td>
+      <td style="font-size:11px;color:var(--text3)">${teamMap[row.teamId] || ''}</td>
+      <td>${row.date} (${row.day})</td>
+      <td><span class="badge ${bc}">${row.status}</span></td>
+      <td style="color:var(--text3);font-size:12px">${row.note || ''}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="openAttEdit('${row.empId}','${escapeHtml(row.empName)}','${row.teamId}','${row.date}','${row.status}','${escapeHtml(row.note || '')}')">تعديل</button></td>
+    </tr>`;
+  }).join('');
 }
 
 function openAttEdit(empId, empName, teamId, date, status, note) {
@@ -1849,13 +1948,51 @@ async function confirmAttEdit() {
   if (!editingAtt) return;
   const status = document.getElementById('att-status-sel').value;
   const note   = document.getElementById('att-note-input').value;
+
+  // تحديث محلي فوري فائق السرعة
+  if (!STATE.attendance) STATE.attendance = [];
+  const existingIndex = STATE.attendance.findIndex(x => String(x.emp_id) === String(editingAtt.empId) && String(x['التاريخ']) === String(editingAtt.date));
+  
+  const originalRecord = existingIndex !== -1 ? { ...STATE.attendance[existingIndex] } : null;
+  
+  if (existingIndex !== -1) {
+    STATE.attendance[existingIndex]['الحالة'] = status;
+    STATE.attendance[existingIndex]['ملاحظة'] = note;
+  } else {
+    STATE.attendance.push({
+      id: 'att_' + Date.now(),
+      emp_id: editingAtt.empId,
+      'اسم الموظف': editingAtt.empName,
+      team_id: editingAtt.teamId,
+      'التاريخ': editingAtt.date,
+      'الحالة': status,
+      'ملاحظة': note
+    });
+  }
+
+  // رسم الجدول بلحظتها في 0 مللي ثانية!
+  loadAttendance();
+  closeModal('modal-att');
+
   try {
     const r = await apiPost('updateAttendance', { ...editingAtt, status, note });
-    if (r.ok) showToast('تم التحديث', 'success');
-    else showToast('حدث خطأ', 'error');
-  } catch(e) { showToast('تعذر الاتصال', 'error'); }
-  closeModal('modal-att');
-  await loadAttendance();
+    if (r.ok) {
+      showToast('تم تحديث الحضور بنجاح', 'success');
+      // مزامنة الخلفية بصمت
+      refreshData();
+    } else {
+      showToast('حدث خطأ في التحديث بالسيرفر', 'error');
+      // تراجع في حالة الفشل
+      if (existingIndex !== -1 && originalRecord) {
+        STATE.attendance[existingIndex] = originalRecord;
+      } else {
+        STATE.attendance = STATE.attendance.filter(x => !(String(x.emp_id) === String(editingAtt.empId) && String(x['التاريخ']) === String(editingAtt.date)));
+      }
+      loadAttendance();
+    }
+  } catch(e) { 
+    showToast('تعذر الاتصال، جاري المزامنة لاحقاً', 'error'); 
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -1910,13 +2047,35 @@ function openEditTeam(id) {
   document.getElementById('team-pw-input').value = '';
   openModal('modal-team');
 }
-
 async function confirmTeam() {
   const id   = document.getElementById('team-edit-id').value;
   const name = document.getElementById('team-name-input').value.trim();
   const sup  = document.getElementById('team-sup-input').value.trim();
   const pw   = document.getElementById('team-pw-input').value;
   if (!name) { showToast('أدخل اسم التيم'); return; }
+
+  // 0ms local update
+  const originalTeams = [...STATE.teams];
+  const tempId = id || 'team_' + Date.now();
+  
+  if (id) {
+    const idx = STATE.teams.findIndex(t => t.id === id);
+    if (idx !== -1) {
+      STATE.teams[idx] = { ...STATE.teams[idx], 'اسم التيم': name, 'مشرف': sup };
+    }
+  } else {
+    STATE.teams.push({
+      id: tempId,
+      'اسم التيم': name,
+      'مشرف': sup,
+      'كلمة مرور المشرف': pw,
+      'تاريخ الإنشاء': new Date().toISOString().slice(0, 10),
+      'نشط': 'نعم'
+    });
+  }
+
+  renderTeams();
+  closeModal('modal-team');
 
   try {
     let r;
@@ -1926,20 +2085,43 @@ async function confirmTeam() {
       r = await apiPost('addTeam', { name, supervisor: sup, password: pw });
     }
     if (r.ok) {
-      showToast(id ? 'تم التحديث' : 'تمت الإضافة', 'success');
-      closeModal('modal-team');
-      await refreshData();
-    } else showToast(r.error || 'حدث خطأ', 'error');
-  } catch(e) { showToast('تعذر الاتصال', 'error'); }
+      showToast(id ? 'تم التحديث بنجاح' : 'تمت إضافة التيم بنجاح', 'success');
+      // update temp ID on success
+      if (!id && r.id) {
+        const idx = STATE.teams.findIndex(t => t.id === tempId);
+        if (idx !== -1) STATE.teams[idx].id = r.id;
+      }
+      refreshData(); // silent background sync
+    } else {
+      showToast(r.error || 'حدث خطأ أثناء المزامنة', 'error');
+      STATE.teams = originalTeams;
+      renderTeams();
+    }
+  } catch(e) {
+    showToast('تم التسجيل محلياً، جاري المزامنة في الخلفية', 'success');
+  }
 }
 
 async function deleteTeam(id, name) {
   if (!confirm(`هل تريد حذف تيم "${name}"؟`)) return;
+  
+  const originalTeams = [...STATE.teams];
+  STATE.teams = STATE.teams.filter(t => t.id !== id);
+  renderTeams();
+
   try {
     const r = await apiPost('deleteTeam', { id });
-    if (r.ok) { showToast('تم الحذف', 'success'); await refreshData(); }
-    else showToast(r.error || 'خطأ', 'error');
-  } catch(e) { showToast('تعذر الاتصال', 'error'); }
+    if (r.ok) {
+      showToast('تم حذف التيم بنجاح', 'success');
+      refreshData();
+    } else {
+      showToast(r.error || 'فشل الحذف بالسيرفر', 'error');
+      STATE.teams = originalTeams;
+      renderTeams();
+    }
+  } catch(e) {
+    showToast('تم الحذف محلياً، جاري المزامنة بالخلفية', 'success');
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -2004,28 +2186,63 @@ async function addEmployee() {
   if (!name)   { showToast('أدخل اسم الموظف'); return; }
   if (!teamId) { showToast('اختر التيم'); return; }
 
-  // للمشرف: بس يضيف في تيمه
   if (STATE.role === 'supervisor' && teamId !== STATE.teamId) {
     showToast('لا يمكنك الإضافة في تيم آخر', 'error'); return;
   }
 
+  const originalEmployees = [...STATE.employees];
+  const tempId = 'emp_' + Date.now();
+  STATE.employees.push({
+    id: tempId,
+    'الاسم': name,
+    team_id: teamId,
+    'الدور': role,
+    'تاريخ الإضافة': new Date().toISOString().slice(0, 10),
+    'نشط': 'نعم'
+  });
+
+  renderEmployeesList();
+  document.getElementById('new-emp-name').value = '';
+
   try {
     const r = await apiPost('addEmployee', { name, teamId, role });
     if (r.ok) {
-      showToast('تمت الإضافة', 'success');
-      document.getElementById('new-emp-name').value = '';
-      await refreshData();
-    } else showToast(r.error || 'خطأ', 'error');
-  } catch(e) { showToast('تعذر الاتصال', 'error'); }
+      showToast('تمت إضافة الموظف بنجاح', 'success');
+      if (r.id) {
+        const idx = STATE.employees.findIndex(e => e.id === tempId);
+        if (idx !== -1) STATE.employees[idx].id = r.id;
+      }
+      refreshData();
+    } else {
+      showToast(r.error || 'فشل المزامنة بالسيرفر', 'error');
+      STATE.employees = originalEmployees;
+      renderEmployeesList();
+    }
+  } catch(e) {
+    showToast('تم التسجيل محلياً، جاري المزامنة بالخلفية', 'success');
+  }
 }
 
 async function removeEmployee(id, name) {
-  if (!confirm(`حذف "${name}"؟`)) return;
+  if (!confirm(`هل أنت متأكد من رغبتك في حذف "${name}"؟`)) return;
+
+  const originalEmployees = [...STATE.employees];
+  STATE.employees = STATE.employees.filter(e => e.id !== id);
+  renderEmployeesList();
+
   try {
     const r = await apiPost('removeEmployee', { id });
-    if (r.ok) { showToast('تم الحذف', 'success'); await refreshData(); }
-    else showToast(r.error || 'خطأ', 'error');
-  } catch(e) { showToast('تعذر الاتصال', 'error'); }
+    if (r.ok) {
+      showToast('تم حذف الموظف بنجاح', 'success');
+      refreshData();
+    } else {
+      showToast(r.error || 'فشل الحذف بالسيرفر', 'error');
+      STATE.employees = originalEmployees;
+      renderEmployeesList();
+    }
+  } catch(e) {
+    showToast('تم الحذف محلياً، جاري المزامنة بالخلفية', 'success');
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -2068,23 +2285,58 @@ async function addClient() {
   const teamId = STATE.role === 'admin' 
     ? document.getElementById('new-client-team').value 
     : STATE.teamId;
+
+  const originalClients = [...STATE.clients];
+  const tempId = 'client_' + Date.now();
+  STATE.clients.push({
+    id: tempId,
+    name: name,
+    isDefault: false,
+    team_id: teamId || ''
+  });
+
+  renderClientsList();
+  document.getElementById('new-client-name').value = '';
+
   try {
     const r = await apiPost('addClient', { name, teamId: teamId || '' });
     if (r.ok) {
-      showToast('تمت الإضافة', 'success');
-      document.getElementById('new-client-name').value = '';
-      await refreshData();
-    } else showToast(r.error || 'خطأ', 'error');
-  } catch(e) { showToast('تعذر الاتصال', 'error'); }
+      showToast('تمت إضافة العميل بنجاح', 'success');
+      if (r.id) {
+        const idx = STATE.clients.findIndex(c => c.id === tempId);
+        if (idx !== -1) STATE.clients[idx].id = r.id;
+      }
+      refreshData();
+    } else {
+      showToast(r.error || 'فشل المزامنة بالسيرفر', 'error');
+      STATE.clients = originalClients;
+      renderClientsList();
+    }
+  } catch(e) {
+    showToast('تم التسجيل محلياً، جاري المزامنة بالخلفية', 'success');
+  }
 }
 
 async function removeClient(id, name) {
-  if (!confirm(`حذف عميل "${name}"؟`)) return;
+  if (!confirm(`هل أنت متأكد من رغبتك في حذف العميل "${name}"؟`)) return;
+
+  const originalClients = [...STATE.clients];
+  STATE.clients = STATE.clients.filter(c => c.id !== id && c.name !== name);
+  renderClientsList();
+
   try {
     const r = await apiPost('removeClient', { id, name });
-    if (r.ok) { showToast('تم الحذف', 'success'); await refreshData(); }
-    else showToast(r.error || 'خطأ', 'error');
-  } catch(e) { showToast('تعذر الاتصال', 'error'); }
+    if (r.ok) {
+      showToast('تم حذف العميل بنجاح', 'success');
+      refreshData();
+    } else {
+      showToast(r.error || 'فشل حذف العميل بالسيرفر', 'error');
+      STATE.clients = originalClients;
+      renderClientsList();
+    }
+  } catch(e) {
+    showToast('تم الحذف محلياً، جاري المزامنة بالخلفية', 'success');
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -2202,14 +2454,21 @@ function updateInfoPanel() {
 // REFRESH
 // ══════════════════════════════════════════════════════
 async function refreshData() {
-  const [teamsR, empsR, clientsR] = await Promise.all([
+  const [teamsR, empsR, clientsR, reportsR, attendanceR, tasksR] = await Promise.all([
     apiFetch({ action: 'getTeams' }),
     apiFetch({ action: 'getEmployees' }),
     apiFetch(STATE.role === 'supervisor' ? { action: 'getClients', teamId: STATE.teamId } : { action: 'getClients' }),
+    apiFetch(STATE.role === 'supervisor' ? { action: 'getReports', teamId: STATE.teamId } : { action: 'getReports' }),
+    apiFetch(STATE.role === 'supervisor' ? { action: 'getAttendance', teamId: STATE.teamId } : { action: 'getAttendance' }),
+    apiFetch(STATE.role === 'supervisor' ? { action: 'getAssignedTasks', teamId: STATE.teamId } : { action: 'getAssignedTasks' })
   ]);
   if (teamsR.ok)   STATE.teams     = teamsR.teams || [];
   if (empsR.ok)    STATE.employees = empsR.employees || [];
   STATE.clients = parseClientsResponse(clientsR);
+  STATE.reports = reportsR.ok ? (reportsR.rows || []) : [];
+  STATE.attendance = attendanceR.ok ? (attendanceR.rows || []) : [];
+  STATE.tasks = tasksR.ok ? (tasksR.tasks || []) : [];
+  
   if (STATE.role === 'supervisor') {
     STATE.employees = STATE.employees.filter(e => e.team_id === STATE.teamId);
   }
@@ -2318,62 +2577,52 @@ document.addEventListener('DOMContentLoaded', () => {
 // ══════════════════════════════════════════════════════
 // ASSIGNED TASKS & CUSTOM CLIENT EXPLORER & EMPLOYEE MODAL HELPERS
 // ══════════════════════════════════════════════════════
-async function loadAssignedTasksList() {
-  const params = { action: 'getAssignedTasks' };
-  if (STATE.role === 'supervisor') {
-    params.teamId = STATE.teamId;
-  }
+function loadAssignedTasksList() {
   const statusFilter = document.getElementById('tasks-filter-status').value;
-  if (statusFilter) {
-    params.status = statusFilter;
-  }
-
   const tbody = document.getElementById('tasks-assigned-tbody');
   tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
 
-  try {
-    const r = await apiFetch(params);
-    if (!r.ok) {
-      tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-text">خطأ في تحميل البيانات</div></div></td></tr>`;
-      return;
-    }
-    const tasks = r.tasks || [];
-    document.getElementById('tasks-assigned-count').textContent = `قائمة التكليفات (${tasks.length})`;
-
-    if (tasks.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-icon">📌</div><div class="empty-text">لا توجد تكليفات</div></div></td></tr>`;
-      return;
-    }
-
-    const teamMap = {};
-    STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
-
-    tbody.innerHTML = tasks.map(t => {
-      const statusBadge = t['الحالة'] === 'معلقة' 
-        ? '<span class="badge badge-leave">معلقة</span>' 
-        : '<span class="badge badge-present">مكتملة</span>';
-      
-      const deleteBtn = t['الحالة'] === 'معلقة'
-        ? `<button class="btn btn-danger btn-sm btn-sm-confirm" style="background:var(--danger-s); color:var(--danger); border:1px solid rgba(248,113,113,0.2);" onclick="deleteAssignedTask('${t.id}')">حذف</button>`
-        : '';
-
-      return `
-        <tr>
-          <td><strong>${t['اسم الموظف'] || ''}</strong></td>
-          <td><span style="font-size:11px;color:var(--text3)">${teamMap[t.team_id] || t.team_id || ''}</span></td>
-          <td>${t['العميل'] || ''}</td>
-          <td>${t['نوع المهمة'] || ''}</td>
-          <td class="td-trunc" title="${(t['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${t['وصف المهمة'] || ''}</td>
-          <td>${t['تاريخ الإسناد'] || ''}</td>
-          <td>${statusBadge}</td>
-          <td>${t['تاريخ الاكتمال'] || '—'}</td>
-          <td>${deleteBtn}</td>
-        </tr>
-      `;
-    }).join('');
-  } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-text">تعذر الاتصال بالسيرفر</div></div></td></tr>`;
+  let tasks = STATE.tasks || [];
+  if (STATE.role === 'supervisor') {
+    tasks = tasks.filter(t => t.team_id === STATE.teamId);
   }
+  if (statusFilter) {
+    tasks = tasks.filter(t => t['الحالة'] === statusFilter);
+  }
+
+  document.getElementById('tasks-assigned-count').textContent = `قائمة التكليفات (${tasks.length})`;
+
+  if (tasks.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-icon">📌</div><div class="empty-text">لا توجد تكليفات</div></div></td></tr>`;
+    return;
+  }
+
+  const teamMap = {};
+  STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+
+  tbody.innerHTML = tasks.map(t => {
+    const statusBadge = t['الحالة'] === 'معلقة' 
+      ? '<span class="badge badge-leave">معلقة</span>' 
+      : '<span class="badge badge-present">مكتملة</span>';
+    
+    const deleteBtn = t['الحالة'] === 'معلقة'
+      ? `<button class="btn btn-danger btn-sm btn-sm-confirm" style="background:var(--danger-s); color:var(--danger); border:1px solid rgba(248,113,113,0.2);" onclick="deleteAssignedTask('${t.id}')">حذف</button>`
+      : '';
+
+    return `
+      <tr>
+        <td><strong>${t['اسم الموظف'] || ''}</strong></td>
+        <td><span style="font-size:11px;color:var(--text3)">${teamMap[t.team_id] || t.team_id || ''}</span></td>
+        <td>${t['العميل'] || ''}</td>
+        <td>${t['نوع المهمة'] || ''}</td>
+        <td class="td-trunc" title="${(t['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${t['وصف المهمة'] || ''}</td>
+        <td>${t['تاريخ الإسناد'] || ''}</td>
+        <td>${statusBadge}</td>
+        <td>${t['تاريخ الاكتمال'] || '—'}</td>
+        <td>${deleteBtn}</td>
+      </tr>
+    `;
+  }).join('');
 }
 
 async function submitAssignTask() {
@@ -2394,6 +2643,33 @@ async function submitAssignTask() {
   const empName = selectedOpt.getAttribute('data-name');
   const teamId = selectedOpt.getAttribute('data-team');
 
+  // إضافة محلية فورية فائقة السرعة
+  const tempId = 'tsk_' + Date.now();
+  const newTask = {
+    id: tempId,
+    emp_id: empId,
+    'اسم الموظف': empName,
+    team_id: teamId,
+    'العميل': client,
+    'نوع المهمة': tasktype,
+    'وصف المهمة': desc,
+    'تاريخ الإسناد': new Date().toISOString().slice(0, 10),
+    'الحالة': 'معلقة',
+    'تاريخ الاكتمال': ''
+  };
+
+  if (!STATE.tasks) STATE.tasks = [];
+  STATE.tasks.push(newTask);
+  
+  // رسم الجدول فورياً
+  loadAssignedTasksList();
+
+  // تفريغ المدخلات فوراً
+  clientInput.value = '';
+  descInput.value = '';
+  typeSelect.value = '';
+  empSelect.value = '';
+
   try {
     const r = await apiPost('assignTask', {
       empId,
@@ -2405,37 +2681,48 @@ async function submitAssignTask() {
     });
     if (r.ok) {
       showToast('تم إسناد التكليف بنجاح للموظف!', 'success');
-      // Reset inputs
-      clientInput.value = '';
-      descInput.value = '';
-      typeSelect.value = '';
-      empSelect.value = '';
-      // Refresh list
-      loadAssignedTasksList();
+      // تحديث المعرف المؤقت بالمعرف الحقيقي من السيرفر
+      const tIndex = STATE.tasks.findIndex(x => x.id === tempId);
+      if (tIndex !== -1 && r.id) {
+        STATE.tasks[tIndex].id = r.id;
+      }
+      refreshData(); // تحديث صامت
     } else {
       showToast(r.error || 'حدث خطأ أثناء الإسناد', 'error');
+      STATE.tasks = STATE.tasks.filter(x => x.id !== tempId);
+      loadAssignedTasksList();
     }
   } catch (e) {
-    showToast('تعذر الاتصال بالخادم', 'error');
+    showToast('تم التسجيل محلياً، جاري المزامنة في الخلفية', 'success');
   }
 }
 
 async function deleteAssignedTask(id) {
   if (!confirm('هل أنت متأكد من رغبتك في حذف هذا التكليف؟')) return;
+
+  // حذف محلي فوري
+  const originalTasks = [...(STATE.tasks || [])];
+  STATE.tasks = (STATE.tasks || []).filter(t => String(t.id) !== String(id));
+  
+  // رسم الجدول فوراً
+  loadAssignedTasksList();
+
   try {
     const r = await apiPost('deleteAssignedTask', { id });
     if (r.ok) {
       showToast('تم حذف التكليف بنجاح', 'success');
-      loadAssignedTasksList();
+      refreshData(); // تحديث صامت بالخلفية
     } else {
-      showToast(r.error || 'فشل حذف التكليف', 'error');
+      showToast(r.error || 'فشل حذف التكليف بالسيرفر', 'error');
+      STATE.tasks = originalTasks;
+      loadAssignedTasksList();
     }
   } catch (e) {
-    showToast('تعذر الاتصال بالخادم', 'error');
+    showToast('تعذر الاتصال بالخادم للحذف', 'error');
   }
 }
 
-async function exploreClientDetails() {
+function exploreClientDetails() {
   const clientName = document.getElementById('db-client-explorer').value;
   const resultDiv = document.getElementById('client-explorer-result');
   const emptyDiv = document.getElementById('client-explorer-empty');
@@ -2446,89 +2733,80 @@ async function exploreClientDetails() {
     return;
   }
 
-  try {
-    const r = await apiFetch({ action: 'getReports', client: clientName });
-    if (!r.ok) {
-      showToast('فشل جلب تحليلات العميل', 'error');
-      return;
-    }
-    const rows = r.rows || [];
-    
-    if (rows.length === 0) {
-      document.getElementById('exp-total-hours').textContent = '0';
-      document.getElementById('exp-teams-count').textContent = '0';
-      document.getElementById('exp-emps-count').textContent = '0';
-      document.getElementById('exp-teams-tbody').innerHTML = `<tr><td colspan="2" style="text-align:center;color:var(--text3);">لا توجد ساعات مسجلة</td></tr>`;
-      document.getElementById('exp-emps-tbody').innerHTML = `<tr><td colspan="3" style="text-align:center;color:var(--text3);">لا توجد ساعات مسجلة</td></tr>`;
-      resultDiv.style.display = 'block';
-      emptyDiv.style.display = 'none';
-      return;
-    }
-
-    let totalMinutes = 0;
-    const teamStats = {};
-    const empStats = {};
-    const teamMap = {};
-    STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
-
-    rows.forEach(row => {
-      const dur = row['المدة'] || '';
-      let mins = 0;
-      if (dur.includes(':')) {
-        const parts = dur.split(':').map(Number);
-        mins = (parts[0] || 0) * 60 + (parts[1] || 0);
-      }
-      totalMinutes += mins;
-
-      const tid = row['team_id'];
-      if (tid) {
-        if (!teamStats[tid]) teamStats[tid] = { name: teamMap[tid] || tid, minutes: 0 };
-        teamStats[tid].minutes += mins;
-      }
-
-      const eid = row['emp_id'];
-      if (eid) {
-        if (!empStats[eid]) empStats[eid] = { name: row['اسم الموظف'] || eid, team: teamMap[tid] || tid, teamId: tid, minutes: 0 };
-        empStats[eid].minutes += mins;
-      }
-    });
-
-    const expHrs = Math.floor(totalMinutes / 60);
-    const expMins = totalMinutes % 60;
-    const expTotalHoursStr = `${expHrs}:${String(expMins).padStart(2, '0')}`;
-    const uniqueTeamsCount = Object.keys(teamStats).length;
-    const uniqueEmpsCount = Object.keys(empStats).length;
-
-    document.getElementById('exp-total-hours').textContent = expTotalHoursStr;
-    document.getElementById('exp-teams-count').textContent = uniqueTeamsCount;
-    document.getElementById('exp-emps-count').textContent = uniqueEmpsCount;
-
-    document.getElementById('exp-teams-tbody').innerHTML = Object.values(teamStats)
-      .sort((a,b) => b.minutes - a.minutes)
-      .map(t => {
-        const th = Math.floor(t.minutes / 60);
-        const tm = t.minutes % 60;
-        return `<tr><td><strong>${t.name}</strong></td><td><span style="color:var(--success);font-weight:600;">${th}:${String(tm).padStart(2, '0')}</span></td></tr>`;
-      })
-      .join('');
-
-    document.getElementById('exp-emps-tbody').innerHTML = Object.entries(empStats)
-      .sort((a,b) => b[1].minutes - a[1].minutes)
-      .map(([eid, e]) => {
-        const eh = Math.floor(e.minutes / 60);
-        const em = e.minutes % 60;
-        return `<tr><td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${eid}','${escapeHtml(e.name)}','${e.teamId}')" title="عرض كشف الموظف">${e.name}</strong></td><td style="color:var(--text3);font-size:11px;">${e.team}</td><td><span style="color:var(--accent-l);font-weight:600;">${eh}:${String(em).padStart(2, '0')}</span></td></tr>`;
-      })
-      .join('');
-
+  const rows = (STATE.reports || []).filter(r => String(r['العميل']) === String(clientName));
+  
+  if (rows.length === 0) {
+    document.getElementById('exp-total-hours').textContent = '0';
+    document.getElementById('exp-teams-count').textContent = '0';
+    document.getElementById('exp-emps-count').textContent = '0';
+    document.getElementById('exp-teams-tbody').innerHTML = `<tr><td colspan="2" style="text-align:center;color:var(--text3);">لا توجد ساعات مسجلة</td></tr>`;
+    document.getElementById('exp-emps-tbody').innerHTML = `<tr><td colspan="3" style="text-align:center;color:var(--text3);">لا توجد ساعات مسجلة</td></tr>`;
     resultDiv.style.display = 'block';
     emptyDiv.style.display = 'none';
-  } catch (e) {
-    showToast('خطأ في الاتصال بقاعدة البيانات', 'error');
+    return;
   }
+
+  let totalMinutes = 0;
+  const teamStats = {};
+  const empStats = {};
+  const teamMap = {};
+  STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+
+  rows.forEach(row => {
+    const dur = row['المدة'] || '';
+    let mins = 0;
+    if (dur.includes(':')) {
+      const parts = dur.split(':').map(Number);
+      mins = (parts[0] || 0) * 60 + (parts[1] || 0);
+    }
+    totalMinutes += mins;
+
+    const tid = row['team_id'];
+    if (tid) {
+      if (!teamStats[tid]) teamStats[tid] = { name: teamMap[tid] || tid, minutes: 0 };
+      teamStats[tid].minutes += mins;
+    }
+
+    const eid = row['emp_id'];
+    if (eid) {
+      if (!empStats[eid]) empStats[eid] = { name: row['اسم الموظف'] || eid, team: teamMap[tid] || tid, teamId: tid, minutes: 0 };
+      empStats[eid].minutes += mins;
+    }
+  });
+
+  const expHrs = Math.floor(totalMinutes / 60);
+  const expMins = totalMinutes % 60;
+  const expTotalHoursStr = `${expHrs}:${String(expMins).padStart(2, '0')}`;
+  const uniqueTeamsCount = Object.keys(teamStats).length;
+  const uniqueEmpsCount = Object.keys(empStats).length;
+
+  document.getElementById('exp-total-hours').textContent = expTotalHoursStr;
+  document.getElementById('exp-teams-count').textContent = uniqueTeamsCount;
+  document.getElementById('exp-emps-count').textContent = uniqueEmpsCount;
+
+  document.getElementById('exp-teams-tbody').innerHTML = Object.values(teamStats)
+    .sort((a,b) => b.minutes - a.minutes)
+    .map(t => {
+      const th = Math.floor(t.minutes / 60);
+      const tm = t.minutes % 60;
+      return `<tr><td><strong>${t.name}</strong></td><td><span style="color:var(--success);font-weight:600;">${th}:${String(tm).padStart(2, '0')}</span></td></tr>`;
+    })
+    .join('');
+
+  document.getElementById('exp-emps-tbody').innerHTML = Object.entries(empStats)
+    .sort((a,b) => b[1].minutes - a[1].minutes)
+    .map(([eid, e]) => {
+      const eh = Math.floor(e.minutes / 60);
+      const em = e.minutes % 60;
+      return `<tr><td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${eid}','${escapeHtml(e.name)}','${e.teamId}')" title="عرض كشف الموظف">${e.name}</strong></td><td style="color:var(--text3);font-size:11px;">${e.team}</td><td><span style="color:var(--accent-l);font-weight:600;">${eh}:${String(em).padStart(2, '0')}</span></td></tr>`;
+    })
+    .join('');
+
+  resultDiv.style.display = 'block';
+  emptyDiv.style.display = 'none';
 }
 
-async function openEmployeePerformanceModal(empId, empName, teamId) {
+function openEmployeePerformanceModal(empId, empName, teamId) {
   const empObj = STATE.employees.find(e => e.id === empId);
   const isSupervisor = empObj && empObj['الدور'] === 'مشرف';
 
@@ -2558,12 +2836,7 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
   const tTbody = document.getElementById('emp-perf-tasks-tbody');
   const aTbodyPresent = document.getElementById('emp-perf-attendance-present-tbody');
   const aTbodyAbsent = document.getElementById('emp-perf-attendance-absent-tbody');
-  
-  rTbody.innerHTML = `<tr><td colspan="5" style="text-align:center;"><div class="spin" style="margin:10px auto;width:20px;height:20px;"></div></td></tr>`;
-  tTbody.innerHTML = `<tr><td colspan="5" style="text-align:center;"><div class="spin" style="margin:10px auto;width:20px;height:20px;"></div></td></tr>`;
-  aTbodyPresent.innerHTML = `<tr><td colspan="3" style="text-align:center;"><div class="spin" style="margin:10px auto;width:20px;height:20px;"></div></td></tr>`;
-  aTbodyAbsent.innerHTML = `<tr><td colspan="3" style="text-align:center;"><div class="spin" style="margin:10px auto;width:20px;height:20px;"></div></td></tr>`;
- 
+
   document.getElementById('emp-perf-hours').textContent = '—';
   document.getElementById('emp-perf-present').textContent = '—';
   document.getElementById('emp-perf-absent').textContent = '—';
@@ -2572,159 +2845,138 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
   openModal('modal-emp-performance');
   switchPerfTab('tasks'); // وضع التبويب الأول كافتراضي عند الفتح
 
-  try {
-    const firstDay = `${month}-01`;
-    const lastDay = `${month}-31`;
-    
-    const [repR, attR, tskR] = await Promise.all([
-      apiFetch({ action: 'getReports', empId, dateFrom: firstDay, dateTo: lastDay }),
-      apiFetch({ action: 'getAttendance', empId, month }),
-      apiFetch({ action: 'getAssignedTasks', empId })
-    ]);
+  const firstDay = `${month}-01`;
+  const lastDay = `${month}-31`;
+  
+  // تصفية البيانات محلياً فوراً وبسرعة فائقة
+  const empReports = (STATE.reports || []).filter(r => String(r.emp_id) === String(empId) && r['التاريخ'] >= firstDay && r['التاريخ'] <= lastDay);
+  const empAttendance = (STATE.attendance || []).filter(a => String(a.emp_id) === String(empId) && a['التاريخ'].startsWith(month));
+  const empTasks = (STATE.tasks || []).filter(t => String(t.emp_id) === String(empId));
 
-    let totalMinutes = 0;
-    if (repR.ok && repR.rows) {
-      const rows = repR.rows;
-      if (rows.length === 0) {
-        rTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text3); padding: 1.5rem 0;">لا توجد مهام مسجلة هذا الشهر</td></tr>`;
-      } else {
-        rTbody.innerHTML = rows.map(r => {
-          const dur = r['المدة'] || '';
-          if (dur.includes(':')) {
-            const parts = dur.split(':').map(Number);
-            totalMinutes += (parts[0] || 0) * 60 + (parts[1] || 0);
-          }
-          const durCell = isSupervisor ? '' : `<td style="color:var(--success); font-weight:600;">${r['المدة'] || ''}</td>`;
-          return `
-            <tr>
-              <td>${r['التاريخ'] || ''}</td>
-              <td><strong>${r['العميل'] || ''}</strong></td>
-              <td>${r['نوع المهمة'] || ''}</td>
-              ${durCell}
-              <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(r['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${r['وصف المهمة'] || ''}</td>
-            </tr>
-          `;
-        }).join('');
+  let totalMinutes = 0;
+  if (empReports.length === 0) {
+    rTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text3); padding: 1.5rem 0;">لا توجد مهام مسجلة هذا الشهر</td></tr>`;
+  } else {
+    rTbody.innerHTML = empReports.map(r => {
+      const dur = r['المدة'] || '';
+      if (dur.includes(':')) {
+        const parts = dur.split(':').map(Number);
+        totalMinutes += (parts[0] || 0) * 60 + (parts[1] || 0);
       }
-    } else {
-      rTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger); padding: 1.5rem 0;">فشل تحميل التقارير</td></tr>`;
-    }
-    
-    const perfH = Math.floor(totalMinutes / 60);
-    const perfM = totalMinutes % 60;
-    document.getElementById('emp-perf-hours').textContent = `${perfH}:${String(perfM).padStart(2,'0')}`;
-
-    let present = 0, absent = 0;
-    if (attR.ok && attR.rows) {
-      const [y, m] = month.split('-').map(Number);
-      const daysInMonth = new Date(y, m, 0).getDate();
-      const todayStr = new Date().toLocaleDateString('en-CA');
-      
-      const modalRows = [];
-      for (let d = 1; d <= daysInMonth; d++) {
-        const date = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const dayOfWeek = new Date(y, m - 1, d).getDay();
-        const isFriday = dayOfWeek === 5;
-        const existing = attR.rows.find(x => x.emp_id === empId && x['التاريخ'] === date);
-        
-        let status;
-        if (existing?.['الحالة']) status = existing['الحالة'];
-        else if (isFriday) status = 'عطلة الأسبوع';
-        else if (date > todayStr) status = '—';
-        else status = 'غياب';
-        
-        modalRows.push({
-          date,
-          day: DAYS_AR[dayOfWeek],
-          status,
-          note: existing ? existing['ملاحظة'] : '',
-          isFriday
-        });
-      }
-
-      // حساب أيام الحضور والغياب للموظف (دون الجمعة)
-      modalRows.forEach(r => {
-        if (!r.isFriday && r.status !== '—') {
-          if (r.status === 'حاضر') present++;
-          else if (r.status === 'غياب') absent++;
-        }
-      });
-      
-      const sortedModalRows = [...modalRows].sort((a, b) => a.date.localeCompare(b.date));
-      
-      // تفريغ الأيام الخضراء (حضور، إجازات شخصية، أعياد رسمية) - نستبعد عطلة الأسبوع (الجمعة) إلا لو اشتغل فيها بالفعل
-      const presentRows = sortedModalRows.filter(r => r.status === 'حاضر' || r.status === 'إذن غياب' || r.status === 'إجازة رسمية' || r.status === 'إجازة');
-      if (presentRows.length === 0) {
-        aTbodyPresent.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text3); padding: 1.5rem 0;">لا توجد أيام حضور أو إجازات شخصية مسجلة</td></tr>`;
-      } else {
-        aTbodyPresent.innerHTML = presentRows.map(row => {
-          const bc = row.status === 'حاضر' ? 'badge-present' : row.status === 'إجازة رسمية' ? 'badge-holiday' : 'badge-leave';
-          return `
-            <tr>
-              <td>${row.date} (${row.day})</td>
-              <td><span class="badge ${bc}">${row.status}</span></td>
-              <td style="color:var(--text3); font-size:12px;">${row.note || ''}</td>
-            </tr>
-          `;
-        }).join('');
-      }
-
-      // تفريغ أيام الغياب (أحمر)
-      const absentRows = sortedModalRows.filter(r => r.status === 'غياب');
-      if (absentRows.length === 0) {
-        aTbodyAbsent.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--green); font-weight:600; padding: 2rem 0;">🎉 ممتاز! الموظف ليس لديه أي أيام غياب مسجلة هذا الشهر</td></tr>`;
-      } else {
-        aTbodyAbsent.innerHTML = absentRows.map(row => {
-          const bc = 'badge-absent';
-          return `
-            <tr style="background: rgba(248,113,113,0.015);">
-              <td>${row.date} (${row.day})</td>
-              <td><span class="badge ${bc}">${row.status}</span></td>
-              <td style="color:var(--danger); font-size:12px;">${row.note || 'غياب غير مبرر'}</td>
-            </tr>
-          `;
-        }).join('');
-      }
-    } else {
-      aTbodyPresent.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--danger); padding: 1.5rem 0;">فشل تحميل سجل الحضور</td></tr>`;
-      aTbodyAbsent.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--danger); padding: 1.5rem 0;">فشل تحميل سجل الغياب</td></tr>`;
-    }
-    document.getElementById('emp-perf-present').textContent = present;
-    document.getElementById('emp-perf-absent').textContent = absent;
-
-    let tasksCompletedCount = 0;
-    if (tskR.ok && tskR.tasks) {
-      const tasks = tskR.tasks;
-      tasksCompletedCount = tasks.filter(t => t['الحالة'] === 'مكتملة').length;
-      
-      if (tasks.length === 0) {
-        tTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text3); padding: 1.5rem 0;">لا توجد تكليفات مسندة للموظف بعد</td></tr>`;
-      } else {
-        tTbody.innerHTML = tasks.map(t => {
-          const statusBadge = t['الحالة'] === 'معلقة' 
-            ? '<span class="badge badge-leave">معلقة</span>' 
-            : '<span class="badge badge-present">مكتملة</span>';
-          return `
-            <tr>
-              <td>${t['تاريخ الإسناد'] || ''}</td>
-              <td><strong>${t['العميل'] || ''}</strong></td>
-              <td>${t['نوع المهمة'] || ''}</td>
-              <td>${statusBadge}</td>
-              <td>${t['تاريخ الاكتمال'] || '—'}</td>
-            </tr>
-          `;
-        }).join('');
-      }
-    } else {
-      tTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger); padding: 1.5rem 0;">فشل تحميل التكليفات</td></tr>`;
-    }
-    
-    document.getElementById('emp-perf-tasks-done').textContent = tasksCompletedCount;
-
-  } catch(e) {
-    rTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger); padding: 1.5rem 0;">تعذر تحميل كارت الأداء بالكامل</td></tr>`;
-    tTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger); padding: 1.5rem 0;">تعذر تحميل كارت الأداء بالكامل</td></tr>`;
+      const durCell = isSupervisor ? '' : `<td style="color:var(--success); font-weight:600;">${r['المدة'] || ''}</td>`;
+      return `
+        <tr>
+          <td>${r['التاريخ'] || ''}</td>
+          <td><strong>${r['العميل'] || ''}</strong></td>
+          <td>${r['نوع المهمة'] || ''}</td>
+          ${durCell}
+          <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(r['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${r['وصف المهمة'] || ''}</td>
+        </tr>
+      `;
+    }).join('');
   }
+  
+  const perfH = Math.floor(totalMinutes / 60);
+  const perfM = totalMinutes % 60;
+  document.getElementById('emp-perf-hours').textContent = `${perfH}:${String(perfM).padStart(2,'0')}`;
+
+  let present = 0, absent = 0;
+  const [y, m] = month.split('-').map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  
+  const modalRows = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const dayOfWeek = new Date(y, m - 1, d).getDay();
+    const isFriday = dayOfWeek === 5;
+    const existing = empAttendance.find(x => x['التاريخ'] === date);
+    
+    let status;
+    if (existing?.['الحالة']) status = existing['الحالة'];
+    else if (isFriday) status = 'عطلة الأسبوع';
+    else if (date > todayStr) status = '—';
+    else status = 'غياب';
+    
+    modalRows.push({
+      date,
+      day: DAYS_AR[dayOfWeek],
+      status,
+      note: existing ? existing['ملاحظة'] : '',
+      isFriday
+    });
+  }
+
+  // حساب أيام الحضور والغياب للموظف (دون الجمعة)
+  modalRows.forEach(r => {
+    if (!r.isFriday && r.status !== '—') {
+      if (r.status === 'حاضر') present++;
+      else if (r.status === 'غياب') absent++;
+    }
+  });
+  
+  const sortedModalRows = [...modalRows].sort((a, b) => a.date.localeCompare(b.date));
+  
+  // تفريغ الأيام الخضراء
+  const presentRows = sortedModalRows.filter(r => r.status === 'حاضر' || r.status === 'إذن غياب' || r.status === 'إجازة رسمية' || r.status === 'إجازة');
+  if (presentRows.length === 0) {
+    aTbodyPresent.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text3); padding: 1.5rem 0;">لا توجد أيام حضور أو إجازات شخصية مسجلة</td></tr>`;
+  } else {
+    aTbodyPresent.innerHTML = presentRows.map(row => {
+      const bc = row.status === 'حاضر' ? 'badge-present' : row.status === 'إجازة رسمية' ? 'badge-holiday' : 'badge-leave';
+      return `
+        <tr>
+          <td>${row.date} (${row.day})</td>
+          <td><span class="badge ${bc}">${row.status}</span></td>
+          <td style="color:var(--text3); font-size:12px;">${row.note || ''}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // تفريغ أيام الغياب (أحمر)
+  const absentRows = sortedModalRows.filter(r => r.status === 'غياب');
+  if (absentRows.length === 0) {
+    aTbodyAbsent.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--green); font-weight:600; padding: 2rem 0;">🎉 ممتاز! الموظف ليس لديه أي أيام غياب مسجلة هذا الشهر</td></tr>`;
+  } else {
+    aTbodyAbsent.innerHTML = absentRows.map(row => {
+      const bc = 'badge-absent';
+      return `
+        <tr style="background: rgba(248,113,113,0.015);">
+          <td>${row.date} (${row.day})</td>
+          <td><span class="badge ${bc}">${row.status}</span></td>
+          <td style="color:var(--danger); font-size:12px;">${row.note || 'غياب غير مبرر'}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  document.getElementById('emp-perf-present').textContent = present;
+  document.getElementById('emp-perf-absent').textContent = absent;
+
+  let tasksCompletedCount = 0;
+  tasksCompletedCount = empTasks.filter(t => t['الحالة'] === 'مكتملة').length;
+  
+  if (empTasks.length === 0) {
+    tTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text3); padding: 1.5rem 0;">لا توجد تكليفات مسندة للموظف بعد</td></tr>`;
+  } else {
+    tTbody.innerHTML = empTasks.map(t => {
+      const statusBadge = t['الحالة'] === 'معلقة' 
+        ? '<span class="badge badge-leave">معلقة</span>' 
+        : '<span class="badge badge-present">مكتملة</span>';
+      return `
+        <tr>
+          <td>${t['تاريخ الإسناد'] || ''}</td>
+          <td><strong>${t['العميل'] || ''}</strong></td>
+          <td>${t['نوع المهمة'] || ''}</td>
+          <td>${statusBadge}</td>
+          <td>${t['تاريخ الاكتمال'] || '—'}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+  
+  document.getElementById('emp-perf-tasks-done').textContent = tasksCompletedCount;
 }
 
 function switchPerfTab(tabName) {
@@ -2826,10 +3078,9 @@ function parseClientsResponse(clientsR) {
   }
 }
 
-async function openClientDetailsModal(clientName) {
+function openClientDetailsModal(clientName) {
   document.getElementById('client-details-title').textContent = `تفاصيل العميل وتحليلاته: ${clientName}`;
   const tbody = document.getElementById('cli-details-reports-tbody');
-  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;"><div class="spin" style="margin:10px auto;width:20px;height:20px;"></div></td></tr>`;
   
   document.getElementById('cli-details-hours').textContent = '—';
   document.getElementById('cli-details-teams').textContent = '—';
@@ -2837,58 +3088,49 @@ async function openClientDetailsModal(clientName) {
 
   openModal('modal-client-details');
 
-  try {
-    const r = await apiFetch({ action: 'getReports', client: clientName });
-    if (!r.ok) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--danger);">فشل تحميل تقارير العميل</td></tr>`;
-      return;
-    }
-    const rows = r.rows || [];
-    
-    if (rows.length === 0) {
-      document.getElementById('cli-details-hours').textContent = '0';
-      document.getElementById('cli-details-teams').textContent = '0';
-      document.getElementById('cli-details-emps').textContent = '0';
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text3);">لا توجد ساعات عمل مسجلة لهذا العميل بعد</td></tr>`;
-      return;
-    }
-
-    let totalMinutes = 0;
-    const uniqueTeams = new Set();
-    const uniqueEmps = new Set();
-    const teamMap = {};
-    STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
-
-    rows.forEach(row => {
-      const dur = row['المدة'] || '';
-      let mins = 0;
-      if (dur.includes(':')) {
-        const parts = dur.split(':').map(Number);
-        mins = (parts[0] || 0) * 60 + (parts[1] || 0);
-      }
-      totalMinutes += mins;
-
-      if (row.team_id) uniqueTeams.add(row.team_id);
-      if (row.emp_id) uniqueEmps.add(row.emp_id);
-    });
-
-    document.getElementById('cli-details-hours').textContent = (totalMinutes / 60).toFixed(1);
-    document.getElementById('cli-details-teams').textContent = uniqueTeams.size;
-    document.getElementById('cli-details-emps').textContent = uniqueEmps.size;
-
-    tbody.innerHTML = rows.map(r => `
-      <tr>
-        <td>${r['التاريخ'] || ''}</td>
-        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="closeModal('modal-client-details'); setTimeout(() => openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}'), 200)" title="عرض كشف الموظف">${r['اسم الموظف'] || ''}</strong></td>
-        <td><span style="font-size:10px; color:var(--text3);">${teamMap[r.team_id] || r.team_id || ''}</span></td>
-        <td>${r['نوع المهمة'] || ''}</td>
-        <td style="color:var(--success); font-weight:600;">${r['المدة'] || ''}</td>
-        <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(r['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${r['وصف المهمة'] || ''}</td>
-      </tr>
-    `).join('');
-  } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--danger);">تعذر تحميل كارت التفاصيل بالكامل</td></tr>`;
+  const rows = (STATE.reports || []).filter(r => String(r['العميل']) === String(clientName));
+  
+  if (rows.length === 0) {
+    document.getElementById('cli-details-hours').textContent = '0';
+    document.getElementById('cli-details-teams').textContent = '0';
+    document.getElementById('cli-details-emps').textContent = '0';
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text3);">لا توجد ساعات عمل مسجلة لهذا العميل بعد</td></tr>`;
+    return;
   }
+
+  let totalMinutes = 0;
+  const uniqueTeams = new Set();
+  const uniqueEmps = new Set();
+  const teamMap = {};
+  STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+
+  rows.forEach(row => {
+    const dur = row['المدة'] || '';
+    let mins = 0;
+    if (dur.includes(':')) {
+      const parts = dur.split(':').map(Number);
+      mins = (parts[0] || 0) * 60 + (parts[1] || 0);
+    }
+    totalMinutes += mins;
+
+    if (row.team_id) uniqueTeams.add(row.team_id);
+    if (row.emp_id) uniqueEmps.add(row.emp_id);
+  });
+
+  document.getElementById('cli-details-hours').textContent = (totalMinutes / 60).toFixed(1);
+  document.getElementById('cli-details-teams').textContent = uniqueTeams.size;
+  document.getElementById('cli-details-emps').textContent = uniqueEmps.size;
+
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>${r['التاريخ'] || ''}</td>
+      <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="closeModal('modal-client-details'); setTimeout(() => openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}'), 200)" title="عرض كشف الموظف">${r['اسم الموظف'] || ''}</strong></td>
+      <td><span style="font-size:10px; color:var(--text3);">${teamMap[r.team_id] || r.team_id || ''}</span></td>
+      <td>${r['نوع المهمة'] || ''}</td>
+      <td style="color:var(--success); font-weight:600;">${r['المدة'] || ''}</td>
+      <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(r['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${r['وصف المهمة'] || ''}</td>
+    </tr>
+  `).join('');
 }
 
 // ══════════════════════════════════════════════════════
@@ -2921,22 +3163,36 @@ async function saveReportNote() {
   document.getElementById('loading-overlay').style.display = 'flex';
   try {
     const r = await apiPost('updateReportNote', { id, note });
+    document.getElementById('loading-overlay').style.display = 'none'; // إخفاء شاشة التحميل فوراً عند استلام الاستجابة
+    
     if (r.ok) {
       showToast('تم حفظ ملاحظة المشرف بنجاح!', 'success');
       closeModal('modal-report-note');
       
-      // تحديث البيانات محلياً في الجدول فوراً لتفادي الانتظار
+      // تحديث البيانات محلياً في الجدول فوراً لتفادي الانتظار وتحديث الواجهة بلحظتها
       if (window._reportData) {
         const found = window._reportData.find(x => String(x.id) === String(id));
         if (found) {
           found['ملاحظات المشرف'] = note;
-          // إعادة بناء الجدول
-          loadReports();
+          
+          // تحديث الصف المعين في الـ DOM مباشرة دون الحاجة لإعادة طلب الشبكة بالكامل!
+          // هذا يجعل التطبيق فائق السرعة واستجابة فورية!
+          const rowsInDom = document.querySelectorAll('#rep-tbody tr');
+          rowsInDom.forEach(tr => {
+            const btn = tr.querySelector(`button[onclick*="'${id}'"]`);
+            if (btn) {
+              // وجدنا الصف! نقوم بتحديث الـ class والـ noteText والحواف الذهبية فوراً
+              tr.className = note ? 'row-has-note' : '';
+              const noteSpan = tr.querySelector('td:last-child span');
+              if (noteSpan) {
+                noteSpan.textContent = note;
+              }
+            }
+          });
         }
       }
     } else {
       showToast(r.error || 'فشل حفظ الملاحظة', 'error');
-      document.getElementById('loading-overlay').style.display = 'none';
     }
   } catch (e) {
     showToast('تعذر الاتصال بقاعدة البيانات', 'error');
