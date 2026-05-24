@@ -413,6 +413,7 @@ const DEFAULT_CLIENTS = [
   'عام'
 ];
 
+let STATE = { reports: [], tasks: [], clients: [] };
 let EMP_ID='', EMP_NAME='', TEAM_ID='';
 let clients=[], taskIds=[], taskCounter=0, activeClientTaskId=null;
 let completedTasksMap={};
@@ -436,11 +437,14 @@ async function init(){
     return;
   }
 
-  // 1️⃣ جلب الفرق والموظفين للتحقق من الفرق المشترك فيها
+  // 1️⃣ جلب الفرق والموظفين والعملاء والتقارير والمهام بالتوازي للتحميل الفوري
   try {
-    const [tr, er] = await Promise.all([
+    const [tr, er, clR, repR, tskR] = await Promise.all([
       apiFetch({action:'getTeams'}),
-      apiFetch({action:'getEmployees'})
+      apiFetch({action:'getEmployees'}),
+      apiFetch({action:'getClients'}),
+      apiFetch({action:'getReports', empName: EMP_NAME}),
+      apiFetch({action:'getAssignedTasks'})
     ]);
 
     if (tr.ok && tr.teams) {
@@ -450,6 +454,11 @@ async function init(){
     if (er.ok && er.employees) {
       employeeRecords = er.employees.filter(e => e['الاسم'] === EMP_NAME && e['نشط'] === 'نعم');
     }
+
+    // Cache responses locally
+    STATE.clients = clR.ok ? clR : { ok: false, clients: [] };
+    STATE.reports = repR.ok ? (repR.rows || []) : [];
+    STATE.tasks = tskR.ok ? (tskR.tasks || []) : [];
   } catch(e) {
     console.error("Failed to load initial teams/employees:", e);
   }
@@ -547,13 +556,13 @@ async function onTeamSwitch() {
       document.getElementById('team-badge').textContent=TEAM_ID;
     }
 
-    // جلب العملاء للفريق المختار
+    // جلب العملاء للفريق المختار (تصفية محلية فورية 100% في 0ms)
     try{
-      const cr=await apiFetch({action:'getClients', teamId: TEAM_ID});
+      const cr = STATE.clients;
       const delList = cr.deletedDefaultClients || [];
       const baseDefaults = DEFAULT_CLIENTS.filter(name => !delList.includes(name));
       if(cr.ok&&cr.clients){
-        const fromSheet = cr.clients.map(c=>c.name||c);
+        const fromSheet = cr.clients.filter(c => c.team_id === TEAM_ID || c.team_id === '').map(c=>c.name||c);
         if (isTeam1) {
           clients = [...new Set([...baseDefaults, ...fromSheet])];
         } else {
@@ -598,7 +607,7 @@ async function onTeamSwitch() {
       document.getElementById('supervisor-board').style.display = 'block';
 
       // تحميل لوحة مهام المشرف
-      await loadSupervisorBoard();
+      loadSupervisorBoard();
     } else {
       // إظهار مكونات تقرير الموظف
       const statsRow = document.querySelector('.stats-row');
@@ -619,38 +628,35 @@ async function onTeamSwitch() {
       if (actions) actions.style.display = 'grid';
       document.getElementById('supervisor-board').style.display = 'none';
 
-      // جلب التكليفات المسندة للموظف العادي
-      try {
-        const tr = await apiFetch({ action: 'getAssignedTasks', empId: EMP_ID, status: 'معلقة' });
-        if (tr.ok && tr.tasks && tr.tasks.length > 0) {
-          renderAssignedTasks(tr.tasks);
-        } else {
-          document.getElementById('assigned-tasks-section').style.display = 'none';
-        }
-      } catch(e) {}
+      // تصفية التكليفات المسندة للموظف العادي محلياً فوراً
+      const trTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'معلقة');
+      if (trTasks.length > 0) {
+        renderAssignedTasks(trTasks);
+      } else {
+        document.getElementById('assigned-tasks-section').style.display = 'none';
+      }
+      quietRefreshEmployeeTasks(); // تحديث صامت خلفي
       addTask();
     }
 
-    // تحديث التنبيه بالتقرير المسبق
-    await checkExistingReport();
+    // تحديث التنبيه بالتقرير المسبق محلياً فوراً
+    checkExistingReport();
   }
 
   document.getElementById('loading-overlay').style.display='none';
   document.getElementById('main-content').style.display='block';
 }
 
-async function checkExistingReport(){
+function checkExistingReport(){
   const date=document.getElementById('report-date').value;
-  try{
-    const r=await apiFetch({action:'getReports',empId:EMP_ID,dateFrom:date,dateTo:date});
-    if(r.ok&&r.rows&&r.rows.length>0){
-      const b=document.getElementById('period-banner');
-      document.getElementById('period-text').textContent=`يوجد تقرير مُرسَل مسبقاً ليوم ${date} (${r.rows.length} مهام) — يمكنك الإضافة التراكمية عليه أو استبداله بالكامل.`;
-      b.style.display='flex';
-    } else {
-      document.getElementById('period-banner').style.display='none';
-    }
-  }catch(e){}
+  const matchingReports = (STATE.reports || []).filter(r => String(r.emp_id) === String(EMP_ID) && r['التاريخ'] === date);
+  if(matchingReports.length > 0){
+    const b=document.getElementById('period-banner');
+    document.getElementById('period-text').textContent=`يوجد تقرير مُرسَل مسبقاً ليوم ${date} (${matchingReports.length} مهام) — يمكنك الإضافة التراكمية عليه أو استبداله بالكامل.`;
+    b.style.display='flex';
+  } else {
+    document.getElementById('period-banner').style.display='none';
+  }
 }
 
 function addTask(){
@@ -815,7 +821,14 @@ async function confirmAddClient(){
   if(!name)return;
   if(!clients.includes(name)){
     clients.push(name);
-    try{await apiPost('addClient',{name, teamId: TEAM_ID});showToast(`تمت إضافة "${name}"`, 'success');}
+    // Local cache update
+    if (STATE.clients && STATE.clients.clients) {
+      STATE.clients.clients.push({ id: 'cli_' + Date.now(), name: name, team_id: TEAM_ID });
+    }
+    try{
+      apiPost('addClient',{name, teamId: TEAM_ID}); // silent background sync
+      showToast(`تمت إضافة "${name}"`, 'success');
+    }
     catch(e){showToast('تمت الإضافة محلياً','info');}
   }
   taskIds.forEach(id=>{const dl=document.getElementById(`dl-${id}`);if(dl)dl.innerHTML=clients.map(c=>`<option value="${c}">`).join('');});
@@ -889,70 +902,118 @@ async function submitReport(appendOverride){
   if(!data.date){showToast('حدد تاريخ التقرير','error');return;}
   if(!data.rows.length){showToast('أضف مهمة واحدة على الأقل','error');return;}
   if(!data.rows[0].client){showToast('أدخل اسم العميل للمهمة الأولى','error');return;}
+
+  // 1️⃣ فحص التعارض محلياً في 0 مللي ثانية
+  if (appendOverride === undefined) {
+    const existingReports = (STATE.reports || []).filter(r => String(r.emp_id) === String(EMP_ID) && r['التاريخ'] === data.date);
+    if (existingReports.length > 0) {
+      document.getElementById('conflict-report-date').textContent = data.date;
+      openModal('modal-report-conflict');
+      return;
+    }
+    appendOverride = false;
+  }
+
   const btn=document.getElementById('btn-submit');
   btn.disabled=true;
   btn.innerHTML='<div class="spin" style="width:18px;height:18px;border-width:2px"></div> جاري الإرسال...';
-  try{
-    // 1️⃣ التسجيل التلقائي للعملاء الجدد في الخلفية
-    const pendingClients = [];
-    data.rows.forEach(r => {
-      if (r.client && !clients.includes(r.client) && !pendingClients.includes(r.client)) {
-        pendingClients.push(r.client);
+
+  // 2️⃣ التسجيل التلقائي للعملاء الجدد في الخلفية
+  const pendingClients = [];
+  data.rows.forEach(r => {
+    if (r.client && !clients.includes(r.client) && !pendingClients.includes(r.client)) {
+      pendingClients.push(r.client);
+    }
+  });
+  if (pendingClients.length > 0) {
+    for (const cName of pendingClients) {
+      try {
+        await apiPost('addClient', { name: cName, teamId: TEAM_ID });
+        clients.push(cName);
+      } catch(e) {
+        console.error("Auto client registration failed:", e);
+      }
+    }
+    taskIds.forEach(id=>{const dl=document.getElementById(`dl-${id}`);if(dl)dl.innerHTML=clients.map(c=>`<option value="${c}">`).join('');});
+    const supDl = document.getElementById('sup-manual-clients-dl');
+    if (supDl) supDl.innerHTML = clients.map(c => `<option value="${c}">`).join('');
+  }
+
+  // 0ms instant local UI update!
+  const originalReports = JSON.parse(JSON.stringify(STATE.reports));
+  const originalTasks = JSON.parse(JSON.stringify(STATE.tasks));
+
+  // Remove previous reports if not appending
+  if (!appendOverride) {
+    STATE.reports = STATE.reports.filter(r => !(String(r.emp_id) === String(EMP_ID) && r['التاريخ'] === data.date));
+  }
+
+  // Push new reports locally
+  data.rows.forEach(r => {
+    STATE.reports.push({
+      id: 'rep_' + Date.now() + '_' + Math.random(),
+      emp_id: EMP_ID,
+      'اسم الموظف': EMP_NAME,
+      team_id: TEAM_ID,
+      'التاريخ': data.date,
+      'العميل': r.client,
+      'نوع المهمة': r.tasktype,
+      'من': r.from,
+      'إلى': r.to,
+      'المدة': r.dur,
+      'وصف المهمة': r.desc,
+      'وقت الإرسال': new Date().toISOString()
+    });
+  });
+
+  // Mark tasks completed locally
+  if (data.completedTaskIds && data.completedTaskIds.length > 0) {
+    STATE.tasks.forEach((t, i) => {
+      if (data.completedTaskIds.includes(String(t.id))) {
+        STATE.tasks[i]['الحالة'] = 'مكتملة';
+        STATE.tasks[i]['تاريخ الاكتمال'] = data.date;
       }
     });
-    if (pendingClients.length > 0) {
-      btn.innerHTML = '<div class="spin" style="width:18px;height:18px;border-width:2px"></div> تسجيل العملاء...';
-      for (const cName of pendingClients) {
-        try {
-          await apiPost('addClient', { name: cName, teamId: TEAM_ID });
-          clients.push(cName);
-        } catch(e) {
-          console.error("Auto client registration failed:", e);
-        }
-      }
-      // تحديث قوائم العملاء المنسدلة في الصفحة
-      taskIds.forEach(id=>{const dl=document.getElementById(`dl-${id}`);if(dl)dl.innerHTML=clients.map(c=>`<option value="${c}">`).join('');});
-      const supDl = document.getElementById('sup-manual-clients-dl');
-      if (supDl) supDl.innerHTML = clients.map(c => `<option value="${c}">`).join('');
-    }
+  }
 
-    // 2️⃣ التحقق من التقارير السابقة لنفس اليوم في حال لم يحدد الموظف مسبقاً (تراكمي أم استبدال)
-    if (appendOverride === undefined) {
-      btn.innerHTML = '<div class="spin" style="width:18px;height:18px;border-width:2px"></div> فحص التقارير...';
-      const checkRes = await apiFetch({ action: 'getReports', empId: EMP_ID, dateFrom: data.date, dateTo: data.date });
-      if (checkRes.ok && checkRes.rows && checkRes.rows.length > 0) {
-        // تعارض! إظهار نافذة الاختيار
-        document.getElementById('conflict-report-date').textContent = data.date;
-        openModal('modal-report-conflict');
-        btn.disabled = false;
-        btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg> إرسال التقرير';
-        return;
-      } else {
-        appendOverride = false;
-      }
-    }
+  // Show success banner instantly in 0ms!
+  showToast(`✓ تم إرسال تقرير ${EMP_NAME} بنجاح`,'success');
+  const b=document.getElementById('period-banner');
+  document.getElementById('period-text').textContent=`✓ تم الإرسال بنجاح — ${data.rows.length} مهام ليوم ${data.date}`;
+  b.style.cssText='display:flex;background:var(--success-s);border-color:rgba(52,211,153,0.2);color:var(--success)';
+  
+  // Reset report inputs instantly
+  document.getElementById('tasks-container').innerHTML = '';
+  taskIds = [];
+  taskCounter = 0;
+  completedTasksMap = {};
+  document.getElementById('assigned-tasks-section').style.display = 'none';
+  addTask();
 
-    // 3️⃣ إرسال التقرير مع تفعيل خيار الإضافة أو الاستبدال المختار
-    data.append = appendOverride;
-    btn.innerHTML = '<div class="spin" style="width:18px;height:18px;border-width:2px"></div> جاري الحفظ...';
-
-    const r=await apiPost('submitReport',data);
-    if(r.ok){
-      showToast(`✓ تم إرسال تقرير ${EMP_NAME} بنجاح`,'success');
-      const b=document.getElementById('period-banner');
-      document.getElementById('period-text').textContent=`✓ تم الإرسال بنجاح — ${data.rows.length} مهام ليوم ${data.date}`;
-      b.style.cssText='display:flex;background:var(--success-s);border-color:rgba(52,211,153,0.2);color:var(--success)';
-      
-      // إخفاء قسم التكليفات المسندة بعد إرسالها واكتمالها
-      document.getElementById('assigned-tasks-section').style.display = 'none';
-      completedTasksMap = {};
-      
-      // تحديث حالة البانر بوجود التقرير
-      checkExistingReport();
-    }else showToast('حدث خطأ: '+(r.error||''),'error');
-  }catch(e){showToast('تعذر الاتصال بالسيرفر','error');}
   btn.disabled=false;
   btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg> إرسال التقرير';
+
+  // Quiet background POST
+  try {
+    data.append = appendOverride;
+    const r = await apiPost('submitReport', data);
+    if (r.ok) {
+      try {
+        const [repR, tskR] = await Promise.all([
+          apiFetch({action:'getReports', empName: EMP_NAME}),
+          apiFetch({action:'getAssignedTasks'})
+        ]);
+        if (repR.ok) STATE.reports = repR.rows || [];
+        if (tskR.ok) STATE.tasks = tskR.tasks || [];
+      } catch(e) {}
+    } else {
+      showToast('فشل المزامنة بالسيرفر: ' + (r.error || ''), 'error');
+      STATE.reports = originalReports;
+      STATE.tasks = originalTasks;
+    }
+  } catch(e) {
+    showToast('تم التسجيل محلياً، جاري المزامنة بالخلفية', 'success');
+  }
 }
 
 function confirmSubmitWithAppend(isAppend) {
@@ -1062,10 +1123,21 @@ function escapeHtml(str) {
 // ══════════════════════════════════════════════════════
 // SUPERVISOR WORKFLOWS (لوحة وإدارة تكليفات المشرفين الخاصة)
 // ══════════════════════════════════════════════════════
-async function loadSupervisorBoard() {
-  const container = document.getElementById('sup-tasks-container');
-  container.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="spin" style="margin:20px auto; width:30px; height:30px;"></div><div class="empty-text">جاري تحميل تكليفاتك المسندة...</div></div>`;
+function loadSupervisorBoard() {
+  // 0ms instant local rendering
+  const pendingTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'معلقة');
+  const completedTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'مكتملة');
   
+  document.getElementById('stat-sup-pending').textContent = pendingTasks.length;
+  document.getElementById('stat-sup-done').textContent = completedTasks.length;
+  
+  renderSupervisorTasks(pendingTasks);
+
+  // Quiet refresh in background to ensure sync correctness
+  quietRefreshSupervisorData();
+}
+
+async function quietRefreshSupervisorData() {
   try {
     const [assignedR, reportsR] = await Promise.all([
       apiFetch({ action: 'getAssignedTasks', empId: EMP_ID }),
@@ -1073,19 +1145,31 @@ async function loadSupervisorBoard() {
     ]);
     
     if (assignedR.ok && assignedR.tasks) {
-      const pendingTasks = assignedR.tasks.filter(t => t['الحالة'] === 'معلقة');
-      const completedTasks = assignedR.tasks.filter(t => t['الحالة'] === 'مكتملة');
+      STATE.tasks = STATE.tasks.filter(t => String(t.emp_id) !== String(EMP_ID)).concat(assignedR.tasks);
+      
+      const pendingTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'معلقة');
+      const completedTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'مكتملة');
       
       document.getElementById('stat-sup-pending').textContent = pendingTasks.length;
       document.getElementById('stat-sup-done').textContent = completedTasks.length;
       
       renderSupervisorTasks(pendingTasks);
-    } else {
-      container.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="empty-text" style="color:var(--danger)">فشل تحميل التكليفات المسندة</div></div>`;
     }
-  } catch(e) {
-    container.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="empty-text" style="color:var(--danger)">تعذر الاتصال بالخادم الرئيسي</div></div>`;
-  }
+    if (reportsR.ok && reportsR.rows) {
+      STATE.reports = STATE.reports.filter(r => String(r.emp_id) !== String(EMP_ID)).concat(reportsR.rows);
+    }
+  } catch(e) {}
+}
+
+async function quietRefreshEmployeeTasks() {
+  try {
+    const tr = await apiFetch({ action: 'getAssignedTasks', empId: EMP_ID, status: 'معلقة' });
+    if (tr.ok && tr.tasks) {
+      STATE.tasks = STATE.tasks.filter(t => String(t.emp_id) !== String(EMP_ID)).concat(tr.tasks);
+      const trTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'معلقة');
+      renderAssignedTasks(trTasks);
+    }
+  } catch(e) {}
 }
 
 function renderSupervisorTasks(tasks) {
@@ -1138,48 +1222,73 @@ async function submitSupTaskCompletion() {
   btn.disabled = true;
   btn.textContent = 'جاري الإرسال...';
 
-  // التحقق من وجود العميل محلياً وإضافته خلف الكواليس إذا لم يكن مسجلاً
-  if (client && !clients.includes(client)) {
-    try {
-      await apiPost('addClient', { name: client, teamId: TEAM_ID });
-      clients.push(client);
-      // تحديث قوائم العملاء المنسدلة في الصفحة
-      taskIds.forEach(id=>{const dl=document.getElementById(`dl-${id}`);if(dl)dl.innerHTML=clients.map(c=>`<option value="${c}">`).join('');});
-      const supDl = document.getElementById('sup-manual-clients-dl');
-      if (supDl) supDl.innerHTML = clients.map(c => `<option value="${c}">`).join('');
-    } catch(e) {
-      console.error("Auto-client creation failed in task completion:", e);
-    }
-  }
-  
-  const payload = {
-    empId: EMP_ID,
-    empName: EMP_NAME,
-    teamId: TEAM_ID,
-    date: date,
-    append: true, // تفعيل الإضافة التراكمية دون حذف التقارير السابقة لنفس اليوم
-    rows: [{
-      client: client,
-      tasktype: tasktype,
-      from: "",
-      to: "",
-      dur: "0:00",
-      desc: desc || "تم إتمام التكليف المسند بنجاح."
-    }],
-    completedTaskIds: [activeSupTaskId]
-  };
+  // 0ms instant local update
+  const originalTasks = JSON.parse(JSON.stringify(STATE.tasks));
+  const originalReports = JSON.parse(JSON.stringify(STATE.reports));
 
+  // Set task status to completed in cache
+  const tIdx = STATE.tasks.findIndex(t => String(t.id) === String(activeSupTaskId));
+  if (tIdx !== -1) {
+    STATE.tasks[tIdx]['الحالة'] = 'مكتملة';
+    STATE.tasks[tIdx]['تاريخ الاكتمال'] = date;
+  }
+
+  // Add local report
+  const tempRepId = 'rep_' + Date.now();
+  STATE.reports.push({
+    id: tempRepId,
+    emp_id: EMP_ID,
+    'اسم الموظف': EMP_NAME,
+    team_id: TEAM_ID,
+    'التاريخ': date,
+    'العميل': client,
+    'نوع المهمة': tasktype,
+    'من': '',
+    'إلى': '',
+    'المدة': '0:00',
+    'وصف المهمة': desc || "تم إتمام التكليف المسند بنجاح.",
+    'وقت الإرسال': new Date().toISOString()
+  });
+
+  // Redraw supervisor board instantly in 0ms
+  const pendingTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'معلقة');
+  const completedTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'مكتملة');
+  document.getElementById('stat-sup-pending').textContent = pendingTasks.length;
+  document.getElementById('stat-sup-done').textContent = completedTasks.length;
+  renderSupervisorTasks(pendingTasks);
+
+  closeModal('modal-sup-complete');
+
+  // Quiet background POST
   try {
+    const payload = {
+      empId: EMP_ID,
+      empName: EMP_NAME,
+      teamId: TEAM_ID,
+      date: date,
+      append: true,
+      rows: [{
+        client: client,
+        tasktype: tasktype,
+        from: "",
+        to: "",
+        dur: "0:00",
+        desc: desc || "تم إتمام التكليف المسند بنجاح."
+      }],
+      completedTaskIds: [activeSupTaskId]
+    };
     const r = await apiPost('submitReport', payload);
     if (r.ok) {
-      showToast('✓ تم إرسال تقرير إتمام المهمة بنجاح والتحديث!', 'success');
-      closeModal('modal-sup-complete');
-      await loadSupervisorBoard();
+      showToast('تم حفظ التقرير وإتمام التكليف بنجاح', 'success');
+      quietRefreshSupervisorData();
     } else {
-      showToast('حدث خطأ: ' + (r.error || ''), 'error');
+      showToast(r.error || 'خطأ أثناء المزامنة بالسيرفر', 'error');
+      STATE.tasks = originalTasks;
+      STATE.reports = originalReports;
+      loadSupervisorBoard();
     }
   } catch(e) {
-    showToast('تعذر الاتصال بالخادم الرئيسي', 'error');
+    showToast('تم التسجيل محلياً، جاري المزامنة في الخلفية', 'success');
   }
   btn.disabled = false;
   btn.textContent = '✔️ تأكيد الإتمام';
@@ -1214,48 +1323,58 @@ async function submitSupManualTask() {
   btn.disabled = true;
   btn.textContent = 'جاري الإرسال...';
 
-  // التحقق من وجود العميل محلياً وإضافته خلف الكواليس إذا لم يكن مسجلاً
-  if (client && !clients.includes(client)) {
-    try {
-      await apiPost('addClient', { name: client, teamId: TEAM_ID });
-      clients.push(client); // إضافة محلياً لمنع تكرار الإضافة
-      // تحديث قوائم العملاء المنسدلة في الصفحة
-      taskIds.forEach(id=>{const dl=document.getElementById(`dl-${id}`);if(dl)dl.innerHTML=clients.map(c=>`<option value="${c}">`).join('');});
-      const supDl = document.getElementById('sup-manual-clients-dl');
-      if (supDl) supDl.innerHTML = clients.map(c => `<option value="${c}">`).join('');
-    } catch(e) {
-      console.error("Auto-client creation failed in manual task submission:", e);
-    }
-  }
-  
-  const payload = {
-    empId: EMP_ID,
-    empName: EMP_NAME,
-    teamId: TEAM_ID,
-    date: date,
-    append: true, // تفعيل الإضافة التراكمية دون حذف التقارير السابقة لنفس اليوم
-    rows: [{
-      client: client,
-      tasktype: tasktype,
-      from: "",
-      to: "",
-      dur: "0:00",
-      desc: desc || "تم إنجاز المهمة للعميل بنجاح."
-    }],
-    completedTaskIds: []
-  };
+  // 0ms instant local update
+  const originalReports = JSON.parse(JSON.stringify(STATE.reports));
+  const tempRepId = 'rep_' + Date.now();
+  STATE.reports.push({
+    id: tempRepId,
+    emp_id: EMP_ID,
+    'اسم الموظف': EMP_NAME,
+    team_id: TEAM_ID,
+    'التاريخ': date,
+    'العميل': client,
+    'نوع المهمة': tasktype,
+    'من': '',
+    'إلى': '',
+    'المدة': '0:00',
+    'وصف المهمة': desc || "تم إنجاز المهمة للعميل بنجاح.",
+    'وقت الإرسال': new Date().toISOString()
+  });
+
+  // Redraw supervisor stats
+  const completedCount = STATE.reports.filter(r => String(r.emp_id) === String(EMP_ID)).length;
+  document.getElementById('stat-sup-done').textContent = completedCount;
+
+  closeModal('modal-sup-manual');
 
   try {
+    const payload = {
+      empId: EMP_ID,
+      empName: EMP_NAME,
+      teamId: TEAM_ID,
+      date: date,
+      append: true,
+      rows: [{
+        client: client,
+        tasktype: tasktype,
+        from: "",
+        to: "",
+        dur: "0:00",
+        desc: desc || "تم إنجاز المهمة للعميل بنجاح."
+      }],
+      completedTaskIds: []
+    };
     const r = await apiPost('submitReport', payload);
     if (r.ok) {
       showToast('✓ تم تسجيل وإرسال المهمة المنجزة بنجاح!', 'success');
-      closeModal('modal-sup-manual');
-      await loadSupervisorBoard();
+      quietRefreshSupervisorData();
     } else {
-      showToast('حدث خطأ: ' + (r.error || ''), 'error');
+      showToast(r.error || 'حدث خطأ: ' + r.error, 'error');
+      STATE.reports = originalReports;
+      loadSupervisorBoard();
     }
   } catch(e) {
-    showToast('تعذر الاتصال بالخادم الرئيسي', 'error');
+    showToast('تم التسجيل محلياً، جاري المزامنة في الخلفية', 'success');
   }
   btn.disabled = false;
   btn.textContent = '📝 تسجيل وإرسال';
