@@ -153,7 +153,10 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
 .toast.success .t-icon{color:var(--success);}
 .toast.error .t-icon{color:var(--danger);}
 .toast.info .t-icon{color:var(--accent-l);}
-::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+::-webkit-scrollbar{width:14px;height:14px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.22);border:3px solid var(--bg2);border-radius:10px;transition:background 0.2s;}
+::-webkit-scrollbar-thumb:hover{background:var(--accent);}
 </style>
 </head>
 <body>
