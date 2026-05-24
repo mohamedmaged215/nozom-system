@@ -212,7 +212,33 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
     </div>
   </div>
 
-  <!-- قسم التكليفات المسندة -->
+  <!-- قسم المشرفين الخاص (Supervisor Dedicated Board) -->
+  <div id="supervisor-board" style="display:none; margin-bottom: 1.5rem;">
+    <!-- KPI cards customized for supervisors -->
+    <div class="stats-row" style="margin-bottom:1.5rem;">
+      <div class="stat-card" style="border-color: var(--warning-s); background: rgba(251,191,36,0.015);"><div class="stat-label">التكليفات المسندة المعلقة</div><div class="stat-value warning" id="stat-sup-pending" style="color:var(--warning)">0</div></div>
+      <div class="stat-card" style="border-color: var(--success-s); background: rgba(74,222,128,0.015);"><div class="stat-label">المهام المنجزة المكتملة</div><div class="stat-value success" id="stat-sup-done" style="color:var(--success)">0</div></div>
+    </div>
+
+    <!-- Quick action to submit manual task -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 1.25rem;">
+      <button class="btn btn-submit" style="background:var(--accent); font-size: 13.0px; padding: 10px 18px; font-weight:600;" onclick="openSupManualTaskModal()">
+        📝 تسجيل إنجاز مهمة جديدة
+      </button>
+    </div>
+
+    <div class="section-header" style="margin-bottom: 0.75rem;">
+      <span class="section-title" style="color:var(--warning); display:flex; align-items:center; gap:6px; font-size: 12.5px; font-weight:700; text-transform:none; letter-spacing:0;">
+        📌 تكليفاتك المسندة من الإدارة وحالتها
+      </span>
+    </div>
+    
+    <div id="sup-tasks-container" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px;">
+      <div class="empty"><div class="empty-text">جاري تحميل تكليفاتك...</div></div>
+    </div>
+  </div>
+
+  <!-- قسم التكليفات المسندة للموظفين -->
   <div id="assigned-tasks-section" style="display:none; margin-bottom: 1.5rem;">
     <div class="section-header" style="margin-bottom: 0.75rem;">
       <span class="section-title" style="color:var(--warning); display:flex; align-items:center; gap:6px;">
@@ -270,6 +296,54 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-sup-complete">
+  <div class="modal" style="width: 440px; max-width:90%;">
+    <div class="modal-title" style="color: var(--warning); font-size: 15px; font-weight:750;">تأكيد إتمام التكليف</div>
+    <div style="font-size: 12.5px; color: var(--text2); margin-bottom: 14px; line-height: 1.6;">
+      العميل: <strong id="sup-comp-client" style="color:var(--text)">—</strong><br>
+      المهمة: <strong id="sup-comp-type" style="color:var(--text)">—</strong>
+    </div>
+    <div class="field-group">
+      <label>وصف العمل أو ملاحظات الإتمام</label>
+      <textarea id="sup-comp-desc" placeholder="اكتب ملخصاً لما قمت به لإتمام هذه المهمة (اختياري)..." rows="3" style="width:100%; padding:10px; resize:vertical;"></textarea>
+    </div>
+    <div class="modal-actions" style="margin-top: 15px;">
+      <button class="btn-sm-cancel" onclick="closeModal('modal-sup-complete')">إلغاء</button>
+      <button class="btn-sm-confirm" id="btn-sup-comp-confirm" style="background:var(--success);" onclick="submitSupTaskCompletion()">✔️ تأكيد الإتمام</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-sup-manual">
+  <div class="modal" style="width: 440px; max-width:90%;">
+    <div class="modal-title" style="color: var(--accent-l); font-size: 15px; font-weight:750;">تسجيل إتمام مهمة جديدة</div>
+    
+    <div class="field-group" style="margin-bottom: 12px;">
+      <label>العميل</label>
+      <div class="client-wrap">
+        <input type="text" id="sup-manual-client" placeholder="ابحث أو اكتب اسم العميل..." list="sup-manual-clients-dl">
+        <datalist id="sup-manual-clients-dl"></datalist>
+        <button class="btn-add-client" onclick="openAddClient('sup-manual')">+</button>
+      </div>
+    </div>
+
+    <div class="field-group" style="margin-bottom: 12px;">
+      <label>نوع المهمة</label>
+      <select id="sup-manual-type"><option value="">اختر نوع المهمة</option></select>
+    </div>
+
+    <div class="field-group">
+      <label>تفاصيل العمل / وصف الإتمام</label>
+      <textarea id="sup-manual-desc" placeholder="اكتب هنا تفاصيل العمل المنجز للعميل..." rows="3" style="width:100%; padding:10px; resize:vertical;"></textarea>
+    </div>
+
+    <div class="modal-actions" style="margin-top: 15px;">
+      <button class="btn-sm-cancel" onclick="closeModal('modal-sup-manual')">إلغاء</button>
+      <button class="btn-sm-confirm" id="btn-sup-manual-submit" onclick="submitSupManualTask()">📝 تسجيل وإرسال</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast">
   <span class="t-icon" id="t-icon">✓</span>
   <span id="t-msg"></span>
@@ -314,6 +388,8 @@ const DEFAULT_CLIENTS = [
 let EMP_ID='', EMP_NAME='', TEAM_ID='';
 let clients=[], taskIds=[], taskCounter=0, activeClientTaskId=null;
 let completedTasksMap={};
+let activeSupTaskId=null;
+let currentSupRole='موظف';
 
 async function apiFetch(p){const r=await fetch(API+'?'+new URLSearchParams(p));return r.json();}
 async function apiPost(a,d){const r=await fetch(API,{method:'POST',body:JSON.stringify({action:a,...d})});return r.json();}
@@ -379,14 +455,45 @@ async function init(){
     clients=isTeam1 ? [...DEFAULT_CLIENTS] : [];
   }
   checkExistingReport();
-  // جلب التكليفات المسندة للموظف
-  try {
-    const tr = await apiFetch({ action: 'getAssignedTasks', empId: EMP_ID, status: 'معلقة' });
-    if (tr.ok && tr.tasks && tr.tasks.length > 0) {
-      renderAssignedTasks(tr.tasks);
-    }
-  } catch(e) {}
-  addTask();
+  currentSupRole = role;
+  if (role === 'مشرف') {
+    // إخفاء مكونات تقرير الموظف ذو الوقت
+    const statsRow = document.querySelector('.stats-row');
+    if (statsRow) statsRow.style.display = 'none';
+    const sectionHeaders = document.querySelectorAll('.section-header');
+    sectionHeaders.forEach(el => {
+      // نخفي بس الميقاتي العادي
+      if (!el.parentElement.id || el.parentElement.id !== 'supervisor-board') {
+        el.style.display = 'none';
+      }
+    });
+    const tasksCont = document.getElementById('tasks-container');
+    if (tasksCont) tasksCont.style.display = 'none';
+    const btnAddTask = document.querySelector('.btn-add-task');
+    if (btnAddTask) btnAddTask.style.display = 'none';
+    const divider = document.querySelector('.divider');
+    if (divider) divider.style.display = 'none';
+    const actions = document.querySelector('.actions');
+    if (actions) actions.style.display = 'none';
+    const assignedSection = document.getElementById('assigned-tasks-section');
+    if (assignedSection) assignedSection.style.display = 'none';
+
+    // إظهار لوحة المشرفين
+    document.getElementById('supervisor-board').style.display = 'block';
+
+    // تحميل لوحة مهام المشرف
+    await loadSupervisorBoard();
+  } else {
+    // جلب التكليفات المسندة للموظف العادي
+    try {
+      const tr = await apiFetch({ action: 'getAssignedTasks', empId: EMP_ID, status: 'معلقة' });
+      if (tr.ok && tr.tasks && tr.tasks.length > 0) {
+        renderAssignedTasks(tr.tasks);
+      }
+    } catch(e) {}
+    addTask();
+  }
+  
   document.getElementById('loading-overlay').style.display='none';
   document.getElementById('main-content').style.display='block';
 }
@@ -571,8 +678,21 @@ async function confirmAddClient(){
     catch(e){showToast('تمت الإضافة محلياً','info');}
   }
   taskIds.forEach(id=>{const dl=document.getElementById(`dl-${id}`);if(dl)dl.innerHTML=clients.map(c=>`<option value="${c}">`).join('');});
-  if(activeClientTaskId){const inp=document.getElementById(`client-${activeClientTaskId}`);if(inp)inp.value=name;}
-  closeModal('modal-client'); updateStats();
+  
+  const supDl = document.getElementById('sup-manual-clients-dl');
+  if (supDl) supDl.innerHTML = clients.map(c => `<option value="${c}">`).join('');
+
+  if(activeClientTaskId){
+    if (activeClientTaskId === 'sup-manual') {
+      const inp = document.getElementById('sup-manual-client');
+      if (inp) inp.value = name;
+    } else {
+      const inp = document.getElementById(`client-${activeClientTaskId}`);
+      if (inp) inp.value = name;
+    }
+  }
+  closeModal('modal-client'); 
+  if (currentSupRole !== 'مشرف') updateStats();
 }
 
 function collectData(){
@@ -745,6 +865,179 @@ function importAssignedTask(taskId, client, tasktype, desc) {
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+// ══════════════════════════════════════════════════════
+// SUPERVISOR WORKFLOWS (لوحة وإدارة تكليفات المشرفين الخاصة)
+// ══════════════════════════════════════════════════════
+async function loadSupervisorBoard() {
+  const container = document.getElementById('sup-tasks-container');
+  container.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="spin" style="margin:20px auto; width:30px; height:30px;"></div><div class="empty-text">جاري تحميل تكليفاتك المسندة...</div></div>`;
+  
+  try {
+    const [assignedR, reportsR] = await Promise.all([
+      apiFetch({ action: 'getAssignedTasks', empId: EMP_ID }),
+      apiFetch({ action: 'getReports', empId: EMP_ID })
+    ]);
+    
+    if (assignedR.ok && assignedR.tasks) {
+      const pendingTasks = assignedR.tasks.filter(t => t['الحالة'] === 'معلقة');
+      const completedTasks = assignedR.tasks.filter(t => t['الحالة'] === 'مكتملة');
+      
+      document.getElementById('stat-sup-pending').textContent = pendingTasks.length;
+      document.getElementById('stat-sup-done').textContent = completedTasks.length;
+      
+      renderSupervisorTasks(pendingTasks);
+    } else {
+      container.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="empty-text" style="color:var(--danger)">فشل تحميل التكليفات المسندة</div></div>`;
+    }
+  } catch(e) {
+    container.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="empty-text" style="color:var(--danger)">تعذر الاتصال بالخادم الرئيسي</div></div>`;
+  }
+}
+
+function renderSupervisorTasks(tasks) {
+  const container = document.getElementById('sup-tasks-container');
+  if (!tasks || tasks.length === 0) {
+    container.innerHTML = `
+      <div class="empty" style="grid-column: 1 / -1; padding: 3rem; background: var(--bg3); border-radius: var(--radius); border: 1px dashed var(--border);">
+        <div class="empty-icon" style="font-size: 28px;">🎉</div>
+        <div class="empty-text" style="color: var(--success); font-weight:600; font-size:13.5px;">ممتاز! لا توجد أي تكليفات معلقة مسندة إليك حالياً.</div>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = tasks.map(t => {
+    return `
+      <div class="task-card" style="margin-bottom:0; padding:1.25rem; border:1px solid rgba(251,191,36,0.15); background:var(--bg3); display:flex; flex-direction:column; justify-content:space-between; height: 100%;">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-size:11.5px; background:var(--warning-s); color:var(--warning); padding:3px 10px; border-radius:12px; font-weight:700;">${escapeHtml(t['العميل'])}</span>
+            <span style="font-size:11px; color:var(--text3); font-weight:600;">تكليف معلق</span>
+          </div>
+          <div style="font-weight:750; font-size:14.5px; margin-bottom:6px; color:var(--text);">${escapeHtml(t['نوع المهمة'])}</div>
+          <div style="font-size:12.5px; color:var(--text2); margin-bottom:12px; line-height:1.5; white-space: pre-wrap;">${escapeHtml(t['وصف المهمة']) || 'لا يوجد وصف تفصيلي للمهمة.'}</div>
+          <div style="font-size:11px; color:var(--text3); margin-bottom:15px;">تاريخ الإسناد: ${t['تاريخ الإسناد'] || ''}</div>
+        </div>
+        <button class="btn btn-warning" style="width:100%; justify-content:center; padding:9px; font-size:12.5px; background:var(--warning-s); color:var(--warning); border:1px solid rgba(251,191,36,0.25); font-weight:700;" onclick="openSupTaskCompletionModal('${t.id}', \`${escapeHtml(t['العميل'])}\`, \`${escapeHtml(t['نوع المهمة'])}\`)">
+          ✔️ تأكيد إتمام التكليف
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+function openSupTaskCompletionModal(taskId, client, tasktype) {
+  activeSupTaskId = taskId;
+  document.getElementById('sup-comp-client').textContent = client;
+  document.getElementById('sup-comp-type').textContent = tasktype;
+  document.getElementById('sup-comp-desc').value = '';
+  openModal('modal-sup-complete');
+}
+
+async function submitSupTaskCompletion() {
+  if (!activeSupTaskId) return;
+  const desc = document.getElementById('sup-comp-desc').value.trim();
+  const client = document.getElementById('sup-comp-client').textContent;
+  const tasktype = document.getElementById('sup-comp-type').textContent;
+  const date = document.getElementById('report-date').value;
+
+  const btn = document.getElementById('btn-sup-comp-confirm');
+  btn.disabled = true;
+  btn.textContent = 'جاري الإرسال...';
+  
+  const payload = {
+    empId: EMP_ID,
+    empName: EMP_NAME,
+    teamId: TEAM_ID,
+    date: date,
+    rows: [{
+      client: client,
+      tasktype: tasktype,
+      from: "",
+      to: "",
+      dur: "0:00",
+      desc: desc || "تم إتمام التكليف المسند بنجاح."
+    }],
+    completedTaskIds: [activeSupTaskId]
+  };
+
+  try {
+    const r = await apiPost('submitReport', payload);
+    if (r.ok) {
+      showToast('✓ تم إرسال تقرير إتمام المهمة بنجاح والتحديث!', 'success');
+      closeModal('modal-sup-complete');
+      await loadSupervisorBoard();
+    } else {
+      showToast('حدث خطأ: ' + (r.error || ''), 'error');
+    }
+  } catch(e) {
+    showToast('تعذر الاتصال بالخادم الرئيسي', 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = '✔️ تأكيد الإتمام';
+}
+
+function openSupManualTaskModal() {
+  document.getElementById('sup-manual-client').value = '';
+  document.getElementById('sup-manual-desc').value = '';
+  
+  const typeSel = document.getElementById('sup-manual-type');
+  typeSel.innerHTML = '<option value="">اختر نوع المهمة</option>';
+  TASK_TYPES.forEach(t => {
+    typeSel.innerHTML += `<option value="${t}">${t}</option>`;
+  });
+  
+  const dl = document.getElementById('sup-manual-clients-dl');
+  dl.innerHTML = clients.map(c => `<option value="${c}">`).join('');
+  
+  openModal('modal-sup-manual');
+}
+
+async function submitSupManualTask() {
+  const client = document.getElementById('sup-manual-client').value.trim();
+  const tasktype = document.getElementById('sup-manual-type').value;
+  const desc = document.getElementById('sup-manual-desc').value.trim();
+  const date = document.getElementById('report-date').value;
+  
+  if (!client) { showToast('يرجى تحديد العميل', 'error'); return; }
+  if (!tasktype) { showToast('يرجى تحديد نوع المهمة', 'error'); return; }
+  
+  const btn = document.getElementById('btn-sup-manual-submit');
+  btn.disabled = true;
+  btn.textContent = 'جاري الإرسال...';
+  
+  const payload = {
+    empId: EMP_ID,
+    empName: EMP_NAME,
+    teamId: TEAM_ID,
+    date: date,
+    rows: [{
+      client: client,
+      tasktype: tasktype,
+      from: "",
+      to: "",
+      dur: "0:00",
+      desc: desc || "تم إنجاز المهمة للعميل بنجاح."
+    }],
+    completedTaskIds: []
+  };
+
+  try {
+    const r = await apiPost('submitReport', payload);
+    if (r.ok) {
+      showToast('✓ تم تسجيل وإرسال المهمة المنجزة بنجاح!', 'success');
+      closeModal('modal-sup-manual');
+      await loadSupervisorBoard();
+    } else {
+      showToast('حدث خطأ: ' + (r.error || ''), 'error');
+    }
+  } catch(e) {
+    showToast('تعذر الاتصال بالخادم الرئيسي', 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = '📝 تسجيل وإرسال';
 }
 
 init();
