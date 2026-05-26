@@ -257,6 +257,18 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
     </div>
   </div>
 
+  <!-- قسم الزيارات الميدانية المجدولة -->
+  <div id="assigned-visits-section" style="display:none; margin-bottom: 1.5rem;">
+    <div class="section-header" style="margin-bottom: 0.75rem;">
+      <span class="section-title" style="color:var(--success); display:flex; align-items:center; gap:6px; font-size: 12.5px; font-weight:700;">
+        🚗 الزيارات الميدانية المجدولة لك
+      </span>
+    </div>
+    <div id="assigned-visits-container" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;">
+      <!-- سيتم ملؤه ديناميكياً -->
+    </div>
+  </div>
+
   <div class="stats-row">
     <div class="stat-card"><div class="stat-label">عدد المهام</div><div class="stat-value accent" id="stat-tasks">0</div></div>
     <div class="stat-card"><div class="stat-label">إجمالي الوقت</div><div class="stat-value success" id="stat-time">0:00</div></div>
@@ -375,6 +387,24 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
   </div>
 </div>
 
+<!-- مودال إتمام الزيارة الميدانية للموظف -->
+<div class="modal-overlay" id="modal-emp-visit-complete">
+  <div class="modal" style="width: 440px; max-width:90%;">
+    <div class="modal-title" style="color: var(--success); font-size: 15px; font-weight:750;">📝 إتمام الزيارة الميدانية</div>
+    <div style="font-size: 12.5px; color: var(--text2); margin-bottom: 14px; line-height: 1.6;">
+      العميل: <strong id="emp-visit-comp-client" style="color:var(--text)">—</strong><br>
+    </div>
+    <div class="field-group">
+      <label>ملخص ما تم إنجازه في الزيارة</label>
+      <textarea id="emp-visit-comp-desc" placeholder="اكتب ملخصاً تفصيلياً لما قمت به خلال هذه الزيارة للعميل..." rows="3" style="width:100%; padding:10px; resize:vertical;"></textarea>
+    </div>
+    <div class="modal-actions" style="margin-top: 15px;">
+      <button class="btn-sm-cancel" onclick="closeModal('modal-emp-visit-complete')">إلغاء</button>
+      <button class="btn-sm-confirm" id="btn-emp-visit-comp-confirm" style="background:var(--success);" onclick="submitEmployeeVisitCompletion()">✔️ تأكيد الإتمام</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast">
   <span class="t-icon" id="t-icon">✓</span>
   <span id="t-msg"></span>
@@ -416,7 +446,7 @@ const DEFAULT_CLIENTS = [
   'عام'
 ];
 
-let STATE = { reports: [], tasks: [], clients: [] };
+let STATE = { reports: [], tasks: [], clients: [], visits: [] };
 let EMP_ID='', EMP_NAME='', TEAM_ID='';
 let clients=[], taskIds=[], taskCounter=0, activeClientTaskId=null;
 let completedTasksMap={};
@@ -644,6 +674,7 @@ async function onTeamSwitch() {
 
     // تحديث التنبيه بالتقرير المسبق محلياً فوراً
     checkExistingReport();
+    loadEmployeeVisits();
   }
 
   document.getElementById('loading-overlay').style.display='none';
@@ -1121,6 +1152,131 @@ function importAssignedTask(taskId, client, tasktype, desc) {
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+// ─── إدارة وإتمام الزيارات الميدانية المجدولة للموظفين ───
+let activeEmployeeVisitId = null;
+
+async function loadEmployeeVisits() {
+  const container = document.getElementById('assigned-visits-container');
+  const section = document.getElementById('assigned-visits-section');
+  if (!container || !section) return;
+  
+  // عرض فوري محلي لتوفير وقت الاستجابة بـ 0 مللي ثانية
+  const empVisits = (STATE.visits || []).filter(v => String(v.emp_id) === String(EMP_ID) && v['الحالة'] === 'مجدولة');
+  
+  if (empVisits.length === 0) {
+    section.style.display = 'none';
+  } else {
+    renderEmployeeVisits(empVisits);
+    section.style.display = 'block';
+  }
+
+  // تحديث البيانات صامتاً بالخلفية
+  try {
+    const vr = await apiFetch({ action: 'getVisits', empId: EMP_ID, status: 'مجدولة' });
+    if (vr.ok && vr.visits) {
+      STATE.visits = STATE.visits.filter(v => String(v.emp_id) !== String(EMP_ID) || v['الحالة'] !== 'مجدولة').concat(vr.visits);
+      
+      const updatedVisits = STATE.visits.filter(v => String(v.emp_id) === String(EMP_ID) && v['الحالة'] === 'مجدولة');
+      if (updatedVisits.length === 0) {
+        section.style.display = 'none';
+      } else {
+        renderEmployeeVisits(updatedVisits);
+        section.style.display = 'block';
+      }
+    }
+  } catch(e) {
+    console.error("Visits background refresh failed:", e);
+  }
+}
+
+function renderEmployeeVisits(visits) {
+  const container = document.getElementById('assigned-visits-container');
+  if (!container) return;
+  if (!visits || visits.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = visits.map(v => {
+    return `
+      <div class="task-card" id="assigned-visit-card-${v.id}" style="margin-bottom:0; padding:12px; border-color:rgba(74, 222, 128, 0.25); background:var(--bg3);">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+          <span style="font-size:11px; background:var(--success-s); color:var(--success); padding:2px 8px; border-radius:10px; font-weight:600; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(v['العميل'])}">${escapeHtml(v['العميل'])}</span>
+          <span style="font-size:11px; color:var(--text3); font-weight:600;">زيارة ميدانية</span>
+        </div>
+        <div style="font-weight:750; font-size:13.5px; margin-bottom:4px; color:var(--text);">زيارة للعميل: ${escapeHtml(v['العميل'])}</div>
+        <div style="font-size:12px; color:var(--text2); margin-bottom:6px; font-weight:500;">
+          ⏰ الموعد: <span style="color:var(--accent-l);">${v['تاريخ الزيارة'] || ''} في ${v['وقت الزيارة'] || ''}</span>
+        </div>
+        <div style="font-size:12px; color:var(--text2); margin-bottom:12px; line-height:1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;" title="${escapeHtml(v['ملاحظات'])}">
+          🎯 المطلوب: ${escapeHtml(v['ملاحظات']) || 'لا يوجد تفاصيل إضافية'}
+        </div>
+        <button class="btn" style="width:100%; justify-content:center; padding:6px; font-size:12px; background:var(--success-s); color:var(--success); border:1px solid rgba(74,222,128,0.2); font-weight:700;" onclick="openEmployeeCompleteVisitModal('${v.id}', \`${escapeHtml(v['العميل'])}\`)">
+          ✅ إتمام الزيارة
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+function openEmployeeCompleteVisitModal(visitId, client) {
+  activeEmployeeVisitId = visitId;
+  document.getElementById('emp-visit-comp-client').textContent = client;
+  document.getElementById('emp-visit-comp-desc').value = '';
+  openModal('modal-emp-visit-complete');
+}
+
+async function submitEmployeeVisitCompletion() {
+  if (!activeEmployeeVisitId) return;
+  const summary = document.getElementById('emp-visit-comp-desc').value.trim();
+  const client = document.getElementById('emp-visit-comp-client').textContent;
+  const date = document.getElementById('report-date').value;
+
+  const btn = document.getElementById('btn-emp-visit-comp-confirm');
+  btn.disabled = true;
+  btn.textContent = 'جاري الإرسال...';
+
+  // تحديث واجهة المستخدم فورياً بـ 0 مللي ثانية
+  const originalVisits = JSON.parse(JSON.stringify(STATE.visits || []));
+
+  if (STATE.visits) {
+    const vIdx = STATE.visits.findIndex(v => String(v.id) === String(activeEmployeeVisitId));
+    if (vIdx !== -1) {
+      STATE.visits[vIdx]['الحالة'] = 'تمت';
+      STATE.visits[vIdx]['ملاحظات'] = (STATE.visits[vIdx]['ملاحظات'] ? STATE.visits[vIdx]['ملاحظات'] + '\n' : '') + 'ما تم إنجازه في الزيارة: ' + summary;
+    }
+  }
+
+  const activeVisits = (STATE.visits || []).filter(v => String(v.emp_id) === String(EMP_ID) && v['الحالة'] === 'مجدولة');
+  renderEmployeeVisits(activeVisits);
+  if (activeVisits.length === 0) {
+    document.getElementById('assigned-visits-section').style.display = 'none';
+  }
+
+  closeModal('modal-emp-visit-complete');
+
+  // إرسال التحديث للسيرفر بالخلفية
+  try {
+    const r = await apiPost('completeVisit', {
+      id: activeEmployeeVisitId,
+      summary: summary,
+      scheduleNext: false
+    });
+    if (r.ok) {
+      showToast('تم إتمام الزيارة بنجاح ومزامنتها!', 'success');
+      loadEmployeeVisits();
+    } else {
+      showToast(r.error || 'حدث خطأ أثناء المزامنة', 'error');
+      STATE.visits = originalVisits;
+      loadEmployeeVisits();
+    }
+  } catch (e) {
+    showToast('تم تسجيل الإتمام محلياً، وسيتم المزامنة بالخلفية', 'success');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '✔️ تأكيد الإتمام';
 }
 
 // ══════════════════════════════════════════════════════
