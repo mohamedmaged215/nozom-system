@@ -3931,9 +3931,9 @@ async function saveVisitForm() {
       STATE.visits[idx] = {
         ...STATE.visits[idx],
         emp_id: empId,
-        اسم الموظف: empName,
+        'اسم الموظف': empName,
         team_id: teamId,
-        العميل: client,
+        'العميل': client,
         'واتساب العميل': whatsapp,
         'تاريخ الزيارة': date,
         'وقت الزيارة': time,
@@ -4208,7 +4208,6 @@ async function exportVisitsExcel() {
     showToast('تعذر تصدير ملف الإكسل', 'error');
   }
 }
-async function saveReportNote() {
 </script>
 </body>
 </html>
