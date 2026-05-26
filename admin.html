@@ -772,20 +772,7 @@ tr.row-has-note td:first-child {
         </div>
       </div>
 
-      <!-- Neglected Clients Warning Section -->
-      <div class="card" style="border: 1px solid rgba(248, 113, 113, 0.15); background: rgba(248, 113, 113, 0.01); margin-top: 2rem;">
-        <div class="card-header" style="background: rgba(248, 113, 113, 0.03); border-bottom: 1px solid rgba(248, 113, 113, 0.15);">
-          <span class="card-title" style="color: var(--danger); font-weight: 700; display:flex; align-items:center; gap:6px;">⚠️ عملاء ليس لديهم زيارات مجدولة حالياً</span>
-        </div>
-        <div style="padding: 1.25rem;">
-          <div style="font-size:12.5px; color:var(--text2); margin-bottom:1rem;">
-            العملاء المدرجون أدناه تابعون لفرقكم النشطة ولكن لا توجد أي زيارة قادمة "مجدولة" لهم في النظام. يرجى جدولة مواعيد لهم للمتابعة.
-          </div>
-          <div id="neglected-clients-container" style="display: flex; flex-wrap: wrap; gap: 8px;">
-            <span style="color:var(--text3); font-size:12px;">جاري الفحص...</span>
-          </div>
-        </div>
-      </div>
+
     </div>
 
     <!-- ═══════════════════════════════════════════════
@@ -2746,7 +2733,8 @@ async function refreshAll() {
 function exportExcel() {
   const panel = document.querySelector('.panel.active').id;
   if (panel === 'panel-reports') exportReports();
-  else showToast('التصدير متاح في تبويب التقارير فقط');
+  else if (panel === 'panel-visits') exportVisitsExcel();
+  else showToast('التصدير متاح في تبويب التقارير والزيارات فقط');
 }
 
 // ══════════════════════════════════════════════════════
