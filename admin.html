@@ -703,8 +703,8 @@ tr.row-has-note td:first-child {
             </select>
           </div>
           <div class="filter-group" style="min-width:160px; max-width:240px; flex: 1;">
-            <label>البحث بالعميل أو الأجندة</label>
-            <input type="text" id="visits-search" placeholder="اكتب اسم العميل أو كلمات من الأجندة..." oninput="filterVisitsList()" style="font-size:12px; padding:6px 12px; height:32px;">
+            <label>البحث بالعميل أو المطلوب عمله</label>
+            <input type="text" id="visits-search" placeholder="اكتب اسم العميل أو المطلوب عمله..." oninput="filterVisitsList()" style="font-size:12px; padding:6px 12px; height:32px;">
           </div>
         </div>
         <div style="display:flex; gap:10px; align-items:center;">
@@ -720,22 +720,22 @@ tr.row-has-note td:first-child {
 
       <!-- KPI cards customized for visits -->
       <div class="kpi-grid" style="margin-bottom:1.5rem; display:grid; grid-template-columns: repeat(4, 1fr); gap:12px;">
-        <div class="kpi-card c-red" style="padding:12px 14px;">
-          <div class="kpi-label">زيارات اليوم 🔴</div>
-          <div class="kpi-value c-red" id="kpi-visits-today">0</div>
-          <div class="kpi-sub">زيارة مجدولة اليوم</div>
+        <div class="kpi-card c-red" style="padding:12px 14px; cursor:pointer; transition:all 0.2s;" onclick="filterVisitsByKPI('تأجلت')">
+          <div class="kpi-label">زيارات تم تأجيلها ⏰</div>
+          <div class="kpi-value c-red" id="kpi-visits-postponed">0</div>
+          <div class="kpi-sub">زيارات مؤجلة للمتابعة</div>
         </div>
-        <div class="kpi-card c-yellow" style="padding:12px 14px;">
+        <div class="kpi-card c-yellow" style="padding:12px 14px; cursor:pointer; transition:all 0.2s;" onclick="filterVisitsByKPI('3days')">
           <div class="kpi-label">زيارات 3 أيام قادمة 🟡</div>
           <div class="kpi-value c-yellow" id="kpi-visits-3days">0</div>
           <div class="kpi-sub">زيارات بحاجة للمتابعة</div>
         </div>
-        <div class="kpi-card c-purple" style="padding:12px 14px;">
-          <div class="kpi-label">زيارات الأسبوع 🟢</div>
-          <div class="kpi-value c-purple" id="kpi-visits-week">0</div>
-          <div class="kpi-sub">زيارات مجدولة خلال 7 أيام</div>
+        <div class="kpi-card c-purple" style="padding:12px 14px; cursor:pointer; transition:all 0.2s;" onclick="filterVisitsByKPI('مجدولة')">
+          <div class="kpi-label">زيارات مجدولة نشطة 📅</div>
+          <div class="kpi-value c-purple" id="kpi-visits-active">0</div>
+          <div class="kpi-sub">إجمالي المجدول النشط</div>
         </div>
-        <div class="kpi-card c-green" style="padding:12px 14px;">
+        <div class="kpi-card c-green" style="padding:12px 14px; cursor:pointer; transition:all 0.2s;" onclick="filterVisitsByKPI('تمت')">
           <div class="kpi-label">الزيارات المكتملة ✅</div>
           <div class="kpi-value c-green" id="kpi-visits-completed">0</div>
           <div class="kpi-sub">زيارة تمت بنجاح</div>
@@ -761,7 +761,7 @@ tr.row-has-note td:first-child {
                 <th>المتبقي</th>
                 <th>التكرار</th>
                 <th>الحالة</th>
-                <th>أجندة النقاش</th>
+                <th>المطلوب عمله / ما تم إنجازه</th>
                 <th>إجراءات</th>
               </tr>
             </thead>
@@ -1239,8 +1239,8 @@ tr.row-has-note td:first-child {
     </div>
     
     <div class="modal-field">
-      <label>أجندة النقاش / تفاصيل الزيارة</label>
-      <textarea id="visit-form-notes" rows="3" style="width: 100%; background: var(--bg4); border: 1px solid var(--border); border-radius: var(--radius-s); color: var(--text); padding: 8px; font-family: var(--sans); font-size: 13px; outline: none; resize: vertical;" placeholder="اكتب هنا ما ستناقشه مع العميل في هذه الزيارة..."></textarea>
+      <label>المطلوب عمله في الزيارة دي</label>
+      <textarea id="visit-form-notes" rows="3" style="width: 100%; background: var(--bg4); border: 1px solid var(--border); border-radius: var(--radius-s); color: var(--text); padding: 8px; font-family: var(--sans); font-size: 13px; outline: none; resize: vertical;" placeholder="اكتب هنا ما تنوي عمله أو مناقشته مع العميل في هذه الزيارة..."></textarea>
     </div>
     
     <div class="modal-actions">
@@ -1259,12 +1259,12 @@ tr.row-has-note td:first-child {
     <div style="font-size: 12.5px; color: var(--text2); margin-bottom: 12px; line-height: 1.6; background:var(--bg4); padding:10px; border-radius:var(--radius-s); border:1px solid var(--border);">
       العميل: <strong id="visit-complete-client" style="color:var(--text)">—</strong><br>
       المسؤول: <strong id="visit-complete-emp" style="color:var(--text)">—</strong><br>
-      موضوع النقاش المخطط: <span id="visit-complete-agenda" style="color:var(--accent-l)">—</span>
+      المطلوب عمله في الزيارة دي: <span id="visit-complete-agenda" style="color:var(--accent-l)">—</span>
     </div>
     
     <div class="modal-field">
-      <label>ملخص نتائج الزيارة وما تم إنجازه (مستند للأرشيف)</label>
-      <textarea id="visit-complete-summary" rows="3" style="width: 100%; background: var(--bg4); border: 1px solid var(--border); border-radius: var(--radius-s); color: var(--text); padding: 8px; font-family: var(--sans); font-size: 13px; outline: none; resize: vertical;" placeholder="اكتب ملخصاً لما قمت به أو تم نقاشه وتثبيته مع العميل..."></textarea>
+      <label>ما تم إنجازه في الزيارة</label>
+      <textarea id="visit-complete-summary" rows="3" style="width: 100%; background: var(--bg4); border: 1px solid var(--border); border-radius: var(--radius-s); color: var(--text); padding: 8px; font-family: var(--sans); font-size: 13px; outline: none; resize: vertical;" placeholder="اكتب هنا ما تم إنجازه في الزيارة وتثبيته مع العميل..."></textarea>
     </div>
     
     <div class="modal-field" style="display:flex; align-items:center; gap:8px; margin: 15px 0 10px;">
@@ -3250,6 +3250,14 @@ function switchPerfTab(tabName) {
   });
 
   // إظهار المحتوى المختار وتفعيل زر التبويب الخاص به بتأثير توهج لوني مخصص
+  const waText = encodeURIComponent(`السلام عليكم،
+نود تذكيركم بموعد زيارتنا لكم
+التاريخ: ${v['تاريخ الزيارة']}
+الوقت: ${v['وقت الزيارة']}
+نتطلع للقاء بكم
+
+نظم وحلول للتقنية المالية`);
+
   const activeContent = document.getElementById(`perf-content-${tabName}`);
   if (activeContent) activeContent.style.display = 'block';
 
@@ -3551,17 +3559,62 @@ function getDaysRemaining(visitDateStr) {
   return diffDays;
 }
 
+let kpiFilterActive = null;
+
+function filterVisitsByKPI(type) {
+  if (kpiFilterActive === type) {
+    kpiFilterActive = null;
+  } else {
+    kpiFilterActive = type;
+  }
+  
+  // Update visually the active state of cards
+  const kpiCards = document.querySelectorAll('#panel-visits .kpi-card');
+  kpiCards.forEach(card => {
+    card.style.boxShadow = 'none';
+    card.style.borderColor = 'var(--border)';
+    card.style.background = 'var(--bg3)';
+  });
+  
+  if (kpiFilterActive) {
+    let selectedCard = null;
+    if (type === 'تأجلت') selectedCard = document.querySelector('#panel-visits .kpi-card.c-red');
+    else if (type === '3days') selectedCard = document.querySelector('#panel-visits .kpi-card.c-yellow');
+    else if (type === 'مجدولة') selectedCard = document.querySelector('#panel-visits .kpi-card.c-purple');
+    else if (type === 'تمت') selectedCard = document.querySelector('#panel-visits .kpi-card.c-green');
+    
+    if (selectedCard) {
+      selectedCard.style.boxShadow = '0 0 15px rgba(212, 112, 59, 0.25)';
+      selectedCard.style.borderColor = 'var(--accent)';
+      selectedCard.style.background = 'var(--accent-soft2)';
+    }
+  }
+  
+  filterVisitsList();
+}
+
 function filterVisitsList() {
   const teamId = document.getElementById('visits-filter-team')?.value || STATE.teamId || '';
   const empId = document.getElementById('visits-filter-emp').value;
-  const status = document.getElementById('visits-filter-status').value;
+  const dropdownStatus = document.getElementById('visits-filter-status').value;
   const searchVal = document.getElementById('visits-search').value.toLowerCase().trim();
   
   let list = STATE.visits || [];
   
   if (teamId) list = list.filter(v => v.team_id === teamId);
   if (empId)  list = list.filter(v => v.emp_id === empId);
-  if (status) list = list.filter(v => v['الحالة'] === status);
+  
+  // Handle KPI filter or dropdown status
+  if (kpiFilterActive) {
+    if (kpiFilterActive === '3days') {
+      list = list.filter(v => v['الحالة'] === 'مجدولة' && getDaysRemaining(v['تاريخ الزيارة']) > 0 && getDaysRemaining(v['تاريخ الزيارة']) <= 3);
+    } else {
+      list = list.filter(v => v['الحالة'] === kpiFilterActive);
+    }
+  } else if (dropdownStatus) {
+    list = list.filter(v => v['الحالة'] === dropdownStatus);
+  }
+  
   if (searchVal) {
     list = list.filter(v => 
       (v['العميل'] || '').toLowerCase().includes(searchVal) ||
@@ -3589,34 +3642,28 @@ function calculateVisitsKPIs() {
   let list = STATE.visits || [];
   if (teamId) list = list.filter(v => v.team_id === teamId);
   
-  let todayCount = 0;
+  let postponedCount = 0;
   let upcoming3Days = 0;
-  let weeklyCount = 0;
+  let activeCount = 0;
   let completedCount = 0;
   
   list.forEach(v => {
     if (v['الحالة'] === 'تمت') {
       completedCount++;
-      return;
-    }
-    
-    if (v['الحالة'] === 'مجدولة') {
+    } else if (v['الحالة'] === 'تأجلت') {
+      postponedCount++;
+    } else if (v['الحالة'] === 'مجدولة') {
+      activeCount++;
       const days = getDaysRemaining(v['تاريخ الزيارة']);
-      if (days === 0) {
-        todayCount++;
-      }
       if (days > 0 && days <= 3) {
         upcoming3Days++;
-      }
-      if (days > 0 && days <= 7) {
-        weeklyCount++;
       }
     }
   });
   
-  document.getElementById('kpi-visits-today').textContent = todayCount;
+  document.getElementById('kpi-visits-postponed').textContent = postponedCount;
   document.getElementById('kpi-visits-3days').textContent = upcoming3Days;
-  document.getElementById('kpi-visits-week').textContent = weeklyCount;
+  document.getElementById('kpi-visits-active').textContent = activeCount;
   document.getElementById('kpi-visits-completed').textContent = completedCount;
 }
 
@@ -3624,21 +3671,21 @@ function renderVisitsCards(list) {
   const container = document.getElementById('visits-cards-view');
   if (!container) return;
   
-  if (list.length === 0) {
-    container.innerHTML = `<div class="empty" style="grid-column: 1 / -1;"><div class="empty-text">لا توجد زيارات مطابقة للفلترة</div></div>`;
+  // Completed visits should not be in cards (only table view)
+  const cardsList = list.filter(v => v['الحالة'] !== 'تمت');
+  
+  if (cardsList.length === 0) {
+    container.innerHTML = `<div class="empty" style="grid-column: 1 / -1;"><div class="empty-text">لا توجد زيارات نشطة (غير مكتملة) مطابقة للفلترة</div></div>`;
     return;
   }
   
-  container.innerHTML = list.map(v => {
+  container.innerHTML = cardsList.map(v => {
     const days = getDaysRemaining(v['تاريخ الزيارة']);
     let badgeClass = 'badge-leave';
     let badgeText = '';
     let cardBorder = '';
     
-    if (v['الحالة'] === 'تمت') {
-      badgeClass = 'badge-present';
-      badgeText = '✅ تمت';
-    } else if (v['الحالة'] === 'ملغية') {
+    if (v['الحالة'] === 'ملغية') {
       badgeClass = 'badge-absent';
       badgeText = '❌ ملغية';
     } else if (v['الحالة'] === 'تأجلت') {
@@ -3666,10 +3713,9 @@ function renderVisitsCards(list) {
     
     const waText = encodeURIComponent(`السلام عليكم،
 نود تذكيركم بموعد زيارتنا لكم
-📅 التاريخ: ${v['تاريخ الزيارة']}
-🕐 الوقت: ${v['وقت الزيارة']}
-موضوع النقاش المخطط: ${v['ملاحظات'] || ''}
-نتطلع للقاء بكم 🤝
+التاريخ: ${v['تاريخ الزيارة']}
+الوقت: ${v['وقت الزيارة']}
+نتطلع للقاء بكم
 
 نظم وحلول للتقنية المالية`);
     
@@ -3701,8 +3747,8 @@ function renderVisitsCards(list) {
           </div>
           
           <div style="font-size:12.5px; color:var(--text2); background:var(--bg4); border:1px solid var(--border); padding:8px 10px; border-radius:var(--radius-s); margin-bottom:12px; line-height:1.5; min-height:54px; white-space:normal; word-break:break-word;">
-            <div style="font-size:10px; color:var(--text3); font-weight:600; margin-bottom:2px; text-transform:uppercase;">📝 تفاصيل وموضوع النقاش:</div>
-            ${v['ملاحظات'] || '<span style="color:var(--text3); font-style:italic;">لا توجد أجندة أو تفاصيل مسجلة...</span>'}
+            <div style="font-size:10px; color:var(--text3); font-weight:600; margin-bottom:2px; text-transform:uppercase;">📝 المطلوب عمله في الزيارة دي:</div>
+            ${v['ملاحظات'] || '<span style="color:var(--text3); font-style:italic;">لا توجد تفاصيل مسجلة...</span>'}
           </div>
         </div>
         
@@ -3711,6 +3757,7 @@ function renderVisitsCards(list) {
           <div style="display:flex; gap:4px;">
             ${kpiActions}
             <button class="btn btn-secondary btn-sm" onclick="openEditVisitModal('${v.id}')" style="padding:4px 8px; font-size:11px;">✏️ تعديل</button>
+            <button class="btn btn-secondary btn-sm" onclick="deleteVisitCard('${v.id}')" style="background:rgba(239,68,68,0.15); color:var(--red); border:1px solid rgba(239,68,68,0.25); padding:4px 8px; font-size:11px;">❌ حذف</button>
           </div>
         </div>
       </div>
@@ -3759,10 +3806,9 @@ function renderVisitsTable(list) {
     
     const waText = encodeURIComponent(`السلام عليكم،
 نود تذكيركم بموعد زيارتنا لكم
-📅 التاريخ: ${v['تاريخ الزيارة']}
-🕐 الوقت: ${v['وقت الزيارة']}
-موضوع النقاش المخطط: ${v['ملاحظات'] || ''}
-نتطلع للقاء بكم 🤝
+التاريخ: ${v['تاريخ الزيارة']}
+الوقت: ${v['وقت الزيارة']}
+نتطلع للقاء بكم
 
 نظم وحلول للتقنية المالية`);
     
@@ -3792,6 +3838,7 @@ function renderVisitsTable(list) {
             ${waButton}
             ${kpiActions}
             <button class="btn btn-secondary btn-sm" onclick="openEditVisitModal('${v.id}')" style="padding:4px 8px; font-size:11px;">✏️</button>
+            <button class="btn btn-secondary btn-sm" onclick="deleteVisitCard('${v.id}')" style="background:rgba(239,68,68,0.1); color:var(--red); border:1px solid rgba(239,68,68,0.2); padding:4px 8px; font-size:11px;">❌</button>
           </div>
         </td>
       </tr>
@@ -3996,6 +4043,28 @@ async function saveVisitForm() {
   }
 }
 
+async function deleteVisitCard(id) {
+  if (!confirm('هل أنت متأكد من حذف هذه الزيارة نهائياً؟')) return;
+  
+  const backupVisits = JSON.parse(JSON.stringify(STATE.visits || []));
+  STATE.visits = STATE.visits.filter(v => v.id !== id);
+  filterVisitsList();
+  showToast('تم حذف الزيارة بنجاح', 'success');
+  
+  try {
+    const r = await apiPost('deleteVisit', { id });
+    if (!r.ok) {
+      STATE.visits = backupVisits;
+      filterVisitsList();
+      showToast(r.error || 'تعذر حذف الزيارة من الخادم المباشر', 'error');
+    }
+  } catch(e) {
+    STATE.visits = backupVisits;
+    filterVisitsList();
+    showToast('فشل المزامنة مع السيرفر - تم استعادة الزيارة', 'error');
+  }
+}
+
 function openPostponeVisitModal(id) {
   const visit = (STATE.visits || []).find(v => v.id === id);
   if (!visit) return;
@@ -4066,7 +4135,7 @@ async function saveVisitComplete() {
   
   visit['الحالة'] = 'تمت';
   if (summary) {
-    visit['ملاحظات'] = (visit['ملاحظات'] ? visit['ملاحظات'] + '\n' : '') + '📅 ملخص الإتمام: ' + summary;
+    visit['ملاحظات'] = (visit['ملاحظات'] ? visit['ملاحظات'] + '\n' : '') + 'ما تم إنجازه في الزيارة: ' + summary;
   }
   
   const tempNextId = 'visit_' + (Date.now() + 100);
@@ -4095,7 +4164,7 @@ async function saveVisitComplete() {
       'وقت الزيارة': nextTime || visit['وقت الزيارة'],
       'التكرار': nextFrequency,
       'الحالة': 'مجدولة',
-      'ملاحظات': visit['ملاحظات'] || '',
+      'ملاحظات': '',
       'تاريخ الإنشاء': new Date().toISOString().slice(0, 10)
     });
   }
