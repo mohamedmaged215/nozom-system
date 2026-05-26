@@ -3312,6 +3312,20 @@ function parseClientsResponse(clientsR) {
     }
   }
 
+  // dynamically resolve actual Team 1 ID from dynamic STATE.teams
+  let actualTeam1Id = 'team_1';
+  if (STATE.teams && STATE.teams.length > 0) {
+    const t1 = STATE.teams.find(team => {
+      const name = team['اسم التيم'] || '';
+      return name.includes('تيم 1') || name.toLowerCase().includes('team 1') || name.toLowerCase().includes('team-1') || team.id.toLowerCase() === 'team_1' || team.id.toLowerCase() === 'team-1';
+    });
+    if (t1) {
+      actualTeam1Id = t1.id;
+    }
+  } else if (STATE.teamId && isTeam1) {
+    actualTeam1Id = STATE.teamId;
+  }
+
   const baseDefaults = DEFAULT_CLIENTS.filter(name => !delList.includes(name));
   
   if (clientsR.ok && clientsR.clients) {
@@ -3325,12 +3339,12 @@ function parseClientsResponse(clientsR) {
         id: dbCli ? (dbCli.id || dbCli) : `def_${index}`,
         name: name,
         isDefault: !dbCli,
-        team_id: dbCli ? (dbCli.team_id || '') : 'team_1'
+        team_id: dbCli ? (dbCli.team_id || '') : actualTeam1Id
       };
     });
   } else {
     return isTeam1 
-      ? baseDefaults.map((name, index) => ({ id: `def_${index}`, name: name, isDefault: true, team_id: 'team_1' }))
+      ? baseDefaults.map((name, index) => ({ id: `def_${index}`, name: name, isDefault: true, team_id: actualTeam1Id }))
       : [];
   }
 }
@@ -3487,7 +3501,7 @@ function toggleVisitsView(mode) {
 
 function populateClientFilter(selectId, teamSelId) {
   const teamSel = document.getElementById(teamSelId);
-  const clientSel = document.getElementById(clientSelId);
+  const clientSel = document.getElementById(selectId);
   if (!clientSel) return;
   const teamId = teamSel ? teamSel.value : STATE.teamId;
   
