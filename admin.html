@@ -358,6 +358,9 @@ tr.row-has-note td:first-child {
     <button class="nav-item" id="nav-tasks" onclick="switchPanel('tasks')">
       <span class="ni">📌</span> التكليفات
     </button>
+    <button class="nav-item" id="nav-visits" onclick="switchPanel('visits')">
+      <span class="ni">🗓️</span> الزيارات
+    </button>
     <div class="nav-sep"></div>
     <button class="nav-item" id="nav-teams" onclick="switchPanel('teams')" style="display:none">
       <span class="ni">🏷️</span> التيمات
@@ -502,7 +505,7 @@ tr.row-has-note td:first-child {
           <div class="chart-wrap"><canvas id="chart-clients"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="chart-title" id="title-chart-donut">🍩 توزيع الساعات بين التيمات</div>
+          <div class="chart-title" id="title-chart-donut">توزيع الساعات بين التيمات</div>
           <div class="chart-wrap"><canvas id="chart-donut"></canvas></div>
         </div>
       </div>
@@ -666,6 +669,121 @@ tr.row-has-note td:first-child {
               <tr><td colspan="9"><div class="empty"><div class="empty-text">جاري تحميل التكليفات...</div></div></td></tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         VISITS
+    ═══════════════════════════════════════════════ -->
+    <div class="panel" id="panel-visits">
+      <!-- Filters and Add Button -->
+      <div class="filter-bar" style="margin-bottom:1.25rem; display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; flex:1;">
+          <div class="filter-group" id="visits-team-wrap" style="min-width:140px;">
+            <label>التيم</label>
+            <select id="visits-filter-team" style="font-size:12px; padding:6px 10px;" onchange="populateEmpFilter('visits-filter-emp', 'visits-filter-team'); filterVisitsList()">
+              <option value="">كل الفرق</option>
+            </select>
+          </div>
+          <div class="filter-group" style="min-width:140px;">
+            <label>الموظف</label>
+            <select id="visits-filter-emp" style="font-size:12px; padding:6px 10px;" onchange="filterVisitsList()">
+              <option value="">كل الموظفين</option>
+            </select>
+          </div>
+          <div class="filter-group" style="min-width:120px;">
+            <label>الحالة</label>
+            <select id="visits-filter-status" style="font-size:12px; padding:6px 10px;" onchange="filterVisitsList()">
+              <option value="">كل الحالات</option>
+              <option value="مجدولة" selected>مجدولة</option>
+              <option value="تمت">تمت</option>
+              <option value="تأجلت">تأجلت</option>
+              <option value="ملغية">ملغية</option>
+            </select>
+          </div>
+          <div class="filter-group" style="min-width:160px; max-width:240px; flex: 1;">
+            <label>البحث بالعميل أو الأجندة</label>
+            <input type="text" id="visits-search" placeholder="اكتب اسم العميل أو كلمات من الأجندة..." oninput="filterVisitsList()" style="font-size:12px; padding:6px 12px; height:32px;">
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <!-- View Toggle Switch -->
+          <div style="display:flex; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); padding:2px;">
+            <button class="btn btn-secondary btn-sm" id="btn-view-cards" onclick="toggleVisitsView('cards')" style="border:none; background:var(--accent-s2); color:var(--accent-l); padding:5px 10px; font-size:12px; border-radius:6px;">🎴 كروت</button>
+            <button class="btn btn-secondary btn-sm" id="btn-view-table" onclick="toggleVisitsView('table')" style="border:none; background:none; color:var(--text2); padding:5px 10px; font-size:12px; border-radius:6px;">📋 جدول</button>
+          </div>
+          <button class="btn btn-primary" onclick="openAddVisitModal()" style="height:32px; padding:0 14px; font-size:12.5px;">+ إضافة زيارة جديدة</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportVisitsExcel()" style="height:32px; padding:0 10px; font-size:12px;">⬇️ Excel</button>
+        </div>
+      </div>
+
+      <!-- KPI cards customized for visits -->
+      <div class="kpi-grid" style="margin-bottom:1.5rem; display:grid; grid-template-columns: repeat(4, 1fr); gap:12px;">
+        <div class="kpi-card c-red" style="padding:12px 14px;">
+          <div class="kpi-label">زيارات اليوم 🔴</div>
+          <div class="kpi-value c-red" id="kpi-visits-today">0</div>
+          <div class="kpi-sub">زيارة مجدولة اليوم</div>
+        </div>
+        <div class="kpi-card c-yellow" style="padding:12px 14px;">
+          <div class="kpi-label">زيارات 3 أيام قادمة 🟡</div>
+          <div class="kpi-value c-yellow" id="kpi-visits-3days">0</div>
+          <div class="kpi-sub">زيارات بحاجة للمتابعة</div>
+        </div>
+        <div class="kpi-card c-purple" style="padding:12px 14px;">
+          <div class="kpi-label">زيارات الأسبوع 🟢</div>
+          <div class="kpi-value c-purple" id="kpi-visits-week">0</div>
+          <div class="kpi-sub">زيارات مجدولة خلال 7 أيام</div>
+        </div>
+        <div class="kpi-card c-green" style="padding:12px 14px;">
+          <div class="kpi-label">الزيارات المكتملة ✅</div>
+          <div class="kpi-value c-green" id="kpi-visits-completed">0</div>
+          <div class="kpi-sub">زيارة تمت بنجاح</div>
+        </div>
+      </div>
+
+      <!-- Main Container: Cards View -->
+      <div id="visits-cards-view" class="teams-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:14px; margin-bottom:1.5rem;">
+        <div class="empty"><div class="empty-text">جاري تحميل الزيارات...</div></div>
+      </div>
+
+      <!-- Main Container: Table View (Hidden by default) -->
+      <div id="visits-table-view" class="card" style="display:none; margin-bottom:1.5rem;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>العميل</th>
+                <th>الموظف</th>
+                <th>التيم</th>
+                <th>تاريخ الزيارة</th>
+                <th>الوقت</th>
+                <th>المتبقي</th>
+                <th>التكرار</th>
+                <th>الحالة</th>
+                <th>أجندة النقاش</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="visits-tbody">
+              <tr><td colspan="10"><div class="empty"><div class="empty-text">لا توجد زيارات مطابقة للفلتر</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Neglected Clients Warning Section -->
+      <div class="card" style="border: 1px solid rgba(248, 113, 113, 0.15); background: rgba(248, 113, 113, 0.01); margin-top: 2rem;">
+        <div class="card-header" style="background: rgba(248, 113, 113, 0.03); border-bottom: 1px solid rgba(248, 113, 113, 0.15);">
+          <span class="card-title" style="color: var(--danger); font-weight: 700; display:flex; align-items:center; gap:6px;">⚠️ عملاء ليس لديهم زيارات مجدولة حالياً</span>
+        </div>
+        <div style="padding: 1.25rem;">
+          <div style="font-size:12.5px; color:var(--text2); margin-bottom:1rem;">
+            العملاء المدرجون أدناه تابعون لفرقكم النشطة ولكن لا توجد أي زيارة قادمة "مجدولة" لهم في النظام. يرجى جدولة مواعيد لهم للمتابعة.
+          </div>
+          <div id="neglected-clients-container" style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <span style="color:var(--text3); font-size:12px;">جاري الفحص...</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1053,6 +1171,137 @@ tr.row-has-note td:first-child {
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════
+     VISITS MODALS
+═══════════════════════════════════════════════ -->
+<!-- Add/Edit Visit Modal -->
+<div class="modal-overlay" id="modal-visit-form">
+  <div class="modal" style="width: 460px; max-width: 90%;">
+    <div class="modal-title" id="visit-form-title">🗓️ إضافة زيارة جديدة</div>
+    <input type="hidden" id="visit-form-id">
+    
+    <div class="modal-field" id="visit-form-team-wrap">
+      <label>التيم</label>
+      <select id="visit-form-team" onchange="populateFormEmpSelect('visit-form-emp', 'visit-form-team'); populateClientFilter('visit-form-client', 'visit-form-team')">
+        <option value="">اختر التيم</option>
+      </select>
+    </div>
+    
+    <div class="modal-field">
+      <label>الموظف المسؤول</label>
+      <select id="visit-form-emp">
+        <option value="">اختر الموظف</option>
+      </select>
+    </div>
+    
+    <div class="modal-field">
+      <label>العميل</label>
+      <select id="visit-form-client">
+        <option value="">اختر العميل</option>
+      </select>
+    </div>
+    
+    <div class="modal-field">
+      <label>واتساب العميل (صيغة 966XXXXXXXXX)</label>
+      <input type="text" id="visit-form-whatsapp" placeholder="مثال: 966500000000">
+    </div>
+    
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+      <div class="modal-field">
+        <label>تاريخ الزيارة</label>
+        <input type="date" id="visit-form-date">
+      </div>
+      <div class="modal-field">
+        <label>الوقت</label>
+        <input type="text" id="visit-form-time" placeholder="مثال: 10:00 ص أو 2:30 م">
+      </div>
+    </div>
+    
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+      <div class="modal-field">
+        <label>التكرار</label>
+        <select id="visit-form-frequency">
+          <option value="مرة واحدة">مرة واحدة</option>
+          <option value="أسبوعي">أسبوعي</option>
+          <option value="نصف شهري">نصف شهري</option>
+          <option value="شهري">شهري</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>الحالة</label>
+        <select id="visit-form-status">
+          <option value="مجدولة">مجدولة</option>
+          <option value="تمت">تمت</option>
+          <option value="تأجلت">تأجلت</option>
+          <option value="ملغية">ملغية</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="modal-field">
+      <label>أجندة النقاش / تفاصيل الزيارة</label>
+      <textarea id="visit-form-notes" rows="3" style="width: 100%; background: var(--bg4); border: 1px solid var(--border); border-radius: var(--radius-s); color: var(--text); padding: 8px; font-family: var(--sans); font-size: 13px; outline: none; resize: vertical;" placeholder="اكتب هنا ما ستناقشه مع العميل في هذه الزيارة..."></textarea>
+    </div>
+    
+    <div class="modal-actions">
+      <button class="btn-sm-cancel" onclick="closeModal('modal-visit-form')">إلغاء</button>
+      <button class="btn-sm-confirm" onclick="saveVisitForm()">حفظ الزيارة</button>
+    </div>
+  </div>
+</div>
+
+<!-- Complete & Schedule Next Visit Modal -->
+<div class="modal-overlay" id="modal-visit-complete">
+  <div class="modal" style="width: 480px; max-width: 90%;">
+    <div class="modal-title" style="color:var(--success); font-weight:750;">🏁 إتمام الزيارة الحالية وتحديد القادمة</div>
+    <input type="hidden" id="visit-complete-id">
+    
+    <div style="font-size: 12.5px; color: var(--text2); margin-bottom: 12px; line-height: 1.6; background:var(--bg4); padding:10px; border-radius:var(--radius-s); border:1px solid var(--border);">
+      العميل: <strong id="visit-complete-client" style="color:var(--text)">—</strong><br>
+      المسؤول: <strong id="visit-complete-emp" style="color:var(--text)">—</strong><br>
+      موضوع النقاش المخطط: <span id="visit-complete-agenda" style="color:var(--accent-l)">—</span>
+    </div>
+    
+    <div class="modal-field">
+      <label>ملخص نتائج الزيارة وما تم إنجازه (مستند للأرشيف)</label>
+      <textarea id="visit-complete-summary" rows="3" style="width: 100%; background: var(--bg4); border: 1px solid var(--border); border-radius: var(--radius-s); color: var(--text); padding: 8px; font-family: var(--sans); font-size: 13px; outline: none; resize: vertical;" placeholder="اكتب ملخصاً لما قمت به أو تم نقاشه وتثبيته مع العميل..."></textarea>
+    </div>
+    
+    <div class="modal-field" style="display:flex; align-items:center; gap:8px; margin: 15px 0 10px;">
+      <input type="checkbox" id="visit-complete-next-check" checked onchange="toggleNextVisitFields(this.checked)" style="width:auto; cursor:pointer;">
+      <label for="visit-complete-next-check" style="margin-bottom:0; cursor:pointer; color:var(--text2); font-weight:600; font-size:12.5px;">📅 جدولة زيارة قادمة لهذا العميل</label>
+    </div>
+    
+    <div id="visit-complete-next-fields" style="background:rgba(255,255,255,0.02); border:1px dashed var(--border); padding:12px; border-radius:var(--radius-s);">
+      <div class="modal-field">
+        <label>تحديد الموعد القادم</label>
+        <select id="visit-complete-next-freq" onchange="toggleNextVisitCustomDate(this.value)">
+          <option value="أسبوعي">🔄 تلقائي بعد أسبوع (أسبوعي)</option>
+          <option value="نصف شهري">🔄 تلقائي بعد 15 يوماً (نصف شهري)</option>
+          <option value="شهري">🔄 تلقائي بعد شهر (شهري)</option>
+          <option value="مخصص">📅 تحديد يدوي مخصص (تاريخ ووقت محددين)</option>
+        </select>
+      </div>
+      
+      <div id="visit-complete-next-custom" style="display:none; grid-template-columns: 1fr 1fr; gap:10px; margin-top:8px;">
+        <div class="modal-field" style="margin-bottom:0;">
+          <label>تاريخ الزيارة القادمة</label>
+          <input type="date" id="visit-complete-next-date">
+        </div>
+        <div class="modal-field" style="margin-bottom:0;">
+          <label>الوقت</label>
+          <input type="text" id="visit-complete-next-time" placeholder="مثال: 11:00 ص">
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-actions" style="margin-top:1.5rem;">
+      <button class="btn-sm-cancel" onclick="closeModal('modal-visit-complete')">إلغاء</button>
+      <button class="btn-sm-confirm" style="background:var(--success);" onclick="saveVisitComplete()">✔️ حفظ وإتمام الزيارة</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast">
   <span class="t-icon" id="t-icon">✓</span>
@@ -1260,11 +1509,11 @@ function enterDashboard(role, teamId, teamName, password) {
   if (role === 'supervisor') {
     document.getElementById('title-chart-hours').textContent = '⏱️ ساعات كل موظف';
     document.getElementById('title-chart-att').textContent = '✅ معدل حضور الموظفين';
-    document.getElementById('title-chart-donut').textContent = '🍩 توزيع الساعات بين الموظفين';
+    document.getElementById('title-chart-donut').textContent = 'توزيع الساعات بين الموظفين';
   } else {
     document.getElementById('title-chart-hours').textContent = '⏱️ ساعات كل تيم';
     document.getElementById('title-chart-att').textContent = '✅ معدل حضور التيمات';
-    document.getElementById('title-chart-donut').textContent = '🍩 توزيع الساعات بين التيمات';
+    document.getElementById('title-chart-donut').textContent = 'توزيع الساعات بين التيمات';
   }
 
   // Date
@@ -1287,13 +1536,14 @@ function doLogout() {
 async function initDashboard() {
   document.getElementById('loading-overlay').style.display = 'flex';
   try {
-    const [teamsR, empsR, clientsR, reportsR, attendanceR, tasksR] = await Promise.all([
+    const [teamsR, empsR, clientsR, reportsR, attendanceR, tasksR, visitsR] = await Promise.all([
       apiFetch({ action: 'getTeams' }),
       apiFetch({ action: 'getEmployees' }),
       apiFetch(STATE.role === 'supervisor' ? { action: 'getClients', teamId: STATE.teamId } : { action: 'getClients' }),
       apiFetch(STATE.role === 'supervisor' ? { action: 'getReports', teamId: STATE.teamId } : { action: 'getReports' }),
       apiFetch(STATE.role === 'supervisor' ? { action: 'getAttendance', teamId: STATE.teamId } : { action: 'getAttendance' }),
-      apiFetch(STATE.role === 'supervisor' ? { action: 'getAssignedTasks', teamId: STATE.teamId } : { action: 'getAssignedTasks' })
+      apiFetch(STATE.role === 'supervisor' ? { action: 'getAssignedTasks', teamId: STATE.teamId } : { action: 'getAssignedTasks' }),
+      apiFetch(STATE.role === 'supervisor' ? { action: 'getVisits', teamId: STATE.teamId } : { action: 'getVisits' })
     ]);
     
     if (teamsR.ok)   STATE.teams     = teamsR.teams || [];
@@ -1302,6 +1552,7 @@ async function initDashboard() {
     STATE.reports = reportsR.ok ? (reportsR.rows || []) : [];
     STATE.attendance = attendanceR.ok ? (attendanceR.rows || []) : [];
     STATE.tasks = tasksR.ok ? (tasksR.tasks || []) : [];
+    STATE.visits = visitsR.ok ? (visitsR.visits || []) : [];
 
     // للمشرف: فلتر بالتيم
     if (STATE.role === 'supervisor') {
@@ -1329,14 +1580,14 @@ function populateFilters() {
     ? STATE.teams.filter(t => t.id === STATE.teamId)
     : STATE.teams;
 
-  const teamSelectors = ['db-team','rep-team','att-team','links-filter','emp-filter-team','new-emp-team','new-client-team','clients-filter-team'];
+  const teamSelectors = ['db-team','rep-team','att-team','links-filter','emp-filter-team','new-emp-team','new-client-team','clients-filter-team','visits-filter-team','visit-form-team'];
   teamSelectors.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    const isFilter = ['db-team','rep-team','att-team','links-filter','emp-filter-team','clients-filter-team'].includes(id);
+    const isFilter = ['db-team','rep-team','att-team','links-filter','emp-filter-team','clients-filter-team','visits-filter-team'].includes(id);
     if (id === 'new-client-team') {
       el.innerHTML = '<option value="">كل الفرق (مشترك)</option>';
-    } else if (id === 'clients-filter-team') {
+    } else if (id === 'clients-filter-team' || id === 'visits-filter-team') {
       el.innerHTML = '<option value="">كل الفرق</option>';
     } else {
       el.innerHTML = isFilter ? '<option value="">كل التيمات</option>' : '<option value="">اختر التيم</option>';
@@ -1350,6 +1601,7 @@ function populateFilters() {
   // Employees in rep filter
   populateEmpFilter('rep-emp', 'rep-team');
   populateEmpFilter('att-emp', 'att-team');
+  populateEmpFilter('visits-filter-emp', 'visits-filter-team');
 
   // Populate client select for Dashboard Client Explorer
   const clientExplorerDl = document.getElementById('db-client-explorer-dl');
@@ -2455,13 +2707,14 @@ function updateInfoPanel() {
 // REFRESH
 // ══════════════════════════════════════════════════════
 async function refreshData() {
-  const [teamsR, empsR, clientsR, reportsR, attendanceR, tasksR] = await Promise.all([
+  const [teamsR, empsR, clientsR, reportsR, attendanceR, tasksR, visitsR] = await Promise.all([
     apiFetch({ action: 'getTeams' }),
     apiFetch({ action: 'getEmployees' }),
     apiFetch(STATE.role === 'supervisor' ? { action: 'getClients', teamId: STATE.teamId } : { action: 'getClients' }),
     apiFetch(STATE.role === 'supervisor' ? { action: 'getReports', teamId: STATE.teamId } : { action: 'getReports' }),
     apiFetch(STATE.role === 'supervisor' ? { action: 'getAttendance', teamId: STATE.teamId } : { action: 'getAttendance' }),
-    apiFetch(STATE.role === 'supervisor' ? { action: 'getAssignedTasks', teamId: STATE.teamId } : { action: 'getAssignedTasks' })
+    apiFetch(STATE.role === 'supervisor' ? { action: 'getAssignedTasks', teamId: STATE.teamId } : { action: 'getAssignedTasks' }),
+    apiFetch(STATE.role === 'supervisor' ? { action: 'getVisits', teamId: STATE.teamId } : { action: 'getVisits' })
   ]);
   if (teamsR.ok)   STATE.teams     = teamsR.teams || [];
   if (empsR.ok)    STATE.employees = empsR.employees || [];
@@ -2469,6 +2722,7 @@ async function refreshData() {
   STATE.reports = reportsR.ok ? (reportsR.rows || []) : [];
   STATE.attendance = attendanceR.ok ? (attendanceR.rows || []) : [];
   STATE.tasks = tasksR.ok ? (tasksR.tasks || []) : [];
+  STATE.visits = visitsR.ok ? (visitsR.visits || []) : [];
   
   if (STATE.role === 'supervisor') {
     STATE.employees = STATE.employees.filter(e => e.team_id === STATE.teamId);
@@ -2498,10 +2752,10 @@ function exportExcel() {
 // ══════════════════════════════════════════════════════
 // UTILS
 // ══════════════════════════════════════════════════════
-const PANELS = ['dashboard','reports','attendance','tasks','teams','employees','clients','links','settings'];
+const PANELS = ['dashboard','reports','attendance','tasks','visits','teams','employees','clients','links','settings'];
 const PANEL_TITLES = {
   dashboard:'الداشبورد', reports:'التقارير', attendance:'الحضور',
-  tasks:'التكليفات', teams:'التيمات', employees:'الموظفين', clients:'العملاء',
+  tasks:'التكليفات', visits:'إدارة الزيارات', teams:'التيمات', employees:'الموظفين', clients:'العملاء',
   links:'روابط الموظفين', settings:'الإعدادات'
 };
 function switchPanel(name) {
@@ -2512,6 +2766,8 @@ function switchPanel(name) {
   document.getElementById('topbar-title').textContent = PANEL_TITLES[name] || '';
   if (name === 'tasks') {
     loadAssignedTasksList();
+  } else if (name === 'visits') {
+    renderVisits();
   }
 }
 
@@ -3142,10 +3398,10 @@ function togglePasswordVisibility(inputId, btn) {
   if (!inp) return;
   if (inp.type === 'password') {
     inp.type = 'text';
-    btn.textContent = '🙈';
+    btn.style.opacity = '1';
   } else {
     inp.type = 'password';
-    btn.textContent = '👁️';
+    btn.style.opacity = '0.4';
   }
 }
 
@@ -3200,6 +3456,759 @@ async function saveReportNote() {
     document.getElementById('loading-overlay').style.display = 'none';
   }
 }
+
+// ══════════════════════════════════════════════════════
+// VISITS MODULE LOGIC
+// ══════════════════════════════════════════════════════
+let visitsViewMode = 'cards'; // 'cards' or 'table'
+
+function toggleVisitsView(mode) {
+  visitsViewMode = mode;
+  document.getElementById('visits-cards-view').style.display = mode === 'cards' ? 'grid' : 'none';
+  document.getElementById('visits-table-view').style.display = mode === 'table' ? 'block' : 'none';
+  
+  const btnCards = document.getElementById('btn-view-cards');
+  const btnTable = document.getElementById('btn-view-table');
+  if (btnCards && btnTable) {
+    if (mode === 'cards') {
+      btnCards.style.background = 'var(--accent-s2)';
+      btnCards.style.color = 'var(--accent-l)';
+      btnTable.style.background = 'none';
+      btnTable.style.color = 'var(--text2)';
+    } else {
+      btnTable.style.background = 'var(--accent-s2)';
+      btnTable.style.color = 'var(--accent-l)';
+      btnCards.style.background = 'none';
+      btnCards.style.color = 'var(--text2)';
+    }
+  }
+  filterVisitsList();
+}
+
+function populateClientFilter(selectId, teamSelId) {
+  const teamSel = document.getElementById(teamSelId);
+  const clientSel = document.getElementById(clientSelId);
+  if (!clientSel) return;
+  const teamId = teamSel ? teamSel.value : STATE.teamId;
+  
+  let filteredClients = STATE.clients;
+  if (teamId) {
+    filteredClients = STATE.clients.filter(c => c.team_id === teamId || c.team_id === '');
+  }
+  
+  clientSel.innerHTML = '<option value="">اختر العميل</option>';
+  filteredClients.forEach(c => {
+    const cName = c.name || c;
+    clientSel.innerHTML += `<option value="${cName}">${cName}</option>`;
+  });
+}
+
+function populateFormEmpSelect(empSelId, teamSelId) {
+  const teamSel = document.getElementById(teamSelId);
+  const empSel  = document.getElementById(empSelId);
+  if (!empSel) return;
+  const teamId = teamSel ? teamSel.value : STATE.teamId;
+  let emps = STATE.employees.filter(e => e['نشط'] === 'نعم');
+  if (teamId) emps = emps.filter(e => e.team_id === teamId);
+  empSel.innerHTML = '<option value="">اختر الموظف</option>';
+  emps.forEach(e => {
+    empSel.innerHTML += `<option value="${e.id}" data-name="${e['الاسم']}">${e['الاسم']}</option>`;
+  });
+}
+
+function renderVisits() {
+  if (STATE.role === 'supervisor') {
+    const w = document.getElementById('visits-team-wrap');
+    if (w) w.style.display = 'none';
+    const formTeamWrap = document.getElementById('visit-form-team-wrap');
+    if (formTeamWrap) formTeamWrap.style.display = 'none';
+  }
+  
+  filterVisitsList();
+}
+
+function getDaysRemaining(visitDateStr) {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const visitDate = new Date(visitDateStr);
+  visitDate.setHours(0,0,0,0);
+  const diffTime = visitDate - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+}
+
+function filterVisitsList() {
+  const teamId = document.getElementById('visits-filter-team')?.value || STATE.teamId || '';
+  const empId = document.getElementById('visits-filter-emp').value;
+  const status = document.getElementById('visits-filter-status').value;
+  const searchVal = document.getElementById('visits-search').value.toLowerCase().trim();
+  
+  let list = STATE.visits || [];
+  
+  if (teamId) list = list.filter(v => v.team_id === teamId);
+  if (empId)  list = list.filter(v => v.emp_id === empId);
+  if (status) list = list.filter(v => v['الحالة'] === status);
+  if (searchVal) {
+    list = list.filter(v => 
+      (v['العميل'] || '').toLowerCase().includes(searchVal) ||
+      (v['اسم الموظف'] || '').toLowerCase().includes(searchVal) ||
+      (v['ملاحظات'] || '').toLowerCase().includes(searchVal)
+    );
+  }
+  
+  list.sort((a, b) => {
+    if (a['الحالة'] === 'مجدولة' && b['الحالة'] !== 'مجدولة') return -1;
+    if (a['الحالة'] !== 'مجدولة' && b['الحالة'] === 'مجدولة') return 1;
+    return new Date(a['تاريخ الزيارة']) - new Date(b['تاريخ الزيارة']);
+  });
+  
+  calculateVisitsKPIs();
+  
+  renderVisitsCards(list);
+  renderVisitsTable(list);
+  
+  renderNeglectedClients(teamId);
+}
+
+function calculateVisitsKPIs() {
+  const teamId = document.getElementById('visits-filter-team')?.value || STATE.teamId || '';
+  let list = STATE.visits || [];
+  if (teamId) list = list.filter(v => v.team_id === teamId);
+  
+  let todayCount = 0;
+  let upcoming3Days = 0;
+  let weeklyCount = 0;
+  let completedCount = 0;
+  
+  list.forEach(v => {
+    if (v['الحالة'] === 'تمت') {
+      completedCount++;
+      return;
+    }
+    
+    if (v['الحالة'] === 'مجدولة') {
+      const days = getDaysRemaining(v['تاريخ الزيارة']);
+      if (days === 0) {
+        todayCount++;
+      }
+      if (days > 0 && days <= 3) {
+        upcoming3Days++;
+      }
+      if (days > 0 && days <= 7) {
+        weeklyCount++;
+      }
+    }
+  });
+  
+  document.getElementById('kpi-visits-today').textContent = todayCount;
+  document.getElementById('kpi-visits-3days').textContent = upcoming3Days;
+  document.getElementById('kpi-visits-week').textContent = weeklyCount;
+  document.getElementById('kpi-visits-completed').textContent = completedCount;
+}
+
+function renderVisitsCards(list) {
+  const container = document.getElementById('visits-cards-view');
+  if (!container) return;
+  
+  if (list.length === 0) {
+    container.innerHTML = `<div class="empty" style="grid-column: 1 / -1;"><div class="empty-text">لا توجد زيارات مطابقة للفلترة</div></div>`;
+    return;
+  }
+  
+  container.innerHTML = list.map(v => {
+    const days = getDaysRemaining(v['تاريخ الزيارة']);
+    let badgeClass = 'badge-leave';
+    let badgeText = '';
+    let cardBorder = '';
+    
+    if (v['الحالة'] === 'تمت') {
+      badgeClass = 'badge-present';
+      badgeText = '✅ تمت';
+    } else if (v['الحالة'] === 'ملغية') {
+      badgeClass = 'badge-absent';
+      badgeText = '❌ ملغية';
+    } else if (v['الحالة'] === 'تأجلت') {
+      badgeClass = 'badge-holiday';
+      badgeText = '⏰ تأجلت';
+    } else {
+      if (days < 0) {
+        badgeClass = 'badge-absent';
+        badgeText = `🔴 متأخرة بـ ${Math.abs(days)} يوم`;
+        cardBorder = 'border-right: 4px solid var(--danger) !important;';
+      } else if (days === 0) {
+        badgeClass = 'badge-absent';
+        badgeText = '🔴 اليوم';
+        cardBorder = 'border-right: 4px solid var(--danger) !important;';
+      } else if (days <= 3) {
+        badgeClass = 'badge-leave';
+        badgeText = `🟡 باقي ${days} يوم`;
+        cardBorder = 'border-right: 4px solid var(--warning) !important;';
+      } else {
+        badgeClass = 'badge-present';
+        badgeText = `🟢 باقي ${days} يوم`;
+        cardBorder = 'border-right: 4px solid var(--success) !important;';
+      }
+    }
+    
+    const waText = encodeURIComponent(`السلام عليكم،
+نود تذكيركم بموعد زيارتنا لكم
+📅 التاريخ: ${v['تاريخ الزيارة']}
+🕐 الوقت: ${v['وقت الزيارة']}
+موضوع النقاش المخطط: ${v['ملاحظات'] || ''}
+نتطلع للقاء بكم 🤝
+
+نظم وحلول للتقنية المالية`);
+    
+    const isWaEnabled = v['واتساب العميل'] && v['واتساب العميل'].length > 5;
+    const waLink = isWaEnabled ? `href="https://wa.me/${v['واتساب العميل']}?text=${waText}" target="_blank"` : 'style="opacity:0.4; cursor:not-allowed;" onclick="showToast(\'لا يوجد رقم هاتف واتساب مسجل للعميل\', \'info\')"';
+    
+    const teamName = (STATE.teams.find(t => t.id === v.team_id) || {})['اسم التيم'] || v.team_id;
+    
+    const kpiActions = v['الحالة'] === 'مجدولة' ? `
+      <button class="btn btn-secondary btn-sm" onclick="openCompleteVisitModal('${v.id}')" style="background:rgba(52,211,153,0.15); color:var(--success); border:1px solid rgba(52,211,153,0.25); padding:4px 8px; font-size:11px;">✅ إتمام</button>
+      <button class="btn btn-secondary btn-sm" onclick="openPostponeVisitModal('${v.id}')" style="background:rgba(251,191,36,0.15); color:var(--warning); border:1px solid rgba(251,191,36,0.25); padding:4px 8px; font-size:11px;">⏰ تأجيل</button>
+    ` : '';
+    
+    return `
+      <div class="team-card" style="padding:1.25rem; display:flex; flex-direction:column; justify-content:space-between; ${cardBorder}">
+        <div>
+          <div class="team-card-top" style="margin-bottom:8px;">
+            <div>
+              <div class="team-name" style="font-size:15px; color:var(--text);">${v['العميل']}</div>
+              <div class="team-supervisor" style="font-size:11px; margin-top:2px;">المسؤول: <strong>${v['اسم الموظف']}</strong> (${teamName})</div>
+            </div>
+            <span class="badge ${badgeClass}">${badgeText}</span>
+          </div>
+          
+          <div class="team-stats" style="gap:6px; margin-bottom:10px; margin-top:4px;">
+            <div class="team-stat" style="font-size:11px; padding:4px 8px;">📅 ${v['تاريخ الزيارة']}</div>
+            <div class="team-stat" style="font-size:11px; padding:4px 8px;">🕐 ${v['وقت الزيارة']}</div>
+            <div class="team-stat" style="font-size:11px; padding:4px 8px;">🔁 ${v['التكرار'] || 'مرة واحدة'}</div>
+          </div>
+          
+          <div style="font-size:12.5px; color:var(--text2); background:var(--bg4); border:1px solid var(--border); padding:8px 10px; border-radius:var(--radius-s); margin-bottom:12px; line-height:1.5; min-height:54px; white-space:normal; word-break:break-word;">
+            <div style="font-size:10px; color:var(--text3); font-weight:600; margin-bottom:2px; text-transform:uppercase;">📝 تفاصيل وموضوع النقاش:</div>
+            ${v['ملاحظات'] || '<span style="color:var(--text3); font-style:italic;">لا توجد أجندة أو تفاصيل مسجلة...</span>'}
+          </div>
+        </div>
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:10px; margin-top:4px; gap:8px;">
+          <a class="btn btn-secondary btn-sm" ${waLink} style="display:inline-flex; align-items:center; gap:4px; font-weight:600; font-size:11px;">📱 واتساب</a>
+          <div style="display:flex; gap:4px;">
+            ${kpiActions}
+            <button class="btn btn-secondary btn-sm" onclick="openEditVisitModal('${v.id}')" style="padding:4px 8px; font-size:11px;">✏️ تعديل</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderVisitsTable(list) {
+  const tbody = document.getElementById('visits-tbody');
+  if (!tbody) return;
+  
+  if (list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty"><div class="empty-text">لا توجد زيارات مطابقة للفلترة</div></div></td></tr>`;
+    return;
+  }
+  
+  tbody.innerHTML = list.map(v => {
+    const days = getDaysRemaining(v['تاريخ الزيارة']);
+    let badgeClass = 'badge-leave';
+    let badgeText = '';
+    
+    if (v['الحالة'] === 'تمت') {
+      badgeClass = 'badge-present';
+      badgeText = 'تمت';
+    } else if (v['الحالة'] === 'ملغية') {
+      badgeClass = 'badge-absent';
+      badgeText = 'ملغية';
+    } else if (v['الحالة'] === 'تأجلت') {
+      badgeClass = 'badge-holiday';
+      badgeText = 'تأجلت';
+    } else {
+      if (days < 0) {
+        badgeClass = 'badge-absent';
+        badgeText = `🔴 متأخر بـ ${Math.abs(days)} يوم`;
+      } else if (days === 0) {
+        badgeClass = 'badge-absent';
+        badgeText = '🔴 اليوم';
+      } else if (days <= 3) {
+        badgeClass = 'badge-leave';
+        badgeText = `🟡 باقي ${days} يوم`;
+      } else {
+        badgeClass = 'badge-present';
+        badgeText = `🟢 باقي ${days} يوم`;
+      }
+    }
+    
+    const waText = encodeURIComponent(`السلام عليكم،
+نود تذكيركم بموعد زيارتنا لكم
+📅 التاريخ: ${v['تاريخ الزيارة']}
+🕐 الوقت: ${v['وقت الزيارة']}
+موضوع النقاش المخطط: ${v['ملاحظات'] || ''}
+نتطلع للقاء بكم 🤝
+
+نظم وحلول للتقنية المالية`);
+    
+    const isWaEnabled = v['واتساب العميل'] && v['واتساب العميل'].length > 5;
+    const waButton = isWaEnabled ? `<a class="btn btn-secondary btn-sm" href="https://wa.me/${v['واتساب العميل']}?text=${waText}" target="_blank" style="padding:4px 8px; font-size:11px;">📱 واتساب</a>` : `<button class="btn btn-secondary btn-sm" style="padding:4px 8px; font-size:11px; opacity:0.4; cursor:not-allowed;" onclick="showToast('لا يوجد رقم هاتف للعميل', 'info')">📱 واتساب</button>`;
+    
+    const teamName = (STATE.teams.find(t => t.id === v.team_id) || {})['اسم التيم'] || v.team_id;
+    
+    const kpiActions = v['الحالة'] === 'مجدولة' ? `
+      <button class="btn btn-secondary btn-sm" onclick="openCompleteVisitModal('${v.id}')" style="background:rgba(52,211,153,0.1); color:var(--success); border:1px solid rgba(52,211,153,0.2); padding:4px 8px; font-size:11px;">✅ إتمام</button>
+      <button class="btn btn-secondary btn-sm" onclick="openPostponeVisitModal('${v.id}')" style="background:rgba(251,191,36,0.1); color:var(--warning); border:1px solid rgba(251,191,36,0.2); padding:4px 8px; font-size:11px;">⏰ تأجيل</button>
+    ` : '';
+    
+    return `
+      <tr>
+        <td style="font-weight:600; color:var(--text);">${v['العميل']}</td>
+        <td>${v['اسم الموظف']}</td>
+        <td><span class="team-badge" style="padding:2px 8px; font-size:11px;">${teamName}</span></td>
+        <td>${v['تاريخ الزيارة']}</td>
+        <td>${v['وقت الزيارة']}</td>
+        <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+        <td>${v['التكرار'] || 'مرة واحدة'}</td>
+        <td><span class="badge ${badgeClass}">${v['الحالة']}</span></td>
+        <td class="td-trunc" style="max-width:200px;" title="${v['ملاحظات'] || ''}">${v['ملاحظات'] || ''}</td>
+        <td>
+          <div style="display:flex; gap:4px; align-items:center;">
+            ${waButton}
+            ${kpiActions}
+            <button class="btn btn-secondary btn-sm" onclick="openEditVisitModal('${v.id}')" style="padding:4px 8px; font-size:11px;">✏️</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderNeglectedClients(teamId) {
+  const container = document.getElementById('neglected-clients-container');
+  if (!container) return;
+  
+  let filteredClients = STATE.clients;
+  if (teamId) {
+    filteredClients = STATE.clients.filter(c => c.team_id === teamId || c.team_id === '');
+  }
+  
+  const scheduledClientNames = new Set(
+    (STATE.visits || [])
+      .filter(v => v['الحالة'] === 'مجدولة')
+      .map(v => v['العميل'])
+  );
+  
+  const neglected = filteredClients.filter(c => {
+    const name = c.name || c;
+    return !scheduledClientNames.has(name);
+  });
+  
+  if (neglected.length === 0) {
+    container.innerHTML = `<span style="color:var(--success); font-size:12.5px; font-weight:600; display:flex; align-items:center; gap:4px;">✔️ ممتاز! جميع عملائك لديهم زيارات مجدولة نشطة حالياً.</span>`;
+    return;
+  }
+  
+  container.innerHTML = neglected.map(c => {
+    const name = c.name || c;
+    const tId = c.team_id || teamId || '';
+    const tName = (STATE.teams.find(t => t.id === tId) || {})['اسم التيم'] || tId || 'مشترك';
+    return `
+      <span class="btn-copy" onclick="quickScheduleVisitForClient('${name.replace(/'/g, "\\'")}', '${tId}')" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; background:var(--bg3); border-color:rgba(248, 113, 113, 0.25); color:var(--text2);" title="اضغط لجدولة زيارة فورية لهذا العميل">
+        🏢 ${name} <small style="color:var(--text3); font-size:9.5px;">(${tName})</small> ➕
+      </span>
+    `;
+  }).join('');
+}
+
+function quickScheduleVisitForClient(clientName, teamId) {
+  openAddVisitModal();
+  
+  const formTeam = document.getElementById('visit-form-team');
+  if (formTeam && teamId) {
+    formTeam.value = teamId;
+    populateFormEmpSelect('visit-form-emp', 'visit-form-team');
+    populateClientFilter('visit-form-client', 'visit-form-team');
+  }
+  
+  const formClient = document.getElementById('visit-form-client');
+  if (formClient) {
+    formClient.value = clientName;
+  }
+  
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  document.getElementById('visit-form-date').value = tomorrowStr;
+  document.getElementById('visit-form-time').value = '10:00 ص';
+  document.getElementById('visit-form-notes').focus();
+  
+  showToast(`تم التعبئة المبدئية للعميل: ${clientName}`, 'info');
+}
+
+function openAddVisitModal() {
+  document.getElementById('visit-form-title').textContent = '🗓️ إضافة زيارة جديدة';
+  document.getElementById('visit-form-id').value = '';
+  document.getElementById('visit-form-whatsapp').value = '';
+  document.getElementById('visit-form-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('visit-form-time').value = '';
+  document.getElementById('visit-form-frequency').value = 'مرة واحدة';
+  document.getElementById('visit-form-status').value = 'مجدولة';
+  document.getElementById('visit-form-notes').value = '';
+  
+  populateFormEmpSelect('visit-form-emp', 'visit-form-team');
+  populateClientFilter('visit-form-client', 'visit-form-team');
+  
+  if (STATE.role === 'supervisor') {
+    document.getElementById('visit-form-team').value = STATE.teamId;
+    populateFormEmpSelect('visit-form-emp', 'visit-form-team');
+    populateClientFilter('visit-form-client', 'visit-form-team');
+  } else {
+    document.getElementById('visit-form-team').value = '';
+  }
+  
+  openModal('modal-visit-form');
+}
+
+function openEditVisitModal(id) {
+  const visit = (STATE.visits || []).find(v => v.id === id);
+  if (!visit) return;
+  
+  document.getElementById('visit-form-title').textContent = '✏️ تعديل تفاصيل الزيارة';
+  document.getElementById('visit-form-id').value = visit.id;
+  
+  const teamSel = document.getElementById('visit-form-team');
+  if (teamSel) {
+    teamSel.value = visit.team_id;
+  }
+  populateFormEmpSelect('visit-form-emp', 'visit-form-team');
+  populateClientFilter('visit-form-client', 'visit-form-team');
+  
+  document.getElementById('visit-form-emp').value = visit.emp_id;
+  document.getElementById('visit-form-client').value = visit['العميل'];
+  document.getElementById('visit-form-whatsapp').value = visit['واتساب العميل'] || '';
+  document.getElementById('visit-form-date').value = visit['تاريخ الزيارة'];
+  document.getElementById('visit-form-time').value = visit['وقت الزيارة'];
+  document.getElementById('visit-form-frequency').value = visit['التكرار'] || 'مرة واحدة';
+  document.getElementById('visit-form-status').value = visit['الحالة'] || 'مجدولة';
+  document.getElementById('visit-form-notes').value = visit['ملاحظات'] || '';
+  
+  openModal('modal-visit-form');
+}
+
+async function saveVisitForm() {
+  const id = document.getElementById('visit-form-id').value;
+  const teamId = document.getElementById('visit-form-team').value || STATE.teamId;
+  const empId = document.getElementById('visit-form-emp').value;
+  const client = document.getElementById('visit-form-client').value;
+  const whatsapp = document.getElementById('visit-form-whatsapp').value.trim();
+  const date = document.getElementById('visit-form-date').value;
+  const time = document.getElementById('visit-form-time').value.trim();
+  const frequency = document.getElementById('visit-form-frequency').value;
+  const status = document.getElementById('visit-form-status').value;
+  const notes = document.getElementById('visit-form-notes').value.trim();
+  
+  if (!teamId || !empId || !client || !date || !time) {
+    showToast('برجاء تعبئة كافة الحقول المطلوبة (التيم، الموظف، العميل، التاريخ، والوقت)', 'error');
+    return;
+  }
+  
+  const empSelect = document.getElementById('visit-form-emp');
+  const empName = empSelect.options[empSelect.selectedIndex].getAttribute('data-name') || empSelect.options[empSelect.selectedIndex].text;
+  
+  const payload = {
+    id, teamId, empId, empName, client, whatsapp, date, time, frequency, status, notes
+  };
+  
+  const action = id ? 'updateVisit' : 'addVisit';
+  const tempId = id || ('visit_' + Date.now());
+  const backupVisits = JSON.parse(JSON.stringify(STATE.visits || []));
+  
+  if (id) {
+    const idx = STATE.visits.findIndex(v => v.id === id);
+    if (idx !== -1) {
+      STATE.visits[idx] = {
+        ...STATE.visits[idx],
+        emp_id: empId,
+        اسم الموظف: empName,
+        team_id: teamId,
+        العميل: client,
+        'واتساب العميل': whatsapp,
+        'تاريخ الزيارة': date,
+        'وقت الزيارة': time,
+        'التكرار': frequency,
+        'الحالة': status,
+        'ملاحظات': notes
+      };
+    }
+  } else {
+    STATE.visits.push({
+      id: tempId,
+      emp_id: empId,
+      'اسم الموظف': empName,
+      team_id: teamId,
+      'العميل': client,
+      'واتساب العميل': whatsapp,
+      'تاريخ الزيارة': date,
+      'وقت الزيارة': time,
+      'التكرار': frequency,
+      'الحالة': status,
+      'ملاحظات': notes,
+      'تاريخ الإنشاء': new Date().toISOString().slice(0, 10)
+    });
+  }
+  
+  closeModal('modal-visit-form');
+  filterVisitsList();
+  showToast(id ? 'تم تعديل الزيارة بنجاح!' : 'تمت إضافة الزيارة بنجاح!', 'success');
+  
+  try {
+    const r = await apiPost(action, payload);
+    if (!r.ok) {
+      STATE.visits = backupVisits;
+      filterVisitsList();
+      showToast(r.error || 'تعذر حفظ الزيارة في الخادم المباشر', 'error');
+    } else {
+      if (!id && r.id) {
+        const found = STATE.visits.find(v => v.id === tempId);
+        if (found) found.id = r.id;
+      }
+    }
+  } catch(e) {
+    STATE.visits = backupVisits;
+    filterVisitsList();
+    showToast('فشل اتصال الشبكة - تم التراجع عن الزيارة المحفوظة محلياً', 'error');
+  }
+}
+
+function openPostponeVisitModal(id) {
+  const visit = (STATE.visits || []).find(v => v.id === id);
+  if (!visit) return;
+  
+  openAddVisitModal();
+  openEditVisitModal(id);
+  document.getElementById('visit-form-title').textContent = '⏰ تأجيل موعد الزيارة الحالية';
+  document.getElementById('visit-form-status').value = 'تأجلت';
+  
+  document.getElementById('visit-form-date').focus();
+}
+
+function openCompleteVisitModal(id) {
+  const visit = (STATE.visits || []).find(v => v.id === id);
+  if (!visit) return;
+  
+  document.getElementById('visit-complete-id').value = visit.id;
+  document.getElementById('visit-complete-client').textContent = visit['العميل'];
+  document.getElementById('visit-complete-emp').textContent = visit['اسم الموظف'];
+  document.getElementById('visit-complete-agenda').textContent = visit['ملاحظات'] || 'لا يوجد';
+  document.getElementById('visit-complete-summary').value = '';
+  
+  document.getElementById('visit-complete-next-check').checked = (visit['التكرار'] && visit['التكرار'] !== 'مرة واحدة');
+  document.getElementById('visit-complete-next-freq').value = (visit['التكرار'] && visit['التكرار'] !== 'مرة واحدة') ? visit['التكرار'] : 'أسبوعي';
+  
+  toggleNextVisitFields(document.getElementById('visit-complete-next-check').checked);
+  
+  openModal('modal-visit-complete');
+}
+
+function toggleNextVisitFields(checked) {
+  const fieldsDiv = document.getElementById('visit-complete-next-fields');
+  if (fieldsDiv) {
+    fieldsDiv.style.display = checked ? 'block' : 'none';
+  }
+}
+
+function toggleNextVisitCustomDate(freq) {
+  const customDiv = document.getElementById('visit-complete-next-custom');
+  if (customDiv) {
+    customDiv.style.display = freq === 'مخصص' ? 'grid' : 'none';
+    if (freq === 'مخصص') {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 7);
+      document.getElementById('visit-complete-next-date').value = tomorrow.toISOString().slice(0, 10);
+      document.getElementById('visit-complete-next-time').value = '10:00 ص';
+    }
+  }
+}
+
+async function saveVisitComplete() {
+  const id = document.getElementById('visit-complete-id').value;
+  const summary = document.getElementById('visit-complete-summary').value.trim();
+  const scheduleNext = document.getElementById('visit-complete-next-check').checked;
+  const nextFrequency = document.getElementById('visit-complete-next-freq').value;
+  const nextDate = nextFrequency === 'مخصص' ? document.getElementById('visit-complete-next-date').value : '';
+  const nextTime = nextFrequency === 'مخصص' ? document.getElementById('visit-complete-next-time').value.trim() : '';
+  
+  if (scheduleNext && nextFrequency === 'مخصص' && (!nextDate || !nextTime)) {
+    showToast('برجاء تعبئة التاريخ والوقت المخصصين للموعد القادم', 'error');
+    return;
+  }
+  
+  const visit = (STATE.visits || []).find(v => v.id === id);
+  if (!visit) return;
+  
+  const backupVisits = JSON.parse(JSON.stringify(STATE.visits || []));
+  
+  visit['الحالة'] = 'تمت';
+  if (summary) {
+    visit['ملاحظات'] = (visit['ملاحظات'] ? visit['ملاحظات'] + '\n' : '') + '📅 ملخص الإتمام: ' + summary;
+  }
+  
+  const tempNextId = 'visit_' + (Date.now() + 100);
+  let predictedNextDate = '';
+  
+  if (scheduleNext) {
+    if (nextFrequency === 'مخصص') {
+      predictedNextDate = nextDate;
+    } else {
+      const curr = new Date(visit['تاريخ الزيارة']);
+      const nextObj = new Date(curr);
+      if (nextFrequency === 'أسبوعي') nextObj.setDate(curr.getDate() + 7);
+      else if (nextFrequency === 'نصف شهري') nextObj.setDate(curr.getDate() + 15);
+      else if (nextFrequency === 'شهري') nextObj.setMonth(curr.getMonth() + 1);
+      predictedNextDate = nextObj.toISOString().slice(0, 10);
+    }
+    
+    STATE.visits.push({
+      id: tempNextId,
+      emp_id: visit.emp_id,
+      'اسم الموظف': visit['اسم الموظف'],
+      team_id: visit.team_id,
+      'العميل': visit['العميل'],
+      'واتساب العميل': visit['واتساب العميل'],
+      'تاريخ الزيارة': predictedNextDate,
+      'وقت الزيارة': nextTime || visit['وقت الزيارة'],
+      'التكرار': nextFrequency,
+      'الحالة': 'مجدولة',
+      'ملاحظات': visit['ملاحظات'] || '',
+      'تاريخ الإنشاء': new Date().toISOString().slice(0, 10)
+    });
+  }
+  
+  closeModal('modal-visit-complete');
+  filterVisitsList();
+  showToast('تم إتمام الزيارة وجدولة الموعد القادم محلياً!', 'success');
+  
+  try {
+    const r = await apiPost('completeVisit', {
+      id, summary, scheduleNext, nextFrequency, nextDate, nextTime
+    });
+    if (!r.ok) {
+      STATE.visits = backupVisits;
+      filterVisitsList();
+      showToast(r.error || 'تعذر إتمام الزيارة في خادم جوجل شيت', 'error');
+    } else {
+      if (scheduleNext && r.nextId) {
+        const found = STATE.visits.find(v => v.id === tempNextId);
+        if (found) found.id = r.nextId;
+      }
+    }
+  } catch(e) {
+    STATE.visits = backupVisits;
+    filterVisitsList();
+    showToast('فشل المزامنة مع السيرفر - تم التراجع عن الإتمام الفوري', 'error');
+  }
+}
+
+async function exportVisitsExcel() {
+  const teamId = document.getElementById('visits-filter-team')?.value || STATE.teamId || '';
+  let list = STATE.visits || [];
+  if (teamId) list = list.filter(v => v.team_id === teamId);
+  
+  if (list.length === 0) {
+    showToast('لا توجد بيانات زيارات لتصديرها!', 'error');
+    return;
+  }
+  
+  showToast('جاري تحضير ملف الإكسل المطور...', 'info');
+  
+  const clientSummaryMap = {};
+  list.forEach(v => {
+    const cName = v['العميل'];
+    if (!clientSummaryMap[cName]) {
+      clientSummaryMap[cName] = {
+        'العميل': cName,
+        'إجمالي الزيارات': 0,
+        'زيارات مكتملة': 0,
+        'زيارات مجدولة': 0,
+        'آخر زيارة': '',
+        'المسؤول': v['اسم الموظف'],
+        'واتساب': v['واتساب العميل'] || ''
+      };
+    }
+    clientSummaryMap[cName]['إجمالي الزيارات']++;
+    if (v['الحالة'] === 'تمت') {
+      clientSummaryMap[cName]['زيارات مكتملة']++;
+      if (!clientSummaryMap[cName]['آخر زيارة'] || v['تاريخ الزيارة'] > clientSummaryMap[cName]['آخر زيارة']) {
+        clientSummaryMap[cName]['آخر زيارة'] = v['تاريخ الزيارة'];
+      }
+    } else if (v['الحالة'] === 'مجدولة') {
+      clientSummaryMap[cName]['زيارات مجدولة']++;
+    }
+  });
+  const sheet1Data = Object.values(clientSummaryMap);
+  
+  const sheet2Data = list.map(v => {
+    const teamName = (STATE.teams.find(t => t.id === v.team_id) || {})['اسم التيم'] || v.team_id;
+    return {
+      'المعرف': v.id,
+      'العميل': v['العميل'],
+      'المسؤول': v['اسم الموظف'],
+      'التيم': teamName,
+      'واتساب': v['واتساب العميل'] || '',
+      'تاريخ الزيارة': v['تاريخ الزيارة'],
+      'الوقت': v['وقت الزيارة'],
+      'الحالة': v['الحالة'],
+      'التكرار': v['التكرار'] || 'مرة واحدة',
+      'تفاصيل النقاش': v['ملاحظات'] || '',
+      'تاريخ الإسناد': v['تاريخ الإنشاء'] || ''
+    };
+  });
+  
+  const empSummaryMap = {};
+  list.forEach(v => {
+    const empName = v['اسم الموظف'];
+    if (!empSummaryMap[empName]) {
+      empSummaryMap[empName] = {
+        'الموظف': empName,
+        'مجدولة': 0,
+        'تمت': 0,
+        'تأجلت': 0,
+        'ملغية': 0,
+        'إجمالي التكليفات للزيارة': 0
+      };
+    }
+    empSummaryMap[empName]['إجمالي التكليفات للزيارة']++;
+    const s = v['الحالة'];
+    if (s === 'مجدولة') empSummaryMap[empName]['مجدولة']++;
+    else if (s === 'تمت') empSummaryMap[empName]['تمت']++;
+    else if (s === 'تأجلت') empSummaryMap[empName]['تأجلت']++;
+    else if (s === 'ملغية') empSummaryMap[empName]['ملغية']++;
+  });
+  const sheet3Data = Object.values(empSummaryMap);
+  
+  try {
+    const wb = XLSX.utils.book_new();
+    
+    const ws1 = XLSX.utils.json_to_sheet(sheet1Data);
+    const ws2 = XLSX.utils.json_to_sheet(sheet2Data);
+    const ws3 = XLSX.utils.json_to_sheet(sheet3Data);
+    
+    XLSX.utils.book_append_sheet(wb, ws1, 'ملخص العملاء');
+    XLSX.utils.book_append_sheet(wb, ws2, 'التفاصيل الكلية للزيارات');
+    XLSX.utils.book_append_sheet(wb, ws3, 'أداء الموظفين بالزيارات');
+    
+    const dateObj = new Date();
+    const formattedDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2,'0')}`;
+    XLSX.writeFile(wb, `زيارات_العملاء_${formattedDate}.xlsx`);
+    
+    showToast('تم تصدير ملف الإكسل متعدد الأقسام بنجاح!', 'success');
+  } catch(e) {
+    showToast('تعذر تصدير ملف الإكسل', 'error');
+  }
+}
+async function saveReportNote() {
 </script>
 </body>
 </html>
