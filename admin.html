@@ -1113,9 +1113,12 @@ tr.row-has-note td:first-child {
 <!-- Client Details Modal (تفاصيل العميل والتقارير والزيارات المرتبطة به) -->
 <div class="modal-overlay" id="modal-client-details">
   <div class="modal" style="width: 800px; max-width: 95%;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:8px;">
       <div class="modal-title" id="client-details-title" style="margin-bottom:0; font-size:17px; color:var(--accent-l);">الملف المتكامل للعميل والتحليلات</div>
-      <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-client-details')" style="padding:4px 10px;">✕</button>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="btn btn-primary btn-sm" onclick="exportSingleClientExcel()" style="background:var(--success); border:none; padding:5px 12px; font-size:11.5px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">📥 تصدير تقرير العميل (Excel)</button>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-client-details')" style="padding:4px 10px;">✕</button>
+      </div>
     </div>
     
     <!-- Glassmorphism Tab Switcher -->
@@ -2839,12 +2842,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('db-to').value   = today;
   document.getElementById('att-month').value = today.slice(0,7);
   
-  // Set default visits date filters to start and end of current month
+  // Set default visits date filters from start of current month to end of next month (two months range)
   const y = now.getFullYear();
   const m = now.getMonth();
-  const lastDay = new Date(y, m + 1, 0).toISOString().slice(0, 10);
+  const lastDayOfNextMonth = new Date(y, m + 2, 0).toISOString().slice(0, 10);
   document.getElementById('visits-filter-date-from').value = firstDay;
-  document.getElementById('visits-filter-date-to').value = lastDay;
+  document.getElementById('visits-filter-date-to').value = lastDayOfNextMonth;
 
   initLogin();
 
@@ -3426,7 +3429,69 @@ function switchCliDetailsTab(tab) {
   }
 }
 
+function exportSingleClientExcel() {
+  const clientName = STATE.activeClientDetailsName;
+  if (!clientName) {
+    showToast('خطأ: لم يتم تحديد عميل للتصدير', 'error');
+    return;
+  }
+
+  const reports = (STATE.reports || []).filter(r => String(r['العميل']) === String(clientName));
+  const visits = (STATE.visits || []).filter(v => String(v['العميل']) === String(clientName));
+
+  if (reports.length === 0 && visits.length === 0) {
+    showToast('لا توجد سجلات عمل أو زيارات لتصديرها لهذا العميل!', 'error');
+    return;
+  }
+
+  showToast('جاري تحضير تقرير العميل المطور...', 'info');
+
+  const teamMap = {};
+  STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+
+  // Page 1: سجل مهام العمل وساعات العميل
+  const sheet1Data = reports.map(r => ({
+    'التاريخ': r['التاريخ'] || '',
+    'الموظف المسؤول': r['اسم الموظف'] || '',
+    'الفريق المشارك': teamMap[r.team_id] || r.team_id || '',
+    'نوع المهمة': r['نوع المهمة'] || '',
+    'المدة (ساعة:دقيقة)': r['المدة'] || '',
+    'وصف المهمة بالتفصيل': r['وصف المهمة'] || '',
+    'ملاحظات المشرف': r['ملاحظات المشرف'] || ''
+  }));
+
+  // Page 2: سجل الزيارات الميدانية ومخرجاتها
+  const sheet2Data = visits.map(v => ({
+    'تاريخ الزيارة': v['تاريخ الزيارة'] || '',
+    'وقت الزيارة': v['وقت الزيارة'] || '',
+    'المسؤول عن الزيارة': v['اسم الموظف'] || '',
+    'الفريق': teamMap[v.team_id] || v.team_id || '',
+    'الحالة': v['الحالة'] || '',
+    'التكرار': v['التكرار'] || 'مرة واحدة',
+    'المطلوب عمله / ما تم إنجازه': v['ملاحظات'] || '',
+    'تاريخ جدولة الزيارة': v['تاريخ الإنشاء'] || ''
+  }));
+
+  try {
+    const wb = XLSX.utils.book_new();
+
+    // Work Reports Sheet
+    const ws1 = XLSX.utils.json_to_sheet(sheet1Data.length > 0 ? sheet1Data : [{'تنبيه': 'لا توجد ساعات عمل مسجلة لهذا العميل بعد'}]);
+    XLSX.utils.book_append_sheet(wb, ws1, 'سجل مهام العمل وساعات العميل');
+
+    // Visits Sheet
+    const ws2 = XLSX.utils.json_to_sheet(sheet2Data.length > 0 ? sheet2Data : [{'تنبيه': 'لا توجد زيارات ميدانية مسجلة لهذا العميل بعد'}]);
+    XLSX.utils.book_append_sheet(wb, ws2, 'سجل ومتابعة الزيارات (CRM)');
+
+    XLSX.writeFile(wb, `تقرير_العميل_${clientName}.xlsx`);
+    showToast('تم تصدير ملف إكسل العميل بنجاح!', 'success');
+  } catch(e) {
+    showToast('تعذر تصدير تقرير العميل', 'error');
+  }
+}
+
 function openClientDetailsModal(clientName) {
+  STATE.activeClientDetailsName = clientName;
   document.getElementById('client-details-title').textContent = `الملف المتكامل للعميل: ${clientName}`;
   const tbody = document.getElementById('cli-details-reports-tbody');
   
