@@ -702,13 +702,15 @@ tr.row-has-note td:first-child {
               <option value="ملغية">ملغية</option>
             </select>
           </div>
-          <div class="filter-group" style="min-width:115px;">
-            <label>التاريخ من</label>
-            <input type="date" id="visits-filter-date-from" style="font-size:12px; padding:5px 10px; height:32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text);" onchange="filterVisitsList()">
-          </div>
-          <div class="filter-group" style="min-width:115px;">
-            <label>التاريخ إلى</label>
-            <input type="date" id="visits-filter-date-to" style="font-size:12px; padding:5px 10px; height:32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text);" onchange="filterVisitsList()">
+          <div style="display:flex; gap:10px;">
+            <div class="filter-group" style="min-width:115px;">
+              <label>التاريخ من</label>
+              <input type="date" id="visits-filter-date-from" style="font-size:12px; padding:5px 10px; height:32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text);" onchange="filterVisitsList()">
+            </div>
+            <div class="filter-group" style="min-width:115px;">
+              <label>التاريخ إلى</label>
+              <input type="date" id="visits-filter-date-to" style="font-size:12px; padding:5px 10px; height:32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text);" onchange="filterVisitsList()">
+            </div>
           </div>
           <div class="filter-group" style="min-width:160px; max-width:240px; flex: 1;">
             <label>البحث بالعميل أو المطلوب عمله</label>
@@ -2836,6 +2838,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('db-from').value = firstDay;
   document.getElementById('db-to').value   = today;
   document.getElementById('att-month').value = today.slice(0,7);
+  
+  // Set default visits date filters to start and end of current month
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const lastDay = new Date(y, m + 1, 0).toISOString().slice(0, 10);
+  document.getElementById('visits-filter-date-from').value = firstDay;
+  document.getElementById('visits-filter-date-to').value = lastDay;
 
   initLogin();
 
