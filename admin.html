@@ -702,6 +702,14 @@ tr.row-has-note td:first-child {
               <option value="ملغية">ملغية</option>
             </select>
           </div>
+          <div class="filter-group" style="min-width:115px;">
+            <label>التاريخ من</label>
+            <input type="date" id="visits-filter-date-from" style="font-size:12px; padding:5px 10px; height:32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text);" onchange="filterVisitsList()">
+          </div>
+          <div class="filter-group" style="min-width:115px;">
+            <label>التاريخ إلى</label>
+            <input type="date" id="visits-filter-date-to" style="font-size:12px; padding:5px 10px; height:32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text);" onchange="filterVisitsList()">
+          </div>
           <div class="filter-group" style="min-width:160px; max-width:240px; flex: 1;">
             <label>البحث بالعميل أو المطلوب عمله</label>
             <input type="text" id="visits-search" placeholder="اكتب اسم العميل أو المطلوب عمله..." oninput="filterVisitsList()" style="font-size:12px; padding:6px 12px; height:32px;">
@@ -1100,44 +1108,83 @@ tr.row-has-note td:first-child {
   </div>
 </div>
 
-<!-- Client Details Modal (تفاصيل العميل والتقارير المرتبطة به) -->
+<!-- Client Details Modal (تفاصيل العميل والتقارير والزيارات المرتبطة به) -->
 <div class="modal-overlay" id="modal-client-details">
-  <div class="modal" style="width: 760px; max-width: 95%;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
-      <div class="modal-title" id="client-details-title" style="margin-bottom:0; font-size:17px;">تفاصيل العميل وتحليلاته</div>
+  <div class="modal" style="width: 800px; max-width: 95%;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+      <div class="modal-title" id="client-details-title" style="margin-bottom:0; font-size:17px; color:var(--accent-l);">الملف المتكامل للعميل والتحليلات</div>
       <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-client-details')" style="padding:4px 10px;">✕</button>
     </div>
     
-    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:1.25rem;">
-      <div class="kpi-card c-blue" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">إجمالي ساعات العمل للعميل</div><div class="kpi-value c-blue" id="cli-details-hours" style="font-size:18px;">0</div></div>
-      <div class="kpi-card c-purple" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">عدد الفرق المشاركة</div><div class="kpi-value c-purple" id="cli-details-teams" style="font-size:18px;">0</div></div>
-      <div class="kpi-card c-yellow" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">الموظفون المشاركون</div><div class="kpi-value c-yellow" id="cli-details-emps" style="font-size:18px;">0</div></div>
-    </div>
-
-    <div style="margin-bottom:0.75rem; border-bottom:1px solid var(--border); padding-bottom:4px;">
-      <span style="font-size:13px; font-weight:600; color:var(--success);">📋 قائمة السجلات والمهام الخاصة بالعميل</span>
+    <!-- Glassmorphism Tab Switcher -->
+    <div style="display:flex; gap:6px; margin-bottom:1.25rem; background:rgba(255,255,255,0.03); border:1px solid var(--border); padding:3px; border-radius:8px;">
+      <button class="btn btn-secondary btn-sm" id="btn-cli-tab-reports" onclick="switchCliDetailsTab('reports')" style="flex:1; border:none; background:var(--accent-s2); color:var(--accent-l); padding:8px 12px; font-size:12px; border-radius:6px; font-weight:600; cursor:pointer; transition:all 0.2s;">📋 سجلات التقارير وساعات العمل</button>
+      <button class="btn btn-secondary btn-sm" id="btn-cli-tab-visits" onclick="switchCliDetailsTab('visits')" style="flex:1; border:none; background:none; color:var(--text2); padding:8px 12px; font-size:12px; border-radius:6px; font-weight:600; cursor:pointer; transition:all 0.2s;">🚗 سجل الزيارات الميدانية (CRM)</button>
     </div>
     
-    <div class="table-wrap" style="max-height: 300px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
-      <table style="font-size:11px;">
-        <thead>
-          <tr style="background:var(--bg4);">
-            <th>التاريخ</th>
-            <th>الموظف</th>
-            <th>التيم</th>
-            <th>نوع المهمة</th>
-            <th>المدة</th>
-            <th>الوصف</th>
-          </tr>
-        </thead>
-        <tbody id="cli-details-reports-tbody">
-          <tr><td colspan="6" style="text-align:center; color:var(--text3);">لا توجد مهام مسجلة</td></tr>
-        </tbody>
-      </table>
+    <!-- PANEL 1: REPORTS AND HOURS -->
+    <div id="cli-details-panel-reports">
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:1.25rem;">
+        <div class="kpi-card c-blue" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9.5px; margin-bottom:4px;">إجمالي ساعات العمل للعميل</div><div class="kpi-value c-blue" id="cli-details-hours" style="font-size:18px;">0</div></div>
+        <div class="kpi-card c-purple" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9.5px; margin-bottom:4px;">عدد الفرق المشاركة</div><div class="kpi-value c-purple" id="cli-details-teams" style="font-size:18px;">0</div></div>
+        <div class="kpi-card c-yellow" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9.5px; margin-bottom:4px;">الموظفون المشاركون</div><div class="kpi-value c-yellow" id="cli-details-emps" style="font-size:18px;">0</div></div>
+      </div>
+
+      <div style="margin-bottom:0.75rem; border-bottom:1px solid var(--border); padding-bottom:4px;">
+        <span style="font-size:12.5px; font-weight:600; color:var(--text2);">📋 قائمة السجلات والمهام الخاصة بالعميل</span>
+      </div>
+      
+      <div class="table-wrap" style="max-height: 250px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
+        <table style="font-size:11px;">
+          <thead>
+            <tr style="background:var(--bg4);">
+              <th>التاريخ</th>
+              <th>الموظف</th>
+              <th>التيم</th>
+              <th>نوع المهمة</th>
+              <th>المدة</th>
+              <th>الوصف</th>
+            </tr>
+          </thead>
+          <tbody id="cli-details-reports-tbody">
+            <tr><td colspan="6" style="text-align:center; color:var(--text3);">لا توجد مهام مسجلة</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- PANEL 2: CUSTOMER VISITS -->
+    <div id="cli-details-panel-visits" style="display:none;">
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:1.25rem;">
+        <div class="kpi-card c-green" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9.5px; margin-bottom:4px;">زيارات تمت ناجحة</div><div class="kpi-value c-green" id="cli-details-visits-completed" style="font-size:18px;">0</div></div>
+        <div class="kpi-card c-yellow" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9.5px; margin-bottom:4px;">زيارات تم تأجيلها ⏰</div><div class="kpi-value c-yellow" id="cli-details-visits-postponed" style="font-size:18px;">0</div></div>
+        <div class="kpi-card c-blue" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9.5px; margin-bottom:4px;">زيارات مجدولة نشطة 📅</div><div class="kpi-value c-blue" id="cli-details-visits-active" style="font-size:18px;">0</div></div>
+      </div>
+
+      <div style="margin-bottom:0.75rem; border-bottom:1px solid var(--border); padding-bottom:4px;">
+        <span style="font-size:12.5px; font-weight:600; color:var(--text2);">🚗 سجل وجدول جميع الزيارات الميدانية للعميل</span>
+      </div>
+      
+      <div class="table-wrap" style="max-height: 250px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
+        <table style="font-size:11px;">
+          <thead>
+            <tr style="background:var(--bg4);">
+              <th>تاريخ الزيارة</th>
+              <th>وقت الزيارة</th>
+              <th>المسؤول</th>
+              <th>الحالة</th>
+              <th>المطلوب عمله / ما تم إنجازه</th>
+            </tr>
+          </thead>
+          <tbody id="cli-details-visits-tbody">
+            <tr><td colspan="5" style="text-align:center; color:var(--text3);">لا توجد زيارات مسجلة لهذا العميل بعد</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
     
     <div class="modal-actions" style="margin-top:1.25rem;">
-      <button class="btn-sm-cancel" onclick="closeModal('modal-client-details')">إغلاق</button>
+      <button class="btn-sm-cancel" onclick="closeModal('modal-client-details')">إغلاق الملف</button>
     </div>
   </div>
 </div>
@@ -3345,59 +3392,137 @@ function parseClientsResponse(clientsR) {
   }
 }
 
+function switchCliDetailsTab(tab) {
+  const btnRep = document.getElementById('btn-cli-tab-reports');
+  const btnVis = document.getElementById('btn-cli-tab-visits');
+  const panelRep = document.getElementById('cli-details-panel-reports');
+  const panelVis = document.getElementById('cli-details-panel-visits');
+  
+  if (tab === 'reports') {
+    btnRep.style.background = 'var(--accent-s2)';
+    btnRep.style.color = 'var(--accent-l)';
+    btnVis.style.background = 'none';
+    btnVis.style.color = 'var(--text2)';
+    
+    panelRep.style.display = 'block';
+    panelVis.style.display = 'none';
+  } else {
+    btnVis.style.background = 'var(--accent-s2)';
+    btnVis.style.color = 'var(--accent-l)';
+    btnRep.style.background = 'none';
+    btnRep.style.color = 'var(--text2)';
+    
+    panelRep.style.display = 'none';
+    panelVis.style.display = 'block';
+  }
+}
+
 function openClientDetailsModal(clientName) {
-  document.getElementById('client-details-title').textContent = `تفاصيل العميل وتحليلاته: ${clientName}`;
+  document.getElementById('client-details-title').textContent = `الملف المتكامل للعميل: ${clientName}`;
   const tbody = document.getElementById('cli-details-reports-tbody');
+  
+  // Reset tab to reports on open
+  switchCliDetailsTab('reports');
   
   document.getElementById('cli-details-hours').textContent = '—';
   document.getElementById('cli-details-teams').textContent = '—';
   document.getElementById('cli-details-emps').textContent = '—';
 
-  openModal('modal-client-details');
-
+  // 1. Process Reports (سجلات العمل)
   const rows = (STATE.reports || []).filter(r => String(r['العميل']) === String(clientName));
-  
+  const teamMap = {};
+  STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+
   if (rows.length === 0) {
     document.getElementById('cli-details-hours').textContent = '0';
     document.getElementById('cli-details-teams').textContent = '0';
     document.getElementById('cli-details-emps').textContent = '0';
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text3);">لا توجد ساعات عمل مسجلة لهذا العميل بعد</td></tr>`;
-    return;
+  } else {
+    let totalMinutes = 0;
+    const uniqueTeams = new Set();
+    const uniqueEmps = new Set();
+
+    rows.forEach(row => {
+      const dur = row['المدة'] || '';
+      let mins = 0;
+      if (dur.includes(':')) {
+        const parts = dur.split(':').map(Number);
+        mins = (parts[0] || 0) * 60 + (parts[1] || 0);
+      }
+      totalMinutes += mins;
+
+      if (row.team_id) uniqueTeams.add(row.team_id);
+      if (row.emp_id) uniqueEmps.add(row.emp_id);
+    });
+
+    document.getElementById('cli-details-hours').textContent = (totalMinutes / 60).toFixed(1);
+    document.getElementById('cli-details-teams').textContent = uniqueTeams.size;
+    document.getElementById('cli-details-emps').textContent = uniqueEmps.size;
+
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td>${r['التاريخ'] || ''}</td>
+        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="closeModal('modal-client-details'); setTimeout(() => openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}'), 200)" title="عرض كشف الموظف">${r['اسم الموظف'] || ''}</strong></td>
+        <td><span style="font-size:10px; color:var(--text3);">${teamMap[r.team_id] || r.team_id || ''}</span></td>
+        <td>${r['نوع المهمة'] || ''}</td>
+        <td style="color:var(--success); font-weight:600;">${r['المدة'] || ''}</td>
+        <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(r['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${r['وصف المهمة'] || ''}</td>
+      </tr>
+    `).join('');
   }
 
-  let totalMinutes = 0;
-  const uniqueTeams = new Set();
-  const uniqueEmps = new Set();
-  const teamMap = {};
-  STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+  // 2. Process Visits CRM (سجل ومتابعة الزيارات)
+  const clientVisits = (STATE.visits || []).filter(v => String(v['العميل']) === String(clientName));
+  const vTbody = document.getElementById('cli-details-visits-tbody');
+  
+  let completed = 0;
+  let postponed = 0;
+  let active = 0;
 
-  rows.forEach(row => {
-    const dur = row['المدة'] || '';
-    let mins = 0;
-    if (dur.includes(':')) {
-      const parts = dur.split(':').map(Number);
-      mins = (parts[0] || 0) * 60 + (parts[1] || 0);
-    }
-    totalMinutes += mins;
-
-    if (row.team_id) uniqueTeams.add(row.team_id);
-    if (row.emp_id) uniqueEmps.add(row.emp_id);
+  clientVisits.forEach(v => {
+    if (v['الحالة'] === 'تمت') completed++;
+    else if (v['الحالة'] === 'تأجلت') postponed++;
+    else if (v['الحالة'] === 'مجدولة') active++;
   });
 
-  document.getElementById('cli-details-hours').textContent = (totalMinutes / 60).toFixed(1);
-  document.getElementById('cli-details-teams').textContent = uniqueTeams.size;
-  document.getElementById('cli-details-emps').textContent = uniqueEmps.size;
+  document.getElementById('cli-details-visits-completed').textContent = completed;
+  document.getElementById('cli-details-visits-postponed').textContent = postponed;
+  document.getElementById('cli-details-visits-active').textContent = active;
 
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td>${r['التاريخ'] || ''}</td>
-      <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="closeModal('modal-client-details'); setTimeout(() => openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}'), 200)" title="عرض كشف الموظف">${r['اسم الموظف'] || ''}</strong></td>
-      <td><span style="font-size:10px; color:var(--text3);">${teamMap[r.team_id] || r.team_id || ''}</span></td>
-      <td>${r['نوع المهمة'] || ''}</td>
-      <td style="color:var(--success); font-weight:600;">${r['المدة'] || ''}</td>
-      <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(r['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${r['وصف المهمة'] || ''}</td>
-    </tr>
-  `).join('');
+  if (clientVisits.length === 0) {
+    vTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text3);">لا توجد زيارات مسجلة لهذا العميل بعد</td></tr>`;
+  } else {
+    // Sort visits chronologically
+    clientVisits.sort((a,b) => new Date(a['تاريخ الزيارة']) - new Date(b['تاريخ الزيارة']));
+    
+    vTbody.innerHTML = clientVisits.map(v => {
+      let badgeClass = 'badge-leave';
+      let badgeText = v['الحالة'];
+      if (v['الحالة'] === 'تمت') {
+        badgeClass = 'badge-present';
+        badgeText = '✔️ تمت';
+      } else if (v['الحالة'] === 'تأجلت') {
+        badgeClass = 'badge-holiday';
+        badgeText = '⏰ تأجلت';
+      } else if (v['الحالة'] === 'ملغية') {
+        badgeClass = 'badge-absent';
+        badgeText = '❌ ملغية';
+      }
+      
+      return `
+        <tr>
+          <td style="font-weight:600;">${v['تاريخ الزيارة'] || ''}</td>
+          <td>${v['وقت الزيارة'] || ''}</td>
+          <td><strong>${v['اسم الموظف'] || ''}</strong></td>
+          <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+          <td style="max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(v['ملاحظات'] || '').replace(/"/g, '&quot;')}">${v['ملاحظات'] || ''}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  openModal('modal-client-details');
 }
 
 // ══════════════════════════════════════════════════════
@@ -3592,6 +3717,11 @@ function filterVisitsList() {
   if (teamId) list = list.filter(v => v.team_id === teamId);
   if (empId)  list = list.filter(v => v.emp_id === empId);
   
+  const dateFrom = document.getElementById('visits-filter-date-from').value;
+  const dateTo = document.getElementById('visits-filter-date-to').value;
+  if (dateFrom) list = list.filter(v => v['تاريخ الزيارة'] >= dateFrom);
+  if (dateTo)   list = list.filter(v => v['تاريخ الزيارة'] <= dateTo);
+  
   // Handle KPI filter or dropdown status
   if (kpiFilterActive) {
     if (kpiFilterActive === '3days') {
@@ -3629,6 +3759,11 @@ function calculateVisitsKPIs() {
   const teamId = document.getElementById('visits-filter-team')?.value || STATE.teamId || '';
   let list = STATE.visits || [];
   if (teamId) list = list.filter(v => v.team_id === teamId);
+  
+  const dateFrom = document.getElementById('visits-filter-date-from').value;
+  const dateTo = document.getElementById('visits-filter-date-to').value;
+  if (dateFrom) list = list.filter(v => v['تاريخ الزيارة'] >= dateFrom);
+  if (dateTo)   list = list.filter(v => v['تاريخ الزيارة'] <= dateTo);
   
   let postponedCount = 0;
   let upcoming3Days = 0;
@@ -3722,7 +3857,7 @@ function renderVisitsCards(list) {
         <div>
           <div class="team-card-top" style="margin-bottom:8px;">
             <div>
-              <div class="team-name" style="font-size:15px; color:var(--text);">${v['العميل']}</div>
+              <div class="team-name" style="font-size:15px; color:var(--accent-l); cursor:pointer; font-weight:700;" onclick="openClientDetailsModal('${escapeHtml(v['العميل'])}')" title="اضغط لعرض تفاصيل العميل والزيارات">${v['العميل']}</div>
               <div class="team-supervisor" style="font-size:11px; margin-top:2px;">المسؤول: <strong>${v['اسم الموظف']}</strong> (${teamName})</div>
             </div>
             <span class="badge ${badgeClass}">${badgeText}</span>
@@ -3812,7 +3947,7 @@ function renderVisitsTable(list) {
     
     return `
       <tr>
-        <td style="font-weight:600; color:var(--text);">${v['العميل']}</td>
+        <td style="font-weight:600; color:var(--accent-l); cursor:pointer;" onclick="openClientDetailsModal('${escapeHtml(v['العميل'])}')" title="اضغط لعرض تفاصيل العميل والزيارات">${v['العميل']}</td>
         <td>${v['اسم الموظف']}</td>
         <td><span class="team-badge" style="padding:2px 8px; font-size:11px;">${teamName}</span></td>
         <td>${v['تاريخ الزيارة']}</td>
