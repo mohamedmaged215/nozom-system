@@ -398,6 +398,13 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
       <label>ملخص ما تم إنجازه في الزيارة</label>
       <textarea id="emp-visit-comp-desc" placeholder="اكتب ملخصاً تفصيلياً لما قمت به خلال هذه الزيارة للعميل..." rows="3" style="width:100%; padding:10px; resize:vertical;"></textarea>
     </div>
+    
+    <div class="field-group" id="emp-visit-next-schedule-group" style="margin-top: 12px; display: none;">
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-weight:700; color:var(--success);">
+        <input type="checkbox" id="emp-visit-next-check" checked style="width: 16px; height: 16px; accent-color: var(--success); cursor: pointer;">
+        🔄 جدولة الزيارة القادمة تلقائياً بناءً على التكرار (<span id="emp-visit-next-freq-text">أسبوعي</span>)
+      </label>
+    </div>
     <div class="modal-actions" style="margin-top: 15px;">
       <button class="btn-sm-cancel" onclick="closeModal('modal-emp-visit-complete')">إلغاء</button>
       <button class="btn-sm-confirm" id="btn-emp-visit-comp-confirm" style="background:var(--success);" onclick="submitEmployeeVisitCompletion()">✔️ تأكيد الإتمام</button>
@@ -1224,6 +1231,23 @@ function openEmployeeCompleteVisitModal(visitId, client) {
   activeEmployeeVisitId = visitId;
   document.getElementById('emp-visit-comp-client').textContent = client;
   document.getElementById('emp-visit-comp-desc').value = '';
+  
+  // فحص التكرار وجدولة الموعد القادم تلقائياً
+  const visitObj = (STATE.visits || []).find(v => String(v.id) === String(visitId));
+  const freq = visitObj ? visitObj['التكرار'] : 'مرة واحدة';
+  const group = document.getElementById('emp-visit-next-schedule-group');
+  const check = document.getElementById('emp-visit-next-check');
+  const text = document.getElementById('emp-visit-next-freq-text');
+  
+  if (freq && freq !== 'مرة واحدة') {
+    if (text) text.textContent = freq;
+    if (check) check.checked = true;
+    if (group) group.style.display = 'block';
+  } else {
+    if (check) check.checked = false;
+    if (group) group.style.display = 'none';
+  }
+  
   openModal('modal-emp-visit-complete');
 }
 
@@ -1232,6 +1256,9 @@ async function submitEmployeeVisitCompletion() {
   const summary = document.getElementById('emp-visit-comp-desc').value.trim();
   const client = document.getElementById('emp-visit-comp-client').textContent;
   const date = document.getElementById('report-date').value;
+  
+  const check = document.getElementById('emp-visit-next-check');
+  const scheduleNext = check ? check.checked : false;
 
   const btn = document.getElementById('btn-emp-visit-comp-confirm');
   btn.disabled = true;
@@ -1240,11 +1267,43 @@ async function submitEmployeeVisitCompletion() {
   // تحديث واجهة المستخدم فورياً بـ 0 مللي ثانية
   const originalVisits = JSON.parse(JSON.stringify(STATE.visits || []));
 
+  const visitObj = (STATE.visits || []).find(v => String(v.id) === String(activeEmployeeVisitId));
+  const freq = visitObj ? visitObj['التكرار'] : 'مرة واحدة';
+
   if (STATE.visits) {
     const vIdx = STATE.visits.findIndex(v => String(v.id) === String(activeEmployeeVisitId));
     if (vIdx !== -1) {
       STATE.visits[vIdx]['الحالة'] = 'تمت';
       STATE.visits[vIdx]['ملاحظات'] = (STATE.visits[vIdx]['ملاحظات'] ? STATE.visits[vIdx]['ملاحظات'] + '\n' : '') + 'ما تم إنجازه في الزيارة: ' + summary;
+    }
+    
+    // جدولة الموعد القادم محلياً فوراً بـ 0 مللي ثانية
+    if (scheduleNext && visitObj) {
+      const tempNextId = 'visit_' + (Date.now() + 200);
+      let predictedNextDate = '';
+      const curr = new Date(visitObj['تاريخ الزيارة']);
+      const nextObj = new Date(curr);
+      
+      if (freq === 'أسبوعي') nextObj.setDate(curr.getDate() + 7);
+      else if (freq === 'نصف شهري') nextObj.setDate(curr.getDate() + 15);
+      else if (freq === 'شهري') nextObj.setMonth(curr.getMonth() + 1);
+      
+      predictedNextDate = nextObj.toISOString().slice(0, 10);
+      
+      STATE.visits.push({
+        id: tempNextId,
+        emp_id: visitObj.emp_id,
+        'اسم الموظف': visitObj['اسم الموظف'],
+        team_id: visitObj.team_id,
+        'العميل': visitObj['العميل'],
+        'واتساب العميل': visitObj['واتساب العميل'] || '',
+        'تاريخ الزيارة': predictedNextDate,
+        'وقت الزيارة': visitObj['وقت الزيارة'],
+        'التكرار': freq,
+        'الحالة': 'مجدولة',
+        'ملاحظات': '',
+        'تاريخ الإنشاء': new Date().toISOString().slice(0, 10)
+      });
     }
   }
 
@@ -1261,10 +1320,11 @@ async function submitEmployeeVisitCompletion() {
     const r = await apiPost('completeVisit', {
       id: activeEmployeeVisitId,
       summary: summary,
-      scheduleNext: false
+      scheduleNext: scheduleNext,
+      nextFrequency: freq
     });
     if (r.ok) {
-      showToast('تم إتمام الزيارة بنجاح ومزامنتها!', 'success');
+      showToast('تم إتمام الزيارة بنجاح ومزامنتها وجدولة الموعد القادم!', 'success');
       loadEmployeeVisits();
     } else {
       showToast(r.error || 'حدث خطأ أثناء المزامنة', 'error');
