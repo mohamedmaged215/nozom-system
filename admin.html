@@ -985,10 +985,13 @@ tr.row-has-note td:first-child {
 
 <!-- Employee Monthly Performance Modal (كشف تفاصيل أداء الموظف الشهري) -->
 <div class="modal-overlay" id="modal-emp-performance">
-  <div class="modal" style="width: 760px; max-width: 95%;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
-      <div class="modal-title" id="emp-perf-title" style="margin-bottom:0; font-size:17px;">أداء الموظف خلال الشهر</div>
-      <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-emp-performance')" style="padding:4px 10px;">✕</button>
+  <div class="modal" style="width: 800px; max-width: 95%;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:8px;">
+      <div class="modal-title" id="emp-perf-title" style="margin-bottom:0; font-size:17px; color:var(--accent-l);">كشف أداء وحضور الموظف</div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="btn btn-primary btn-sm" onclick="exportEmployeeProfileExcel()" style="background:var(--success); border:none; padding:5px 12px; font-size:11.5px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">📥 تصدير كشف الموظف (Excel)</button>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-emp-performance')" style="padding:4px 10px;">✕</button>
+      </div>
     </div>
     
     <div id="emp-perf-kpis-container" style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:1.25rem;">
@@ -999,17 +1002,20 @@ tr.row-has-note td:first-child {
     </div>
 
     <!-- Tabs Header -->
-    <div class="perf-tabs-container" style="display: flex; gap: 8px; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
-      <button class="perf-tab active" onclick="switchPerfTab('tasks')" id="perf-tab-tasks" style="flex: 1; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
+    <div class="perf-tabs-container" style="display: flex; gap: 8px; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; flex-wrap:wrap;">
+      <button class="perf-tab active" onclick="switchPerfTab('tasks')" id="perf-tab-tasks" style="flex: 1; min-width: 120px; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
         📌 التكليفات المسندة
       </button>
-      <button class="perf-tab" onclick="switchPerfTab('reports')" id="perf-tab-reports" style="flex: 1; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
+      <button class="perf-tab" onclick="switchPerfTab('reports')" id="perf-tab-reports" style="flex: 1; min-width: 120px; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
         📋 المهام المنجزة
       </button>
-      <button class="perf-tab perf-tab-success" onclick="switchPerfTab('present')" id="perf-tab-present" style="flex: 1; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
+      <button class="perf-tab" onclick="switchPerfTab('visits')" id="perf-tab-visits" style="flex: 1; min-width: 120px; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
+        🚗 الزيارات المسندة
+      </button>
+      <button class="perf-tab perf-tab-success" onclick="switchPerfTab('present')" id="perf-tab-present" style="flex: 1; min-width: 90px; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
         🟢 الحضور
       </button>
-      <button class="perf-tab perf-tab-danger" onclick="switchPerfTab('absent')" id="perf-tab-absent" style="flex: 1; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
+      <button class="perf-tab perf-tab-danger" onclick="switchPerfTab('absent')" id="perf-tab-absent" style="flex: 1; min-width: 90px; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
         🔴 أيام الغياب
       </button>
     </div>
@@ -1099,6 +1105,29 @@ tr.row-has-note td:first-child {
           </thead>
           <tbody id="emp-perf-attendance-absent-tbody">
             <tr><td colspan="3" style="text-align:center; color:var(--text3);">لا توجد سجلات غياب مسجلة</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 5: Assigned Visits -->
+    <div class="perf-tab-content" id="perf-content-visits" style="display: none;">
+      <div style="margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:13px; font-weight:600; color:var(--accent-l);">🚗 الزيارات الميدانية المجدولة للموظف</span>
+      </div>
+      <div class="table-wrap" style="height: 250px; max-height: 250px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
+        <table style="font-size:11px;">
+          <thead>
+            <tr style="background:var(--bg4);">
+              <th>تاريخ الزيارة</th>
+              <th>وقت الزيارة</th>
+              <th>العميل</th>
+              <th>المطلوب عمله في الزيارة دي</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="emp-perf-visits-tbody">
+            <tr><td colspan="5" style="text-align:center; color:var(--text3);">لا توجد زيارات مسجلة لهذا الموظف بعد</td></tr>
           </tbody>
         </table>
       </div>
@@ -3135,6 +3164,10 @@ function openEmployeePerformanceModal(empId, empName, teamId) {
   }
 
   const month = document.getElementById('att-month').value || new Date().toISOString().slice(0,7);
+  
+  STATE.activeEmpPerformanceId = empId;
+  STATE.activeEmpPerformanceName = empName;
+  STATE.activeEmpPerformanceMonth = month;
 
   const rTbody = document.getElementById('emp-perf-reports-tbody');
   const tTbody = document.getElementById('emp-perf-tasks-tbody');
@@ -3281,6 +3314,28 @@ function openEmployeePerformanceModal(empId, empName, teamId) {
   }
   
   document.getElementById('emp-perf-tasks-done').textContent = tasksCompletedCount;
+
+  // ─── تفريغ الزيارات المسندة النشطة للموظف ───
+  const vTbody = document.getElementById('emp-perf-visits-tbody');
+  const empVisits = (STATE.visits || []).filter(v => String(v.emp_id) === String(empId) && v['الحالة'] === 'مجدولة');
+  
+  if (empVisits.length === 0) {
+    vTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text3); padding: 1.5rem 0;">لا توجد زيارات ميدانية مجدولة نشطة للموظف حالياً</td></tr>`;
+  } else {
+    vTbody.innerHTML = empVisits.map(v => {
+      return `
+        <tr>
+          <td style="font-weight:600;">${v['تاريخ الزيارة'] || ''}</td>
+          <td>${v['وقت الزيارة'] || ''}</td>
+          <td><strong style="color:var(--accent-l); cursor:pointer;" onclick="closeModal('modal-emp-performance'); setTimeout(() => openClientDetailsModal('${escapeHtml(v['العميل'])}'), 200)" title="عرض ملف العميل">${v['العميل'] || ''}</strong></td>
+          <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(v['ملاحظات'] || '').replace(/"/g, '&quot;')}">${v['ملاحظات'] || ''}</td>
+          <td>
+            <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-emp-performance'); setTimeout(() => openCompleteVisitModal('${v.id}'), 200)" style="background:rgba(52,211,153,0.15); color:var(--success); border:1px solid rgba(52,211,153,0.25); padding:4px 8px; font-size:11px; font-weight:600; cursor:pointer;">✅ إتمام</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
 }
 
 function switchPerfTab(tabName) {
@@ -3295,15 +3350,6 @@ function switchPerfTab(tabName) {
     el.style.background = 'var(--bg4)';
     el.style.boxShadow = 'none';
   });
-
-  // إظهار المحتوى المختار وتفعيل زر التبويب الخاص به بتأثير توهج لوني مخصص
-  const waText = encodeURIComponent(`السلام عليكم،
-نود تذكيركم بموعد زيارتنا لكم
-التاريخ: ${v['تاريخ الزيارة']}
-الوقت: ${v['وقت الزيارة']}
-نتطلع للقاء بكم
-
-نظم وحلول للتقنية المالية`);
 
   const activeContent = document.getElementById(`perf-content-${tabName}`);
   if (activeContent) activeContent.style.display = 'block';
@@ -3327,6 +3373,11 @@ function switchPerfTab(tabName) {
       activeTab.style.color = 'var(--warning)';
       activeTab.style.background = 'rgba(251,191,36,0.12)';
       activeTab.style.boxShadow = '0 0 12px rgba(251,191,36,0.15)';
+    } else if (tabName === 'visits') {
+      activeTab.style.borderColor = 'var(--accent)';
+      activeTab.style.color = 'var(--accent-l)';
+      activeTab.style.background = 'rgba(79,110,247,0.12)';
+      activeTab.style.boxShadow = '0 0 12px rgba(79,110,247,0.15)';
     } else {
       activeTab.style.borderColor = 'var(--accent)';
       activeTab.style.color = 'var(--accent-l)';
@@ -3484,6 +3535,130 @@ function exportSingleClientExcel() {
     showToast('تم تصدير ملف إكسل العميل بنجاح!', 'success');
   } catch(e) {
     showToast('تعذر تصدير تقرير العميل', 'error');
+  }
+}
+
+function exportEmployeeProfileExcel() {
+  const empId = STATE.activeEmpPerformanceId;
+  const empName = STATE.activeEmpPerformanceName;
+  const month = STATE.activeEmpPerformanceMonth;
+
+  if (!empId || !empName || !month) {
+    showToast('خطأ: لم يتم تحديد موظف للتصدير', 'error');
+    return;
+  }
+
+  showToast('جاري تحضير ملف كشف أداء الموظف المطور...', 'info');
+
+  const firstDay = `${month}-01`;
+  const lastDay = `${month}-31`;
+
+  const empReports = (STATE.reports || []).filter(r => String(r.emp_id) === String(empId) && r['التاريخ'] >= firstDay && r['التاريخ'] <= lastDay);
+  const empAttendance = (STATE.attendance || []).filter(a => String(a.emp_id) === String(empId) && a['التاريخ'].startsWith(month));
+  const empTasks = (STATE.tasks || []).filter(t => String(t.emp_id) === String(empId));
+  const empVisits = (STATE.visits || []).filter(v => String(v.emp_id) === String(empId));
+
+  const teamMap = {};
+  STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+
+  // 1. سجل مهام العمل وساعاتها
+  const sheet1Data = empReports.map(r => ({
+    'التاريخ': r['التاريخ'] || '',
+    'اسم العميل': r['العميل'] || '',
+    'نوع المهمة': r['نوع المهمة'] || '',
+    'المدة (ساعة:دقيقة)': r['المدة'] || '',
+    'تفاصيل وصف المهمة': r['وصف المهمة'] || '',
+    'ملاحظات المشرف': r['ملاحظات المشرف'] || ''
+  }));
+
+  // 2 & 3. سجل الحضور وأيام الغياب بالتفصيل
+  const [y, m] = month.split('-').map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  
+  const sheet2Data = []; // للحضور والإجازات
+  const sheet3Data = []; // للغياب
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const dayOfWeek = new Date(y, m - 1, d).getDay();
+    const isFriday = dayOfWeek === 5;
+    const existing = empAttendance.find(x => x['التاريخ'] === date);
+    
+    let status = 'غياب';
+    let note = existing ? (existing['ملاحظة'] || '') : '';
+    
+    if (existing?.['الحالة']) status = existing['الحالة'];
+    else if (isFriday) status = 'عطلة الأسبوع';
+    else if (date > todayStr) status = '—';
+    
+    const row = {
+      'التاريخ': date,
+      'اليوم': DAYS_AR[dayOfWeek],
+      'الحالة': status,
+      'ملاحظة': note
+    };
+    
+    if (status === 'حاضر' || status === 'إجازة' || status === 'إجازة رسمية' || status === 'مأمورية' || status === 'عطلة الأسبوع' || status === 'إذن غياب') {
+      sheet2Data.push(row);
+    } else if (status === 'غياب') {
+      sheet3Data.push({
+        'التاريخ': date,
+        'اليوم': DAYS_AR[dayOfWeek],
+        'الحالة': 'غياب غير مبرر',
+        'الملاحظة': note || 'لم يتم تقديم عذر غياب'
+      });
+    }
+  }
+
+  // 4. التكليفات المسندة وحالتها
+  const sheet4Data = empTasks.map(t => ({
+    'تاريخ الإسناد': t['تاريخ الإسناد'] || '',
+    'اسم العميل': t['العميل'] || '',
+    'نوع المهمة': t['نوع المهمة'] || '',
+    'وصف التكليف': t['وصف المهمة'] || '',
+    'الحالة': t['الحالة'] || 'معلقة',
+    'تاريخ الاكتمال': t['تاريخ الاكتمال'] || '—'
+  }));
+
+  // 5. الزيارات الميدانية المسندة
+  const sheet5Data = empVisits.map(v => ({
+    'تاريخ الزيارة': v['تاريخ الزيارة'] || '',
+    'وقت الزيارة': v['وقت الزيارة'] || '',
+    'العميل المستهدف': v['العميل'] || '',
+    'الحالة الحالية': v['الحالة'] || 'مجدولة',
+    'التكرار': v['التكرار'] || 'مرة واحدة',
+    'المطلوب عمله / ما تم إنجازه': v['ملاحظات'] || '',
+    'تاريخ جدولة الزيارة': v['تاريخ الإنشاء'] || ''
+  }));
+
+  try {
+    const wb = XLSX.utils.book_new();
+
+    // Work Tasks Sheet
+    const ws1 = XLSX.utils.json_to_sheet(sheet1Data.length > 0 ? sheet1Data : [{'تنبيه': 'لا توجد سجلات مهام مسجلة للموظف هذا الشهر'}]);
+    XLSX.utils.book_append_sheet(wb, ws1, 'سجل مهام العمل وساعاتها');
+
+    // Attendance Sheet
+    const ws2 = XLSX.utils.json_to_sheet(sheet2Data.length > 0 ? sheet2Data : [{'تنبيه': 'لا توجد سجلات حضور مسجلة للموظف هذا الشهر'}]);
+    XLSX.utils.book_append_sheet(wb, ws2, 'كشف تفاصيل حضور الموظف');
+
+    // Absence Sheet
+    const ws3 = XLSX.utils.json_to_sheet(sheet3Data.length > 0 ? sheet3Data : [{'تنبيه': '🎉 ممتاز! الموظف ليس لديه أي أيام غياب هذا الشهر'}]);
+    XLSX.utils.book_append_sheet(wb, ws3, 'أيام الغياب والتقصير بالتفصيل');
+
+    // Assigned Tasks Sheet
+    const ws4 = XLSX.utils.json_to_sheet(sheet4Data.length > 0 ? sheet4Data : [{'تنبيه': 'لا توجد تكليفات مسندة للموظف'}]);
+    XLSX.utils.book_append_sheet(wb, ws4, 'التكليفات المسندة وحالتها');
+
+    // Assigned Visits Sheet
+    const ws5 = XLSX.utils.json_to_sheet(sheet5Data.length > 0 ? sheet5Data : [{'تنبيه': 'لا توجد زيارات مسندة للموظف'}]);
+    XLSX.utils.book_append_sheet(wb, ws5, 'الزيارات الميدانية المجدولة');
+
+    XLSX.writeFile(wb, `كشف_أداء_${empName}_${month}.xlsx`);
+    showToast('تم تصدير ملف أداء وحضور الموظف بنجاح!', 'success');
+  } catch(e) {
+    showToast('تعذر تصدير كشف أداء الموظف', 'error');
   }
 }
 
