@@ -20,8 +20,8 @@
   --blue:#60a5fa; --amber:#fbbf24; --violet:#a78bfa; --cyan:#22d3ee;
   --t1:#f5f0eb; --t2:#b0a99f; --t3:#78716c;
   
-  --serif:'Playfair Display','Tajawal',serif;
-  --sans:'Tajawal',sans-serif;
+  --serif:'El Messiri','Tajawal',serif;
+  --sans:'IBM Plex Sans Arabic','Tajawal',sans-serif;
   --mono:'IBM Plex Mono','Tajawal',monospace;
   --ease:cubic-bezier(0.16,1,0.3,1);
   --r:12px;
@@ -336,11 +336,13 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .brand-sub{font-size:11px;color:var(--text3);margin-top:2px;letter-spacing:1px;}
 .sidebar-role{margin:1rem 1rem 0;background:var(--warning-s);border:1px solid rgba(251,191,36,0.25);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--warning);text-align:center;}
 .sidebar-nav{flex:1;padding:1rem 0.75rem;display:flex;flex-direction:column;gap:3px;}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-s);font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:right;}
-.nav-item:hover{background:var(--bg4);color:var(--text);}
-.nav-item.active{background:var(--accent-s2);color:var(--accent-l);}
-.nav-item .ni{font-size:16px;min-width:20px;}
-.nav-sep{height:1px;background:var(--border);margin:8px 0;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:var(--radius-s);font-size:13.5px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .25s var(--ease);border:none;background:none;width:100%;text-align:right;position:relative;border-right:3px solid transparent;}
+.nav-item:hover{background:rgba(212,112,59,0.04);color:var(--text);}
+.nav-item.active{background:rgba(212,112,59,0.09);color:var(--accent-l);border-right-color:var(--accent);box-shadow:inset 0 1px 0 rgba(255,255,255,0.05),0 4px 20px -8px var(--accent-s);}
+.nav-item .ni{display:flex;align-items:center;justify-content:center;color:inherit;transition:transform .2s var(--ease);width:20px;height:20px;min-width:20px;}
+.nav-item:hover .ni{transform:scale(1.1) rotate(2deg);}
+.nav-item .ni svg{width:18px;height:18px;min-width:18px;stroke:currentColor;fill:none;}
+.nav-sep{height:1px;background:var(--border);margin:8px 0;opacity:0.5;}
 .sidebar-footer{padding:1rem;border-top:1px solid var(--border);}
 .logout-btn{width:100%;padding:9px;background:var(--danger-s);border:1px solid rgba(248,113,113,0.2);border-radius:var(--radius-s);color:var(--danger);font-family:'IBM Plex Sans Arabic',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;}
 .logout-btn:hover{background:rgba(248,113,113,0.2);}
@@ -359,42 +361,141 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 
 /* ── KPI CARDS ── */
 .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:1.75rem;}
-.kpi-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;position:relative;overflow:hidden;transition:border-color .2s;}
-.kpi-card:hover{border-color:var(--border2);}
-.kpi-card::before{content:'';position:absolute;top:0;right:0;width:3px;height:100%;border-radius:0 var(--radius) var(--radius) 0;}
-.kpi-card.c-blue::before{background:var(--accent);}
-.kpi-card.c-green::before{background:var(--success);}
-.kpi-card.c-red::before{background:var(--danger);}
-.kpi-card.c-yellow::before{background:var(--warning);}
-.kpi-card.c-purple::before{background:var(--purple);}
-.kpi-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
-.kpi-value{font-family:'Tajawal',sans-serif;font-size:26px;font-weight:800;line-height:1;}
+.kpi-card{
+  background: linear-gradient(170deg, var(--bg-2) 0%, var(--bg-1) 100%);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px -15px rgba(0,0,0,0.6);
+  transition: all 0.3s var(--ease);
+}
+.kpi-card::before{
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  transition: all 0.3s var(--ease);
+}
+.kpi-card.c-blue::before{background: var(--accent);}
+.kpi-card.c-green::before{background: var(--success);}
+.kpi-card.c-red::before{background: var(--danger);}
+.kpi-card.c-yellow::before{background: var(--warning);}
+.kpi-card.c-purple::before{background: var(--purple);}
+
+.kpi-card:hover{
+  transform: translateY(-5px) scale(1.02);
+  border-color: rgba(255,255,255,0.12);
+}
+.kpi-card.c-blue:hover{
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 40px -15px rgba(0,0,0,0.85), 0 0 20px -5px rgba(212,112,59,0.15);
+  border-color: rgba(212,112,59,0.3);
+}
+.kpi-card.c-green:hover{
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 40px -15px rgba(0,0,0,0.85), 0 0 20px -5px rgba(74,222,128,0.15);
+  border-color: rgba(74,222,128,0.3);
+}
+.kpi-card.c-red:hover{
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 40px -15px rgba(0,0,0,0.85), 0 0 20px -5px rgba(248,113,113,0.15);
+  border-color: rgba(248,113,113,0.3);
+}
+.kpi-card.c-yellow:hover{
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 40px -15px rgba(0,0,0,0.85), 0 0 20px -5px rgba(251,191,36,0.15);
+  border-color: rgba(251,191,36,0.3);
+}
+.kpi-card.c-purple:hover{
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 40px -15px rgba(0,0,0,0.85), 0 0 20px -5px rgba(167,139,250,0.15);
+  border-color: rgba(167,139,250,0.3);
+}
+
+.kpi-label{font-size:11.5px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;font-weight:600;}
+.kpi-value{font-family:'Tajawal',sans-serif;font-size:28px;font-weight:850;line-height:1;transition: transform 0.3s var(--ease);}
+.kpi-card:hover .kpi-value{transform: scale(1.05);}
 .kpi-value.c-blue{color:var(--accent-l);}
 .kpi-value.c-green{color:var(--success);}
 .kpi-value.c-red{color:var(--danger);}
 .kpi-value.c-yellow{color:var(--warning);}
 .kpi-value.c-purple{color:var(--purple);}
-.kpi-sub{font-size:11px;color:var(--text3);margin-top:4px;}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:5px;font-weight:500;}
 
 /* ── CHARTS ── */
 .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.75rem;}
-.chart-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;}
+.chart-card{
+  background: linear-gradient(170deg, var(--bg-2) 0%, var(--bg-1) 100%);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px -15px rgba(0,0,0,0.6);
+  transition: all 0.3s var(--ease);
+}
+.chart-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 40px -15px rgba(0,0,0,0.8);
+}
 .chart-card.wide{grid-column:1/-1;}
-.chart-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
+.chart-title{font-size:13.5px;font-weight:700;color:var(--text2);margin-bottom:1.25rem;display:flex;align-items:center;gap:8px;font-family:var(--serif);}
 .chart-wrap{position:relative;height:220px;}
 
 /* ── FILTERS ── */
-.filter-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:1.5rem;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;}
+.filter-bar{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(170deg, var(--bg-2) 0%, var(--bg-1) 100%);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
 .filter-group{display:flex;flex-direction:column;gap:6px;min-width:150px;}
-.filter-group label{font-size:11px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:0.4px;}
-select,input[type=text],input[type=date]{background:var(--bg4);border:1px solid var(--border);border-radius:var(--radius-s);color:var(--text);font-family:'IBM Plex Sans Arabic',sans-serif;font-size:13px;padding:8px 12px;outline:none;appearance:none;-webkit-appearance:none;transition:border-color .2s;}
-select:focus,input:focus{border-color:var(--accent);}
+.filter-group label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
+select,input[type=text],input[type=date]{
+  background: var(--bg4);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-s);
+  color: var(--text);
+  font-family: 'IBM Plex Sans Arabic',sans-serif;
+  font-size: 13px;
+  padding: 9px 14px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: all 0.25s var(--ease);
+}
+select:focus,input:focus{
+  border-color: var(--accent);
+  background: #1e1a16;
+  box-shadow: 0 0 0 4px rgba(212,112,59,0.12);
+}
 select option{background:var(--bg3);}
 
 /* ── TABLE ── */
-.card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
-.card-header{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.card-title{font-size:13px;font-weight:600;color:var(--text2);}
+.card{
+  background: linear-gradient(170deg, var(--bg-2) 0%, var(--bg-1) 100%);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px -15px rgba(0,0,0,0.6);
+  transition: all 0.3s var(--ease);
+}
+.card:hover {
+  border-color: rgba(255,255,255,0.08);
+}
+.card-header{
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-title{font-size:14px;font-weight:700;color:var(--text2);font-family:var(--serif);}
 .table-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;font-size:13px;}
 thead tr{background:var(--bg4);}
@@ -436,50 +537,115 @@ tr.row-has-note td:first-child {
 
 /* ── MANAGEMENT CARDS ── */
 .mgmt-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.mgmt-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
-.mgmt-card-header{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.mgmt-card-title{font-size:13px;font-weight:600;color:var(--text2);}
+.mgmt-card{
+  background: linear-gradient(170deg, var(--bg-2) 0%, var(--bg-1) 100%);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px -15px rgba(0,0,0,0.6);
+  transition: all 0.3s var(--ease);
+}
+.mgmt-card:hover {
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 40px -15px rgba(0,0,0,0.8);
+}
+.mgmt-card-header{
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mgmt-card-title{font-size:14px;font-weight:700;color:var(--text2);font-family:var(--serif);}
 .mgmt-card-body{padding:1rem 1.25rem;max-height:380px;overflow-y:auto;}
-.mgmt-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.mgmt-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
 .mgmt-item:last-child{border-bottom:none;}
-.mgmt-item-info .item-name{font-size:14px;font-weight:500;}
-.mgmt-item-info .item-meta{font-size:11px;color:var(--text3);margin-top:2px;}
+.mgmt-item-info .item-name{font-size:14px;font-weight:600;}
+.mgmt-item-info .item-meta{font-size:11.5px;color:var(--text3);margin-top:4px;}
 .mgmt-item-actions{display:flex;gap:6px;}
 .add-row{display:flex;gap:8px;margin-top:1rem;}
 .add-row input,.add-row select{flex:1;padding:9px 12px;}
 
 /* ── TEAM CARDS ── */
 .teams-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:1.5rem;}
-.team-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;transition:border-color .2s;}
-.team-card:hover{border-color:var(--border2);}
+.team-card{
+  background: linear-gradient(170deg, var(--bg-2) 0%, var(--bg-1) 100%);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px -15px rgba(0,0,0,0.6);
+  transition: all 0.3s var(--ease);
+}
+.team-card:hover{
+  transform: translateY(-4px);
+  border-color: rgba(212,112,59,0.3);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 40px -15px rgba(0,0,0,0.85), 0 0 20px -5px rgba(212,112,59,0.15);
+}
 .team-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;}
-.team-name{font-family:'Tajawal',sans-serif;font-size:17px;font-weight:700;}
-.team-supervisor{font-size:12px;color:var(--text3);margin-top:3px;}
+.team-name{font-family:var(--serif);font-size:17.5px;font-weight:750;}
+.team-supervisor{font-size:12.5px;color:var(--text3);margin-top:3px;}
 .team-stats{display:flex;gap:10px;margin-bottom:1rem;}
-.team-stat{background:var(--bg4);border:1px solid var(--border);border-radius:var(--radius-s);padding:6px 12px;font-size:12px;color:var(--text2);}
+.team-stat{background:var(--bg4);border:1px solid rgba(255,255,255,0.05);border-radius:var(--radius-s);padding:6px 12px;font-size:12px;color:var(--text2);}
 .team-stat span{font-weight:700;color:var(--accent-l);}
 .team-actions{display:flex;gap:8px;}
 
 /* ── LINKS ── */
 .links-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
-.link-card{background:var(--bg4);border:1px solid var(--border);border-radius:var(--radius-s);padding:1rem 1.25rem;}
-.link-emp{font-size:14px;font-weight:600;}
-.link-role{font-size:11px;margin-top:2px;}
-.link-url{font-size:11px;color:var(--text3);margin:8px 0;word-break:break-all;line-height:1.5;}
-.btn-copy{background:none;border:1px solid var(--border);border-radius:6px;padding:5px 10px;color:var(--text2);cursor:pointer;font-size:12px;font-family:'IBM Plex Sans Arabic',sans-serif;transition:all .2s;white-space:nowrap;}
-.btn-copy:hover{border-color:var(--accent);color:var(--accent-l);}
+.link-card{
+  background: linear-gradient(170deg, var(--bg-2) 0%, var(--bg-1) 100%);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: var(--radius-s);
+  padding: 1rem 1.25rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px -15px rgba(0,0,0,0.6);
+  transition: all 0.3s var(--ease);
+}
+.link-card:hover{
+  transform: translateY(-3px);
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 40px -15px rgba(0,0,0,0.85);
+}
+.link-emp{font-size:14.5px;font-weight:700;font-family:var(--serif);}
+.link-role{font-size:11.5px;margin-top:2px;color:var(--text3);}
+.link-url{font-size:11.5px;color:var(--text2);margin:8px 0;word-break:break-all;line-height:1.5;}
+.btn-copy{
+  background: none;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: 'IBM Plex Sans Arabic',sans-serif;
+  transition: all .25s var(--ease);
+  white-space: nowrap;
+}
+.btn-copy:hover{border-color:var(--accent);color:var(--accent-l);background:rgba(212,112,59,0.05);}
 
 /* ── MODAL ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.72);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s var(--ease);}
 .modal-overlay.open{opacity:1;pointer-events:all;}
-.modal{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:1.75rem;width:440px;box-shadow:var(--shadow);}
-.modal-title{font-size:16px;font-weight:700;margin-bottom:1.25rem;}
+.modal{
+  background: linear-gradient(170deg, var(--bg-2) 0%, var(--bg-1) 100%);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  width: 440px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 30px 60px -20px rgba(0,0,0,0.85);
+  animation: modalIn .4s var(--ease) both;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); filter: blur(5px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+.modal-title{font-size:16.5px;font-weight:800;margin-bottom:1.25rem;font-family:var(--serif);color:var(--text);}
 .modal-field{margin-bottom:12px;}
-.modal-field label{font-size:12px;color:var(--text3);display:block;margin-bottom:6px;font-weight:500;}
+.modal-field label{font-size:12px;color:var(--text3);display:block;margin-bottom:6px;font-weight:600;}
 .modal-field input,.modal-field select{width:100%;padding:10px 12px;}
 .modal-actions{display:flex;gap:8px;margin-top:1.25rem;justify-content:flex-end;}
-.btn-sm-cancel{background:var(--bg4);border:1px solid var(--border2);color:var(--text2);padding:8px 16px;border-radius:var(--radius-s);font-family:'IBM Plex Sans Arabic',sans-serif;font-size:13px;cursor:pointer;}
-.btn-sm-confirm{background:var(--accent);color:#fff;padding:8px 16px;border-radius:var(--radius-s);font-family:'IBM Plex Sans Arabic',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;}
+.btn-sm-cancel{background:var(--bg4);border:1px solid rgba(255,255,255,0.05);color:var(--text2);padding:8px 16px;border-radius:var(--radius-s);font-family:'IBM Plex Sans Arabic',sans-serif;font-size:13px;cursor:pointer;transition:all 0.2s;}
+.btn-sm-cancel:hover{background:var(--bg5);color:var(--text);}
+.btn-sm-confirm{background:var(--accent);color:#fff;padding:8px 16px;border-radius:var(--radius-s);font-family:'IBM Plex Sans Arabic',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s;}
+.btn-sm-confirm:hover{background:var(--accent-l);}
 
 /* ── TOAST ── */
 .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:11px 20px;font-size:13px;color:var(--text);opacity:0;transition:all .3s;z-index:999;white-space:nowrap;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;}
@@ -508,8 +674,19 @@ tr.row-has-note td:first-child {
 
 /* ── SETTINGS ── */
 .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.settings-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;}
-.settings-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:1rem;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.settings-card{
+  background: linear-gradient(170deg, var(--bg-2) 0%, var(--bg-1) 100%);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px -15px rgba(0,0,0,0.6);
+  transition: all 0.3s var(--ease);
+}
+.settings-card:hover {
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 40px -15px rgba(0,0,0,0.85);
+}
+.settings-title{font-size:13.5px;font-weight:700;color:var(--text2);margin-bottom:1rem;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.05);font-family:var(--serif);}
 
 @media(max-width:900px){
   .sidebar{display:none;}
@@ -659,36 +836,36 @@ tr.row-has-note td:first-child {
   <div class="sidebar-role" id="role-badge">مدير عام</div>
   <nav class="sidebar-nav">
     <button class="nav-item active" id="nav-dashboard" onclick="switchPanel('dashboard')">
-      <span class="ni">📊</span> الداشبورد
+      <span class="ni"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span> الداشبورد
     </button>
     <button class="nav-item" id="nav-reports" onclick="switchPanel('reports')">
-      <span class="ni">📋</span> التقارير
+      <span class="ni"><svg viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></span> التقارير
     </button>
     <button class="nav-item" id="nav-attendance" onclick="switchPanel('attendance')">
-      <span class="ni">📅</span> الحضور
+      <span class="ni"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> الحضور
     </button>
     <button class="nav-item" id="nav-tasks" onclick="switchPanel('tasks')">
-      <span class="ni">📌</span> التكليفات
+      <span class="ni"><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> التكليفات
     </button>
     <button class="nav-item" id="nav-visits" onclick="switchPanel('visits')">
-      <span class="ni">🗓️</span> الزيارات
+      <span class="ni"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span> الزيارات
     </button>
     <div class="nav-sep"></div>
     <button class="nav-item" id="nav-teams" onclick="switchPanel('teams')" style="display:none">
-      <span class="ni">🏷️</span> التيمات
+      <span class="ni"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></span> التيمات
     </button>
     <button class="nav-item" id="nav-employees" onclick="switchPanel('employees')">
-      <span class="ni">👥</span> الموظفين
+      <span class="ni"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> الموظفين
     </button>
     <button class="nav-item" id="nav-clients" onclick="switchPanel('clients')">
-      <span class="ni">🏢</span> العملاء
+      <span class="ni"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span> العملاء
     </button>
     <div class="nav-sep"></div>
     <button class="nav-item" id="nav-links" onclick="switchPanel('links')">
-      <span class="ni">🔗</span> الروابط
+      <span class="ni"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span> الروابط
     </button>
     <button class="nav-item" id="nav-settings" onclick="switchPanel('settings')">
-      <span class="ni">⚙️</span> الإعدادات
+      <span class="ni"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> الإعدادات
     </button>
   </nav>
   <div class="sidebar-footer">
@@ -805,15 +982,15 @@ tr.row-has-note td:first-child {
       <!-- Charts -->
       <div class="charts-grid">
         <div class="chart-card">
-          <div class="chart-title" id="title-chart-hours">⏱️ ساعات كل تيم</div>
+          <div class="chart-title" id="title-chart-hours">ساعات كل تيم</div>
           <div class="chart-wrap"><canvas id="chart-hours"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="chart-title" id="title-chart-att">✅ معدل حضور التيمات</div>
+          <div class="chart-title" id="title-chart-att">معدل حضور التيمات</div>
           <div class="chart-wrap"><canvas id="chart-att"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="chart-title">🏢 أكثر العملاء مهاماً</div>
+          <div class="chart-title">أكثر العملاء مهاماً</div>
           <div class="chart-wrap"><canvas id="chart-clients"></canvas></div>
         </div>
         <div class="chart-card">
@@ -851,7 +1028,7 @@ tr.row-has-note td:first-child {
       <div class="card">
         <div class="card-header">
           <span class="card-title" id="rep-count">التقارير</span>
-          <button class="btn btn-secondary btn-sm" onclick="exportReports()">⬇️ تصدير Excel</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportReports()">تصدير Excel</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -923,7 +1100,7 @@ tr.row-has-note td:first-child {
     <div class="panel" id="panel-tasks">
       <div class="mgmt-grid" style="margin-bottom:1.5rem;">
         <div class="mgmt-card" style="grid-column: 1 / -1;">
-          <div class="mgmt-card-header"><span class="mgmt-card-title">📌 إسناد تكليف جديد لموظف</span></div>
+          <div class="mgmt-card-header"><span class="mgmt-card-title">إسناد تكليف جديد لموظف</span></div>
           <div style="padding:1.25rem 1.5rem;">
             <div class="add-row" style="flex-wrap:wrap; display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) 100px; gap:10px; margin-top:0;">
               <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
@@ -1032,33 +1209,33 @@ tr.row-has-note td:first-child {
         <div style="display:flex; gap:10px; align-items:center;">
           <!-- View Toggle Switch -->
           <div style="display:flex; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); padding:2px;">
-            <button class="btn btn-secondary btn-sm" id="btn-view-cards" onclick="toggleVisitsView('cards')" style="border:none; background:var(--accent-s2); color:var(--accent-l); padding:5px 10px; font-size:12px; border-radius:6px;">🎴 كروت</button>
-            <button class="btn btn-secondary btn-sm" id="btn-view-table" onclick="toggleVisitsView('table')" style="border:none; background:none; color:var(--text2); padding:5px 10px; font-size:12px; border-radius:6px;">📋 جدول</button>
+            <button class="btn btn-secondary btn-sm" id="btn-view-cards" onclick="toggleVisitsView('cards')" style="border:none; background:var(--accent-s2); color:var(--accent-l); padding:5px 10px; font-size:12px; border-radius:6px;">كروت</button>
+            <button class="btn btn-secondary btn-sm" id="btn-view-table" onclick="toggleVisitsView('table')" style="border:none; background:none; color:var(--text2); padding:5px 10px; font-size:12px; border-radius:6px;">تفاصيل</button>
           </div>
           <button class="btn btn-primary" onclick="openAddVisitModal()" style="height:32px; padding:0 14px; font-size:12.5px;">+ إضافة زيارة جديدة</button>
-          <button class="btn btn-secondary btn-sm" onclick="exportVisitsExcel()" style="height:32px; padding:0 10px; font-size:12px;">⬇️ Excel</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportVisitsExcel()" style="height:32px; padding:0 10px; font-size:12px;">تصدير Excel</button>
         </div>
       </div>
 
       <!-- KPI cards customized for visits -->
       <div class="kpi-grid" style="margin-bottom:1.5rem; display:grid; grid-template-columns: repeat(4, 1fr); gap:12px;">
         <div class="kpi-card c-red" style="padding:12px 14px; cursor:pointer; transition:all 0.2s;" onclick="filterVisitsByKPI('تأجلت')">
-          <div class="kpi-label">زيارات تم تأجيلها ⏰</div>
+          <div class="kpi-label">زيارات تم تأجيلها</div>
           <div class="kpi-value c-red" id="kpi-visits-postponed">0</div>
           <div class="kpi-sub">زيارات مؤجلة للمتابعة</div>
         </div>
         <div class="kpi-card c-yellow" style="padding:12px 14px; cursor:pointer; transition:all 0.2s;" onclick="filterVisitsByKPI('3days')">
-          <div class="kpi-label">زيارات 3 أيام قادمة 🟡</div>
+          <div class="kpi-label">زيارات 3 أيام قادمة</div>
           <div class="kpi-value c-yellow" id="kpi-visits-3days">0</div>
           <div class="kpi-sub">زيارات بحاجة للمتابعة</div>
         </div>
         <div class="kpi-card c-purple" style="padding:12px 14px; cursor:pointer; transition:all 0.2s;" onclick="filterVisitsByKPI('مجدولة')">
-          <div class="kpi-label">زيارات مجدولة نشطة 📅</div>
+          <div class="kpi-label">زيارات مجدولة نشطة</div>
           <div class="kpi-value c-purple" id="kpi-visits-active">0</div>
           <div class="kpi-sub">إجمالي المجدول النشط</div>
         </div>
         <div class="kpi-card c-green" style="padding:12px 14px; cursor:pointer; transition:all 0.2s;" onclick="filterVisitsByKPI('تمت')">
-          <div class="kpi-label">الزيارات المكتملة ✅</div>
+          <div class="kpi-label">الزيارات المكتملة</div>
           <div class="kpi-value c-green" id="kpi-visits-completed">0</div>
           <div class="kpi-sub">زيارة تمت بنجاح</div>
         </div>
@@ -1169,7 +1346,7 @@ tr.row-has-note td:first-child {
       <div class="mgmt-grid">
         <div class="mgmt-card" style="grid-column:1/-1">
           <div class="mgmt-card-header">
-            <span class="mgmt-card-title">🏢 العملاء</span>
+            <span class="mgmt-card-title">العملاء</span>
             <div style="display:flex; align-items:center; gap:8px;">
               <input type="text" id="clients-search-input" placeholder="بحث عن عميل..." oninput="renderClientsList()" style="font-size:12px; padding:6px 12px; max-width:200px; height: 32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text); outline:none;">
               <select id="clients-filter-team" onchange="renderClientsList()" style="font-size:12px; padding:6px 10px; max-width:180px; height: 32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text); outline:none;"><option value="">كل الفرق</option></select>
@@ -1232,12 +1409,12 @@ tr.row-has-note td:first-child {
           <button class="btn btn-primary" style="margin-top:12px" onclick="changePassword()">تغيير كلمة المرور</button>
         </div>
         <div class="settings-card">
-          <div class="settings-title">ℹ️ معلومات النظام</div>
+          <div class="settings-title">معلومات النظام</div>
           <div style="font-size:13px;color:var(--text2);line-height:2">
-            <div>🔗 الـ API: متصل ✅</div>
-            <div id="info-teams">📊 التيمات: —</div>
-            <div id="info-emps">👥 الموظفين: —</div>
-            <div id="info-clients">🏢 العملاء: —</div>
+            <div>الـ API: متصل</div>
+            <div id="info-teams">التيمات: —</div>
+            <div id="info-emps">الموظفين: —</div>
+            <div id="info-clients">العملاء: —</div>
             <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);color:var(--text3);font-size:11px">
               نظم وحلول للتقنية المالية — النظام المتكامل v2.0
             </div>
@@ -1316,19 +1493,19 @@ tr.row-has-note td:first-child {
     <!-- Tabs Header -->
     <div class="perf-tabs-container" style="display: flex; gap: 8px; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; flex-wrap:wrap;">
       <button class="perf-tab active" onclick="switchPerfTab('tasks')" id="perf-tab-tasks" style="flex: 1; min-width: 120px; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
-        📌 التكليفات المسندة
+        التكليفات المسندة
       </button>
       <button class="perf-tab" onclick="switchPerfTab('reports')" id="perf-tab-reports" style="flex: 1; min-width: 120px; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
-        📋 المهام المنجزة
+        المهام المنجزة
       </button>
       <button class="perf-tab" onclick="switchPerfTab('visits')" id="perf-tab-visits" style="flex: 1; min-width: 120px; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
-        🚗 الزيارات المسندة
+        الزيارات المسندة
       </button>
       <button class="perf-tab perf-tab-success" onclick="switchPerfTab('present')" id="perf-tab-present" style="flex: 1; min-width: 90px; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
-        🟢 الحضور
+        الحضور
       </button>
       <button class="perf-tab perf-tab-danger" onclick="switchPerfTab('absent')" id="perf-tab-absent" style="flex: 1; min-width: 90px; padding: 10px; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; outline: none;">
-        🔴 أيام الغياب
+        أيام الغياب
       </button>
     </div>
 
@@ -1337,7 +1514,7 @@ tr.row-has-note td:first-child {
     <!-- Tab 1: Assigned Tasks -->
     <div class="perf-tab-content active" id="perf-content-tasks">
       <div style="margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-size:13px; font-weight:600; color:var(--warning);">📌 التكليفات المسندة للموظف وحالتها</span>
+        <span style="font-size:13px; font-weight:600; color:var(--warning);">التكليفات المسندة للموظف وحالتها</span>
       </div>
       <div class="table-wrap" style="height: 250px; max-height: 250px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
         <table style="font-size:11px;">
@@ -1360,7 +1537,7 @@ tr.row-has-note td:first-child {
     <!-- Tab 2: Completed Tasks Details -->
     <div class="perf-tab-content" id="perf-content-reports" style="display: none;">
       <div style="margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-size:13px; font-weight:600; color:var(--text2);">📋 تفاصيل المهام المنجزة هذا الشهر</span>
+        <span style="font-size:13px; font-weight:600; color:var(--text2);">تفاصيل المهام المنجزة هذا الشهر</span>
       </div>
       <div class="table-wrap" style="height: 250px; max-height: 250px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
         <table style="font-size:11px;">
@@ -1383,7 +1560,7 @@ tr.row-has-note td:first-child {
     <!-- Tab 3: Attendance Days (Green Theme!) -->
     <div class="perf-tab-content" id="perf-content-present" style="display: none;">
       <div style="margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-size:13px; font-weight:600; color:var(--green);">🟢 سجل الحضور وإذونات الغياب هذا الشهر</span>
+        <span style="font-size:13px; font-weight:600; color:var(--green);">سجل الحضور وإذونات الغياب هذا الشهر</span>
       </div>
       <div class="table-wrap" style="height: 250px; max-height: 250px; overflow-y:auto; border:1px solid rgba(74,222,128,0.2); border-radius:6px; background: rgba(74,222,128,0.01);">
         <table style="font-size:11px;">
@@ -1404,7 +1581,7 @@ tr.row-has-note td:first-child {
     <!-- Tab 4: Absence Days (Red Theme!) -->
     <div class="perf-tab-content" id="perf-content-absent" style="display: none;">
       <div style="margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-size:13px; font-weight:600; color:var(--red);">🔴 أيام الغياب والتقصير المسجلة هذا الشهر</span>
+        <span style="font-size:13px; font-weight:600; color:var(--red);">أيام الغياب والتقصير المسجلة هذا الشهر</span>
       </div>
       <div class="table-wrap" style="height: 250px; max-height: 250px; overflow-y:auto; border:1px solid rgba(248,113,113,0.2); border-radius:6px; background: rgba(248,113,113,0.01);">
         <table style="font-size:11px;">
@@ -1425,7 +1602,7 @@ tr.row-has-note td:first-child {
     <!-- Tab 5: Assigned Visits -->
     <div class="perf-tab-content" id="perf-content-visits" style="display: none;">
       <div style="margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-size:13px; font-weight:600; color:var(--accent-l);">🚗 الزيارات الميدانية المجدولة للموظف</span>
+        <span style="font-size:13px; font-weight:600; color:var(--accent-l);">الزيارات الميدانية المجدولة للموظف</span>
       </div>
       <div class="table-wrap" style="height: 250px; max-height: 250px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
         <table style="font-size:11px;">
@@ -1457,15 +1634,15 @@ tr.row-has-note td:first-child {
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:8px;">
       <div class="modal-title" id="client-details-title" style="margin-bottom:0; font-size:17px; color:var(--accent-l);">الملف المتكامل للعميل والتحليلات</div>
       <div style="display:flex; gap:8px; align-items:center;">
-        <button class="btn btn-primary btn-sm" onclick="exportSingleClientExcel()" style="background:var(--success); border:none; padding:5px 12px; font-size:11.5px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">📥 تصدير تقرير العميل (Excel)</button>
+        <button class="btn btn-primary btn-sm" onclick="exportSingleClientExcel()" style="background:var(--success); border:none; padding:5px 12px; font-size:11.5px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">تصدير تقرير العميل (Excel)</button>
         <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-client-details')" style="padding:4px 10px;">✕</button>
       </div>
     </div>
     
     <!-- Glassmorphism Tab Switcher -->
     <div style="display:flex; gap:6px; margin-bottom:1.25rem; background:rgba(255,255,255,0.03); border:1px solid var(--border); padding:3px; border-radius:8px;">
-      <button class="btn btn-secondary btn-sm" id="btn-cli-tab-reports" onclick="switchCliDetailsTab('reports')" style="flex:1; border:none; background:var(--accent-s2); color:var(--accent-l); padding:8px 12px; font-size:12px; border-radius:6px; font-weight:600; cursor:pointer; transition:all 0.2s;">📋 سجلات التقارير وساعات العمل</button>
-      <button class="btn btn-secondary btn-sm" id="btn-cli-tab-visits" onclick="switchCliDetailsTab('visits')" style="flex:1; border:none; background:none; color:var(--text2); padding:8px 12px; font-size:12px; border-radius:6px; font-weight:600; cursor:pointer; transition:all 0.2s;">🚗 سجل الزيارات الميدانية (CRM)</button>
+      <button class="btn btn-secondary btn-sm" id="btn-cli-tab-reports" onclick="switchCliDetailsTab('reports')" style="flex:1; border:none; background:var(--accent-s2); color:var(--accent-l); padding:8px 12px; font-size:12px; border-radius:6px; font-weight:600; cursor:pointer; transition:all 0.2s;">سجلات التقارير وساعات العمل</button>
+      <button class="btn btn-secondary btn-sm" id="btn-cli-tab-visits" onclick="switchCliDetailsTab('visits')" style="flex:1; border:none; background:none; color:var(--text2); padding:8px 12px; font-size:12px; border-radius:6px; font-weight:600; cursor:pointer; transition:all 0.2s;">سجل الزيارات الميدانية (CRM)</button>
     </div>
     
     <!-- PANEL 1: REPORTS AND HOURS -->
@@ -1477,7 +1654,7 @@ tr.row-has-note td:first-child {
       </div>
 
       <div style="margin-bottom:0.75rem; border-bottom:1px solid var(--border); padding-bottom:4px;">
-        <span style="font-size:12.5px; font-weight:600; color:var(--text2);">📋 قائمة السجلات والمهام الخاصة بالعميل</span>
+        <span style="font-size:12.5px; font-weight:600; color:var(--text2);">قائمة السجلات والمهام الخاصة بالعميل</span>
       </div>
       
       <div class="table-wrap" style="max-height: 250px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
@@ -1503,12 +1680,12 @@ tr.row-has-note td:first-child {
     <div id="cli-details-panel-visits" style="display:none;">
       <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:1.25rem;">
         <div class="kpi-card c-green" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9.5px; margin-bottom:4px;">زيارات تمت ناجحة</div><div class="kpi-value c-green" id="cli-details-visits-completed" style="font-size:18px;">0</div></div>
-        <div class="kpi-card c-yellow" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9.5px; margin-bottom:4px;">زيارات تم تأجيلها ⏰</div><div class="kpi-value c-yellow" id="cli-details-visits-postponed" style="font-size:18px;">0</div></div>
-        <div class="kpi-card c-blue" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9.5px; margin-bottom:4px;">زيارات مجدولة نشطة 📅</div><div class="kpi-value c-blue" id="cli-details-visits-active" style="font-size:18px;">0</div></div>
+        <div class="kpi-card c-yellow" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9.5px; margin-bottom:4px;">زيارات تم تأجيلها</div><div class="kpi-value c-yellow" id="cli-details-visits-postponed" style="font-size:18px;">0</div></div>
+        <div class="kpi-card c-blue" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9.5px; margin-bottom:4px;">زيارات مجدولة نشطة</div><div class="kpi-value c-blue" id="cli-details-visits-active" style="font-size:18px;">0</div></div>
       </div>
 
       <div style="margin-bottom:0.75rem; border-bottom:1px solid var(--border); padding-bottom:4px;">
-        <span style="font-size:12.5px; font-weight:600; color:var(--text2);">🚗 سجل وجدول جميع الزيارات الميدانية للعميل</span>
+        <span style="font-size:12.5px; font-weight:600; color:var(--text2);">سجل وجدول جميع الزيارات الميدانية للعميل</span>
       </div>
       
       <div class="table-wrap" style="max-height: 250px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
@@ -2023,18 +2200,18 @@ function enterDashboard(role, teamId, teamName, password) {
   // Settings password title
   const pwTitle = document.getElementById('settings-pw-title');
   if (pwTitle) {
-    pwTitle.textContent = role === 'admin' ? '🔑 كلمة مرور الـ Admin' : '🔑 كلمة مرور المشرف';
+    pwTitle.textContent = role === 'admin' ? 'كلمة مرور المدير' : 'كلمة مرور المشرف';
   }
 
   document.getElementById('new-client-team').style.display = role === 'admin' ? 'block' : 'none';
 
   if (role === 'supervisor') {
-    document.getElementById('title-chart-hours').textContent = '⏱️ ساعات كل موظف';
-    document.getElementById('title-chart-att').textContent = '✅ معدل حضور الموظفين';
+    document.getElementById('title-chart-hours').textContent = 'ساعات كل موظف';
+    document.getElementById('title-chart-att').textContent = 'معدل حضور الموظفين';
     document.getElementById('title-chart-donut').textContent = 'توزيع الساعات بين الموظفين';
   } else {
-    document.getElementById('title-chart-hours').textContent = '⏱️ ساعات كل تيم';
-    document.getElementById('title-chart-att').textContent = '✅ معدل حضور التيمات';
+    document.getElementById('title-chart-hours').textContent = 'ساعات كل تيم';
+    document.getElementById('title-chart-att').textContent = 'معدل حضور التيمات';
     document.getElementById('title-chart-donut').textContent = 'توزيع الساعات بين التيمات';
   }
 
@@ -3220,9 +3397,9 @@ async function changePassword() {
 }
 
 function updateInfoPanel() {
-  document.getElementById('info-teams').textContent   = `📊 التيمات: ${STATE.teams.length}`;
-  document.getElementById('info-emps').textContent    = `👥 الموظفين: ${STATE.employees.filter(e=>e['نشط']==='نعم').length}`;
-  document.getElementById('info-clients').textContent = `🏢 العملاء: ${STATE.clients.length}`;
+  document.getElementById('info-teams').textContent   = `التيمات: ${STATE.teams.length}`;
+  document.getElementById('info-emps').textContent    = `الموظفين: ${STATE.employees.filter(e=>e['نشط']==='نعم').length}`;
+  document.getElementById('info-clients').textContent = `العملاء: ${STATE.clients.length}`;
 }
 
 // ══════════════════════════════════════════════════════
@@ -3326,11 +3503,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('att-month').value = today.slice(0,7);
   
   // Set default visits date filters from start of current month to end of next month (two months range)
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  const lastDayOfNextMonth = new Date(y, m + 2, 0).toISOString().slice(0, 10);
-  document.getElementById('visits-filter-date-from').value = firstDay;
-  document.getElementById('visits-filter-date-to').value = lastDayOfNextMonth;
+  // const y = now.getFullYear();
+  // const m = now.getMonth();
+  // const lastDayOfNextMonth = new Date(y, m + 2, 0).toISOString().slice(0, 10);
+  // document.getElementById('visits-filter-date-from').value = firstDay;
+  // document.getElementById('visits-filter-date-to').value = lastDayOfNextMonth;
 
   initLogin();
 
