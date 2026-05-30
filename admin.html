@@ -1543,9 +1543,11 @@ tr.row-has-note td:first-child {
         <div class="mgmt-card" style="grid-column:1/-1">
           <div class="mgmt-card-header">
             <span class="mgmt-card-title">العملاء</span>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <input type="text" id="clients-search-input" placeholder="بحث عن عميل..." oninput="renderClientsList()" style="font-size:12px; padding:6px 12px; max-width:200px; height: 32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text); outline:none;">
-              <select id="clients-filter-team" onchange="renderClientsList()" style="font-size:12px; padding:6px 10px; max-width:180px; height: 32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text); outline:none;"><option value="">كل الفرق</option></select>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
+              <input type="text" id="clients-search-input" placeholder="بحث عن عميل..." oninput="renderClientsList()" style="font-size:12px; padding:6px 12px; max-width:160px; height: 32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text); outline:none;">
+              <select id="clients-filter-team" onchange="renderClientsList()" style="font-size:12px; padding:6px 10px; max-width:130px; height: 32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text); outline:none;"><option value="">كل الفرق</option></select>
+              <input type="month" id="clients-filter-month" onchange="renderClientsList()" style="font-size:12px; padding:5px 10px; height: 32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text); outline:none;">
+              <button class="btn btn-secondary btn-sm" onclick="exportClientsDetailsExcel()" style="height:32px; padding:0 12px; font-size:12px; display:inline-flex; align-items:center; gap:4px;">📊 تصدير تفاصيل (Excel)</button>
               <span id="clients-count" style="font-size:12px;color:var(--text3)"></span>
             </div>
           </div>
@@ -2404,6 +2406,11 @@ async function initDashboard() {
     STATE.attendance = attendanceR.ok ? (attendanceR.rows || []) : [];
     STATE.tasks = tasksR.ok ? (tasksR.tasks || []) : [];
     STATE.visits = visitsR.ok ? (visitsR.visits || []) : [];
+    STATE.visits.forEach(v => {
+      if (!v['الحالة'] && v['ملاحظات'] && v['ملاحظات'].includes('ما تم إنجازه في الزيارة:')) {
+        v['الحالة'] = 'تمت';
+      }
+    });
 
     // للمشرف: فلتر بالتيم
     if (STATE.role === 'supervisor') {
@@ -3383,6 +3390,108 @@ function renderClientsList() {
   }).join('');
 }
 
+function exportClientsDetailsExcel() {
+  const selectedMonth = document.getElementById('clients-filter-month').value;
+  
+  let reports = STATE.reports || [];
+  let tasks = STATE.tasks || [];
+  let visits = STATE.visits || [];
+  
+  if (selectedMonth) {
+    reports = reports.filter(r => r['التاريخ'] && r['التاريخ'].startsWith(selectedMonth));
+    tasks = tasks.filter(t => t['تاريخ الإسناد'] && t['تاريخ الإسناد'].startsWith(selectedMonth));
+    visits = visits.filter(v => v['تاريخ الزيارة'] && v['تاريخ الزيارة'].startsWith(selectedMonth));
+  }
+  
+  const completedVisits = visits.filter(v => v['الحالة'] === 'تمت');
+  
+  const exportData = [];
+  
+  (STATE.clients || []).forEach(c => {
+    const cName = c.name;
+    const clientReports = reports.filter(r => String(r['العميل']) === String(cName));
+    const clientCompletedVisits = completedVisits.filter(v => String(v['العميل']) === String(cName));
+    
+    let totalMinutes = 0;
+    clientReports.forEach(r => {
+      const dur = r['المدة'];
+      if (dur && dur.includes(':')) {
+        const parts = dur.split(':');
+        totalMinutes += parseInt(parts[0] || 0) * 60 + parseInt(parts[1] || 0);
+      }
+    });
+    const hours = (totalMinutes / 60).toFixed(2);
+    
+    const uniqueEmps = new Set();
+    clientReports.forEach(r => {
+      if (r.emp_id || r['اسم الموظف']) uniqueEmps.add(r.emp_id || r['اسم الموظف']);
+    });
+    clientCompletedVisits.forEach(v => {
+      if (v.emp_id || v['اسم الموظف']) uniqueEmps.add(v.emp_id || v['اسم الموظف']);
+    });
+    const empCount = uniqueEmps.size;
+    
+    const totalActivity = clientReports.length + clientCompletedVisits.length;
+    if (totalActivity === 0) return;
+    
+    exportData.push({
+      name: cName,
+      tasks: clientReports.length,
+      hours: parseFloat(hours),
+      employees: empCount,
+      visits: clientCompletedVisits.length
+    });
+  });
+  
+  if (exportData.length === 0) {
+    showToast('لا توجد بيانات عملاء نشطين لتصديرها في الفترة المحددة!', 'info');
+    return;
+  }
+  
+  const wb = XLSX.utils.book_new();
+  const wsData = [];
+  
+  const monthText = selectedMonth ? `لشهر: ${selectedMonth}` : 'لكل الأوقات';
+  wsData.push([`📊 تقرير تفاصيل عمل وأداء العملاء (${monthText})`]);
+  wsData.push([`تاريخ الاستخراج: ${new Date().toLocaleDateString('ar-EG')}`]);
+  wsData.push([]);
+  
+  const headers = [
+    'اسم العميل', 
+    'عدد المهام المنفذة', 
+    'عدد الساعات المستغرقة', 
+    'عدد الموظفين المشاركين', 
+    'عدد الزيارات الميدانية المكتملة'
+  ];
+  wsData.push(headers);
+  
+  exportData.forEach(row => {
+    wsData.push([
+      row.name,
+      row.tasks,
+      row.hours,
+      row.employees,
+      row.visits
+    ]);
+  });
+  
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  
+  ws['!cols'] = [
+    { wch: 30 },
+    { wch: 20 },
+    { wch: 22 },
+    { wch: 22 },
+    { wch: 28 }
+  ];
+  
+  XLSX.utils.book_append_sheet(wb, ws, 'تقرير العملاء النشطين');
+  
+  const fileName = `تقرير_تفاصيل_العملاء_${selectedMonth || 'كل_الاوقات'}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+  showToast('تم تصدير ملف تفاصيل العملاء بنجاح!', 'success');
+}
+
 async function addClient() {
   const name = document.getElementById('new-client-name').value.trim();
   if (!name) { showToast('أدخل اسم العميل'); return; }
@@ -3574,6 +3683,11 @@ async function refreshData() {
   STATE.attendance = attendanceR.ok ? (attendanceR.rows || []) : [];
   STATE.tasks = tasksR.ok ? (tasksR.tasks || []) : [];
   STATE.visits = visitsR.ok ? (visitsR.visits || []) : [];
+  STATE.visits.forEach(v => {
+    if (!v['الحالة'] && v['ملاحظات'] && v['ملاحظات'].includes('ما تم إنجازه في الزيارة:')) {
+      v['الحالة'] = 'تمت';
+    }
+  });
   
   if (STATE.role === 'supervisor') {
     STATE.employees = STATE.employees.filter(e => e.team_id === STATE.teamId);
@@ -3672,6 +3786,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('db-from').value = firstDay;
   document.getElementById('db-to').value   = today;
   document.getElementById('att-month').value = today.slice(0,7);
+  document.getElementById('clients-filter-month').value = today.slice(0,7);
   
   // Set default visits date filters from start of current month to end of next month (two months range)
   // const y = now.getFullYear();
