@@ -122,15 +122,15 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
     radial-gradient(32% 32% at 78% 22%,rgba(140,75,35,.32),transparent 60%),
     radial-gradient(42% 42% at 55% 82%,rgba(200,100,40,.22),transparent 60%),
     radial-gradient(28% 28% at 90% 70%,rgba(78,143,181,.15),transparent 60%);
-  animation:aurora 24s ease-in-out infinite alternate}
+}
 @keyframes aurora{
   0%{transform:translate(0,0) rotate(0deg) scale(1)}
   50%{transform:translate(2%,-3%) rotate(5deg) scale(1.07)}
   100%{transform:translate(-3%,2%) rotate(-4deg) scale(1.04)}}
 .login-wrap .orb{position:absolute;border-radius:50%;filter:blur(50px)}
-.login-wrap .orb1{width:320px;height:320px;top:0;right:5%;background:rgba(212,112,59,.22);animation:o1 18s var(--ease) infinite alternate}
-.login-wrap .orb2{width:240px;height:240px;bottom:5%;left:3%;background:rgba(160,85,35,.20);animation:o2 22s var(--ease) infinite alternate}
-.login-wrap .orb3{width:160px;height:160px;top:50%;right:62%;background:rgba(78,143,181,.14);animation:o1 14s var(--ease) 3s infinite alternate}
+.login-wrap .orb1{width:320px;height:320px;top:0;right:5%;background:rgba(212,112,59,.22);}
+.login-wrap .orb2{width:240px;height:240px;bottom:5%;left:3%;background:rgba(160,85,35,.20);}
+.login-wrap .orb3{width:160px;height:160px;top:50%;right:62%;background:rgba(78,143,181,.14);}
 @keyframes o1{to{transform:translate(-40px,50px) scale(1.2)}}
 @keyframes o2{to{transform:translate(50px,-40px) scale(1.15)}}
 .login-wrap .vignette{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,transparent 42%,rgba(0,0,0,.72) 100%)}
@@ -140,9 +140,9 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 
 .login-wrap .shell{position:relative;z-index:2;width:100%;max-width:430px;transform-style:preserve-3d;margin:auto}
 .login-wrap .shell::before{content:"";position:absolute;inset:-1.5px;border-radius:30px;
-  background:conic-gradient(from var(--a,0deg),transparent 0deg,rgba(212,112,59,.0) 50deg,rgba(212,112,59,.9) 110deg,rgba(240,138,78,1) 130deg,rgba(212,112,59,.9) 150deg,rgba(212,112,59,.0) 200deg,transparent 360deg);
+  background:linear-gradient(135deg, rgba(212,112,59,0.8), rgba(212,112,59,0.1) 40%, rgba(212,112,59,0.1) 60%, rgba(240,138,78,0.8));
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;mask-composite:exclude;animation:bspin 5s linear infinite}
+  -webkit-mask-composite:xor;mask-composite:exclude;}
 @property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
 @keyframes bspin{to{--a:360deg}}
 
@@ -167,9 +167,9 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .login-wrap .brand{text-align:center;margin-bottom:16px}
 .login-wrap .logo-wrap{width:82px;height:82px;margin:0 auto 14px;position:relative;display:grid;place-items:center}
 .login-wrap .ring{position:absolute;border-radius:50%;border:1px solid}
-.login-wrap .ring1{inset:-12px;border-color:rgba(212,112,59,.35);animation:rspin 6s linear infinite}
+.login-wrap .ring1{inset:-12px;border-color:rgba(212,112,59,.35);}
 .login-wrap .ring2{inset:-7px;border-color:rgba(212,112,59,.18);border-style:dashed;animation:rspin 9s linear infinite reverse}
-.login-wrap .ring3{inset:-17px;border-color:rgba(212,112,59,.10);animation:rspin 14s linear infinite}
+.login-wrap .ring3{inset:-17px;border-color:rgba(212,112,59,.10);}
 @keyframes rspin{to{transform:rotate(360deg)}}
 .login-wrap .logo{width:82px;height:82px;border-radius:50%;overflow:hidden;
   border:1.5px solid rgba(212,112,59,.4);
@@ -708,13 +708,137 @@ tr.row-has-note td:first-child {
 }
 .settings-title{font-size:13.5px;font-weight:700;color:var(--text2);margin-bottom:1rem;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.05);font-family:var(--serif);}
 
+/* Mobile nav toggle button styles */
+.mobile-nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-s);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+.mobile-nav-toggle:hover {
+  background: var(--bg4);
+  color: var(--text);
+  border-color: rgba(255,255,255,0.1);
+}
+
 @media(max-width:900px){
-  .sidebar{display:none;}
+  .mobile-nav-toggle {
+    display: flex !important;
+  }
+  .sidebar{
+    display: flex !important;
+    position: fixed !important;
+    right: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    z-index: 50 !important;
+    transform: translateX(100%) !important;
+    transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) !important;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.8) !important;
+    background: rgba(19, 16, 14, 0.96) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+  }
+  .sidebar.active {
+    transform: translateX(0) !important;
+  }
   .main-wrap{margin-right:0;}
   .kpi-grid{grid-template-columns:repeat(2,1fr);}
   .charts-grid{grid-template-columns:1fr;}
   .mgmt-grid{grid-template-columns:1fr;}
   .settings-grid{grid-template-columns:1fr;}
+}
+
+@media(max-width:768px) {
+  /* Reduce content padding */
+  .content {
+    padding: 0.75rem !important;
+  }
+  
+  /* Visits Filter bar adjustments */
+  #panel-visits .filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  
+  #panel-visits .filter-bar > div {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  
+  #panel-visits .filter-group {
+    min-width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  #panel-visits .filter-bar select, 
+  #panel-visits .filter-bar input {
+    width: 100% !important;
+    height: 38px !important; /* Larger touch targets for mobile */
+    font-size: 14px !important;
+  }
+  
+  /* Buttons row at the bottom of filters on mobile */
+  #panel-visits .filter-bar > div:last-child {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  
+  #panel-visits .filter-bar > div:last-child > button,
+  #panel-visits .filter-bar > div:last-child > div {
+    flex: 1 1 calc(50% - 4px) !important;
+    min-width: calc(50% - 4px) !important;
+    height: 38px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  #panel-visits .filter-bar > div:last-child > button {
+    font-size: 13px !important;
+  }
+
+  /* Visits Grid Cards view - 1 column on mobile */
+  #visits-cards-view {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Responsive table container */
+  #visits-table-view {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  #visits-table-view table {
+    min-width: 600px !important; /* Ensure table stretches inside scrollable wrapper */
+  }
+  
+  /* KPI Cards for visits */
+  #panel-visits .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  #panel-visits .kpi-card {
+    padding: 12px !important;
+  }
+  
+  #panel-visits .kpi-value {
+    font-size: 22px !important;
+  }
 }
 </style>
 </head>
@@ -733,7 +857,7 @@ tr.row-has-note td:first-child {
 
 <!-- LOGIN -->
 <div class="login-wrap" id="login-wrap">
-  <canvas id="cvs"></canvas>
+
   <div class="bg">
     <div class="aurora"></div>
     <div class="orb orb1"></div>
@@ -892,11 +1016,21 @@ tr.row-has-note td:first-child {
     <button class="logout-btn" onclick="doLogout()">تسجيل الخروج</button>
   </div>
 </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleMobileSidebar()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); z-index:45;"></div>
 
 <!-- MAIN -->
 <div class="main-wrap" id="main-wrap" style="display:none">
   <header class="topbar">
-    <div class="topbar-title" id="topbar-title">الداشبورد</div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button class="mobile-nav-toggle" id="mobileNavToggle" onclick="toggleMobileSidebar()" aria-label="Menu" style="background:none; border:none; cursor:pointer; padding:4px; display:none; align-items:center; justify-content:center;">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="width:20px; height:20px; color:var(--text2);">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div class="topbar-title" id="topbar-title">الداشبورد</div>
+    </div>
     <div class="topbar-right">
       <span class="topbar-date" id="topbar-date"></span>
       <button class="btn btn-secondary btn-sm" onclick="refreshAll()">تحديث</button>
@@ -2060,50 +2194,7 @@ async function initLogin() {
 }
 
 function initLoginVisuals() {
-  // Particles canvas
-  const c = document.getElementById('cvs');
-  if (c) {
-    const ctx = c.getContext('2d');
-    let W, H, P = [], mouse = {x: -9999, y: -9999};
-    const N = 60;
-    function resize() {
-      W = c.width = window.innerWidth;
-      H = c.height = window.innerHeight;
-    }
-    resize();
-    window.addEventListener('resize', () => { resize(); initP(); });
-    window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
-    function rnd(a, b) { return Math.random() * (b - a) + a; }
-    function mkP() { return { x: rnd(0, W), y: rnd(0, H), r: rnd(.8, 2.2), vx: rnd(-.18, .18), vy: rnd(-.22, -.05), base: rnd(.2, .7), pulse: rnd(0, Math.PI * 2), spd: rnd(.012, .026) }; }
-    function initP() { P = Array.from({length: N}, mkP); }
-    initP();
-    function draw() {
-      ctx.clearRect(0, 0, W, H);
-      P.forEach(p => {
-        const dx = p.x - mouse.x, dy = p.y - mouse.y, d = Math.sqrt(dx*dx + dy*dy);
-        if (d < 120) {
-          const f = (120 - d) / 120;
-          p.vx += dx / d * f * .4;
-          p.vy += dy / d * f * .4;
-        }
-        p.vx *= .97; p.vy *= .97; p.x += p.vx; p.y += p.vy; p.pulse += p.spd;
-        const a = p.base * .6 + Math.sin(p.pulse) * p.base * .4;
-        if (p.y < -10) p.y = H + 10;
-        if (p.y > H + 10) p.y = -10;
-        if (p.x < -10) p.x = W + 10;
-        if (p.x > W + 10) p.x = -10;
-        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 5);
-        g.addColorStop(0, `rgba(212,112,59,${a})`);
-        g.addColorStop(.4, `rgba(212,112,59,${a*.4})`);
-        g.addColorStop(1, 'rgba(212,112,59,0)');
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 5, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(240,160,100,${Math.min(a*1.4, 1)})`; ctx.fill();
-      });
-      requestAnimationFrame(draw);
-    }
-    draw();
-  }
+  // Particles canvas disabled for 0ms extreme lag-free rendering
 
   // 3D tilt
   const card = document.getElementById('card');
@@ -3484,6 +3575,11 @@ function switchPanel(name) {
     document.getElementById(`nav-${p}`)?.classList.toggle('active', p===name);
   });
   document.getElementById('topbar-title').textContent = PANEL_TITLES[name] || '';
+  // Close mobile sidebar if open
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar && sidebar.classList.contains('active')) {
+    toggleMobileSidebar();
+  }
   if (name === 'tasks') {
     loadAssignedTasksList();
   } else if (name === 'visits') {
@@ -3491,6 +3587,16 @@ function switchPanel(name) {
   }
 }
 
+function toggleMobileSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (sidebar) {
+    const isActive = sidebar.classList.toggle('active');
+    if (backdrop) {
+      backdrop.style.display = isActive ? 'block' : 'none';
+    }
+  }
+}
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
