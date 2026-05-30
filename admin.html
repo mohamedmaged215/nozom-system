@@ -168,7 +168,7 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .login-wrap .logo-wrap{width:82px;height:82px;margin:0 auto 14px;position:relative;display:grid;place-items:center}
 .login-wrap .ring{position:absolute;border-radius:50%;border:1px solid}
 .login-wrap .ring1{inset:-12px;border-color:rgba(212,112,59,.35);}
-.login-wrap .ring2{inset:-7px;border-color:rgba(212,112,59,.18);border-style:dashed;animation:rspin 9s linear infinite reverse}
+.login-wrap .ring2{inset:-7px;border-color:rgba(212,112,59,.18);border-style:dashed;}
 .login-wrap .ring3{inset:-17px;border-color:rgba(212,112,59,.10);}
 @keyframes rspin{to{transform:rotate(360deg)}}
 .login-wrap .logo{width:82px;height:82px;border-radius:50%;overflow:hidden;
@@ -763,25 +763,25 @@ tr.row-has-note td:first-child {
     padding: 0.75rem !important;
   }
   
-  /* Visits Filter bar adjustments */
-  #panel-visits .filter-bar {
+  /* Global Filter bar adjustments for all panels on mobile */
+  .filter-bar {
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 12px !important;
   }
   
-  #panel-visits .filter-bar > div {
+  .filter-bar > div {
     flex-direction: column !important;
     gap: 8px !important;
   }
   
-  #panel-visits .filter-group {
+  .filter-group {
     min-width: 100% !important;
     max-width: 100% !important;
   }
   
-  #panel-visits .filter-bar select, 
-  #panel-visits .filter-bar input {
+  .filter-bar select, 
+  .filter-bar input {
     width: 100% !important;
     height: 38px !important; /* Larger touch targets for mobile */
     font-size: 14px !important;
@@ -3575,10 +3575,14 @@ function switchPanel(name) {
     document.getElementById(`nav-${p}`)?.classList.toggle('active', p===name);
   });
   document.getElementById('topbar-title').textContent = PANEL_TITLES[name] || '';
-  // Close mobile sidebar if open
+  // Force close mobile sidebar on switch
   const sidebar = document.querySelector('.sidebar');
-  if (sidebar && sidebar.classList.contains('active')) {
-    toggleMobileSidebar();
+  if (sidebar) {
+    sidebar.classList.remove('active');
+  }
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (backdrop) {
+    backdrop.style.display = 'none';
   }
   if (name === 'tasks') {
     loadAssignedTasksList();
