@@ -4204,6 +4204,43 @@ function switchPerfTab(tabName) {
   }
 }
 
+function sanitizeWhatsAppNumber(numStr) {
+  if (!numStr) return '';
+  let clean = numStr.toString().replace(/\D/g, '');
+  if (!clean) return '';
+  
+  if (clean.startsWith('00')) {
+    clean = clean.slice(2);
+  }
+  
+  if (/^(10|11|12|15)\d{8}$/.test(clean)) {
+    return '20' + clean;
+  }
+  if (/^0(10|11|12|15)\d{8}$/.test(clean)) {
+    return '20' + clean.slice(1);
+  }
+  
+  if (/^5\d{8}$/.test(clean)) {
+    return '966' + clean;
+  }
+  if (/^05\d{8}$/.test(clean)) {
+    return '966' + clean.slice(1);
+  }
+
+  if (clean.startsWith('0')) {
+    clean = clean.slice(1);
+  }
+  
+  if (clean.startsWith('5') && clean.length === 9) {
+    return '966' + clean;
+  }
+  if ((clean.startsWith('10') || clean.startsWith('11') || clean.startsWith('12') || clean.startsWith('15')) && clean.length === 10) {
+    return '20' + clean;
+  }
+  
+  return clean;
+}
+
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
@@ -4911,8 +4948,9 @@ function renderVisitsCards(list) {
 
 نظم وحلول للتقنية المالية`);
     
-    const isWaEnabled = v['واتساب العميل'] && v['واتساب العميل'].length > 5;
-    const waLink = isWaEnabled ? `href="https://wa.me/${v['واتساب العميل']}?text=${waText}" target="_blank"` : 'style="opacity:0.4; cursor:not-allowed;" onclick="showToast(\'لا يوجد رقم هاتف واتساب مسجل للعميل\', \'info\')"';
+    const cleanPhone = sanitizeWhatsAppNumber(v['واتساب العميل']);
+    const isWaEnabled = cleanPhone && cleanPhone.length > 5;
+    const waLink = isWaEnabled ? `href="https://wa.me/${cleanPhone}?text=${waText}" target="_blank"` : 'style="opacity:0.4; cursor:not-allowed;" onclick="showToast(\'لا يوجد رقم هاتف واتساب مسجل للعميل\', \'info\')"';
     
     const teamName = (STATE.teams.find(t => t.id === v.team_id) || {})['اسم التيم'] || v.team_id;
     
@@ -5004,8 +5042,9 @@ function renderVisitsTable(list) {
 
 نظم وحلول للتقنية المالية`);
     
-    const isWaEnabled = v['واتساب العميل'] && v['واتساب العميل'].length > 5;
-    const waButton = isWaEnabled ? `<a class="btn btn-secondary btn-sm" href="https://wa.me/${v['واتساب العميل']}?text=${waText}" target="_blank" style="padding:4px 8px; font-size:11px;">📱 واتساب</a>` : `<button class="btn btn-secondary btn-sm" style="padding:4px 8px; font-size:11px; opacity:0.4; cursor:not-allowed;" onclick="showToast('لا يوجد رقم هاتف للعميل', 'info')">📱 واتساب</button>`;
+    const cleanPhone = sanitizeWhatsAppNumber(v['واتساب العميل']);
+    const isWaEnabled = cleanPhone && cleanPhone.length > 5;
+    const waButton = isWaEnabled ? `<a class="btn btn-secondary btn-sm" href="https://wa.me/${cleanPhone}?text=${waText}" target="_blank" style="padding:4px 8px; font-size:11px;">📱 واتساب</a>` : `<button class="btn btn-secondary btn-sm" style="padding:4px 8px; font-size:11px; opacity:0.4; cursor:not-allowed;" onclick="showToast('لا يوجد رقم هاتف للعميل', 'info')">📱 واتساب</button>`;
     
     const teamName = (STATE.teams.find(t => t.id === v.team_id) || {})['اسم التيم'] || v.team_id;
     
@@ -5155,7 +5194,8 @@ async function saveVisitForm() {
   const teamId = document.getElementById('visit-form-team').value || STATE.teamId;
   const empId = document.getElementById('visit-form-emp').value;
   const client = document.getElementById('visit-form-client').value;
-  const whatsapp = document.getElementById('visit-form-whatsapp').value.trim();
+  const rawWhatsapp = document.getElementById('visit-form-whatsapp').value.trim();
+  const whatsapp = sanitizeWhatsAppNumber(rawWhatsapp);
   const date = document.getElementById('visit-form-date').value;
   const time = document.getElementById('visit-form-time').value.trim();
   const frequency = document.getElementById('visit-form-frequency').value;
