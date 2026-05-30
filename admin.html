@@ -476,6 +476,26 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 }
 .filter-group{display:flex;flex-direction:column;gap:6px;min-width:150px;}
 .filter-group label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
+.filter-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  flex: 1;
+}
+.filter-row-dates {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+.filter-row-buttons {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: auto;
+}
 select,input[type=text],input[type=date]{
   background: var(--bg4);
   border: 1px solid rgba(255,255,255,0.06);
@@ -785,6 +805,28 @@ tr.row-has-note td:first-child {
     width: 100% !important;
     height: 38px !important; /* Larger touch targets for mobile */
     font-size: 14px !important;
+  }
+  
+  .filter-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+  .filter-row-dates {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .filter-row-buttons {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+    margin-top: 8px !important;
   }
   
   /* Buttons row at the bottom of filters on mobile */
@@ -1907,9 +1949,8 @@ tr.row-has-note td:first-child {
     
     <div class="modal-field">
       <label>العميل</label>
-      <select id="visit-form-client">
-        <option value="">اختر العميل</option>
-      </select>
+      <input type="text" id="visit-form-client" list="visit-form-client-list" placeholder="ابحث عن عميل...">
+      <datalist id="visit-form-client-list"></datalist>
     </div>
     
     <div class="modal-field">
@@ -3077,7 +3118,7 @@ function renderTeams() {
       <div class="team-card-top">
         <div>
           <div class="team-name">${t['اسم التيم']}</div>
-          <div class="team-supervisor">المشرف: ${t['مشرف']||'—'}</div>
+          <div class="team-supervisor">المشرف: <strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModalByName('${escapeHtml(t['مشرف'])}')" title="اضغط لعرض الأداء">${t['مشرف']||'—'}</strong></div>
         </div>
         <span style="font-size:20px">🏷️</span>
       </div>
@@ -3705,9 +3746,9 @@ function loadAssignedTasksList() {
 
     return `
       <tr>
-        <td><strong>${t['اسم الموظف'] || ''}</strong></td>
+        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${t.emp_id}','${escapeHtml(t['اسم الموظف'])}','${t.team_id}')" title="اضغط لعرض الأداء الشهري">${t['اسم الموظف'] || ''}</strong></td>
         <td><span style="font-size:11px;color:var(--text3)">${teamMap[t.team_id] || t.team_id || ''}</span></td>
-        <td>${t['العميل'] || ''}</td>
+        <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(t['العميل'])}')" title="عرض تفاصيل العميل">${t['العميل'] || ''}</span></td>
         <td>${t['نوع المهمة'] || ''}</td>
         <td class="td-trunc" title="${(t['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${t['وصف المهمة'] || ''}</td>
         <td>${t['تاريخ الإسناد'] || ''}</td>
@@ -3898,6 +3939,21 @@ function exploreClientDetails() {
 
   resultDiv.style.display = 'block';
   emptyDiv.style.display = 'none';
+}
+
+function openEmployeePerformanceModalByName(empName) {
+  if (!empName || empName === '—') return;
+  const emp = STATE.employees.find(e => e['الاسم'] === empName || e.name === empName);
+  if (emp) {
+    openEmployeePerformanceModal(emp.id, emp['الاسم'] || emp.name, emp.team_id || emp.teamId);
+  } else {
+    const empFromReports = (STATE.reports || []).find(r => r['اسم الموظف'] === empName || r['الموظف'] === empName);
+    if (empFromReports) {
+      openEmployeePerformanceModal(empFromReports.emp_id, empName, empFromReports.team_id);
+    } else {
+      showToast(`لم يتم العثور على سجل للموظف: ${empName}`, 'error');
+    }
+  }
 }
 
 function openEmployeePerformanceModal(empId, empName, teamId) {
@@ -4638,11 +4694,17 @@ function populateClientFilter(selectId, teamSelId) {
     filteredClients = STATE.clients.filter(c => c.team_id === teamId || c.team_id === '');
   }
   
-  clientSel.innerHTML = '<option value="">اختر العميل</option>';
-  filteredClients.forEach(c => {
-    const cName = c.name || c;
-    clientSel.innerHTML += `<option value="${cName}">${cName}</option>`;
-  });
+  const datalistEl = document.getElementById(selectId + '-list');
+  if (datalistEl) {
+    datalistEl.innerHTML = filteredClients.map(c => `<option value="${c.name || c}">`).join('');
+    clientSel.value = '';
+  } else {
+    clientSel.innerHTML = '<option value="">اختر العميل</option>';
+    filteredClients.forEach(c => {
+      const cName = c.name || c;
+      clientSel.innerHTML += `<option value="${cName}">${cName}</option>`;
+    });
+  }
 }
 
 function populateFormEmpSelect(empSelId, teamSelId) {
@@ -4865,7 +4927,7 @@ function renderVisitsCards(list) {
           <div class="team-card-top" style="margin-bottom:8px;">
             <div>
               <div class="team-name" style="font-size:15px; color:var(--accent-l); cursor:pointer; font-weight:700;" onclick="openClientDetailsModal('${escapeHtml(v['العميل'])}')" title="اضغط لعرض تفاصيل العميل والزيارات">${v['العميل']}</div>
-              <div class="team-supervisor" style="font-size:11px; margin-top:2px;">المسؤول: <strong>${v['اسم الموظف']}</strong> (${teamName})</div>
+              <div class="team-supervisor" style="font-size:11px; margin-top:2px;">المسؤول: <strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${v.emp_id}','${escapeHtml(v['اسم الموظف'])}','${v.team_id}')" title="اضغط لعرض الأداء الشهري">${v['اسم الموظف']}</strong> (${teamName})</div>
             </div>
             <span class="badge ${badgeClass}">${badgeText}</span>
           </div>
@@ -4955,7 +5017,7 @@ function renderVisitsTable(list) {
     return `
       <tr>
         <td style="font-weight:600; color:var(--accent-l); cursor:pointer;" onclick="openClientDetailsModal('${escapeHtml(v['العميل'])}')" title="اضغط لعرض تفاصيل العميل والزيارات">${v['العميل']}</td>
-        <td>${v['اسم الموظف']}</td>
+        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${v.emp_id}','${escapeHtml(v['اسم الموظف'])}','${v.team_id}')" title="اضغط لعرض الأداء الشهري">${v['اسم الموظف']}</strong></td>
         <td><span class="team-badge" style="padding:2px 8px; font-size:11px;">${teamName}</span></td>
         <td>${v['تاريخ الزيارة']}</td>
         <td>${v['وقت الزيارة']}</td>
