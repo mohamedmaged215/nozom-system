@@ -1546,7 +1546,8 @@ tr.row-has-note td:first-child {
             <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
               <input type="text" id="clients-search-input" placeholder="بحث عن عميل..." oninput="renderClientsList()" style="font-size:12px; padding:6px 12px; max-width:160px; height: 32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text); outline:none;">
               <select id="clients-filter-team" onchange="renderClientsList()" style="font-size:12px; padding:6px 10px; max-width:130px; height: 32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text); outline:none;"><option value="">كل الفرق</option></select>
-              <input type="month" id="clients-filter-month" onchange="renderClientsList()" style="font-size:12px; padding:5px 10px; height: 32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text); outline:none;">
+              <input type="date" id="clients-filter-date-from" onchange="renderClientsList()" style="font-size:11px; padding:5px 8px; height: 32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text); outline:none; max-width: 120px;">
+              <input type="date" id="clients-filter-date-to" onchange="renderClientsList()" style="font-size:11px; padding:5px 8px; height: 32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text); outline:none; max-width: 120px;">
               <button class="btn btn-secondary btn-sm" onclick="exportClientsDetailsExcel()" style="height:32px; padding:0 12px; font-size:12px; display:inline-flex; align-items:center; gap:4px;">📊 تصدير تفاصيل (Excel)</button>
               <span id="clients-count" style="font-size:12px;color:var(--text3)"></span>
             </div>
@@ -3391,16 +3392,22 @@ function renderClientsList() {
 }
 
 function exportClientsDetailsExcel() {
-  const selectedMonth = document.getElementById('clients-filter-month').value;
+  const dateFrom = document.getElementById('clients-filter-date-from')?.value || '';
+  const dateTo = document.getElementById('clients-filter-date-to')?.value || '';
   
   let reports = STATE.reports || [];
   let tasks = STATE.tasks || [];
   let visits = STATE.visits || [];
   
-  if (selectedMonth) {
-    reports = reports.filter(r => r['التاريخ'] && r['التاريخ'].startsWith(selectedMonth));
-    tasks = tasks.filter(t => t['تاريخ الإسناد'] && t['تاريخ الإسناد'].startsWith(selectedMonth));
-    visits = visits.filter(v => v['تاريخ الزيارة'] && v['تاريخ الزيارة'].startsWith(selectedMonth));
+  if (dateFrom) {
+    reports = reports.filter(r => r['التاريخ'] && r['التاريخ'] >= dateFrom);
+    tasks = tasks.filter(t => t['تاريخ الإسناد'] && t['تاريخ الإسناد'] >= dateFrom);
+    visits = visits.filter(v => v['تاريخ الزيارة'] && v['تاريخ الزيارة'] >= dateFrom);
+  }
+  if (dateTo) {
+    reports = reports.filter(r => r['التاريخ'] && r['التاريخ'] <= dateTo);
+    tasks = tasks.filter(t => t['تاريخ الإسناد'] && t['تاريخ الإسناد'] <= dateTo);
+    visits = visits.filter(v => v['تاريخ الزيارة'] && v['تاريخ الزيارة'] <= dateTo);
   }
   
   const completedVisits = visits.filter(v => v['الحالة'] === 'تمت');
@@ -3420,7 +3427,9 @@ function exportClientsDetailsExcel() {
         totalMinutes += parseInt(parts[0] || 0) * 60 + parseInt(parts[1] || 0);
       }
     });
-    const hours = (totalMinutes / 60).toFixed(2);
+    const totalH = Math.floor(totalMinutes / 60);
+    const totalM = totalMinutes % 60;
+    const hoursStr = `${totalH}:${String(totalM).padStart(2, '0')}`;
     
     const uniqueEmps = new Set();
     clientReports.forEach(r => {
@@ -3437,7 +3446,7 @@ function exportClientsDetailsExcel() {
     exportData.push({
       name: cName,
       tasks: clientReports.length,
-      hours: parseFloat(hours),
+      hours: hoursStr,
       employees: empCount,
       visits: clientCompletedVisits.length
     });
@@ -3451,8 +3460,16 @@ function exportClientsDetailsExcel() {
   const wb = XLSX.utils.book_new();
   const wsData = [];
   
-  const monthText = selectedMonth ? `لشهر: ${selectedMonth}` : 'لكل الأوقات';
-  wsData.push([`📊 تقرير تفاصيل عمل وأداء العملاء (${monthText})`]);
+  let dateRangeText = 'لكل الأوقات';
+  if (dateFrom && dateTo) {
+    dateRangeText = `الفترة من ${dateFrom} إلى ${dateTo}`;
+  } else if (dateFrom) {
+    dateRangeText = `من تاريخ ${dateFrom}`;
+  } else if (dateTo) {
+    dateRangeText = `حتى تاريخ ${dateTo}`;
+  }
+  
+  wsData.push([`📊 تقرير تفاصيل عمل وأداء العملاء (${dateRangeText})`]);
   wsData.push([`تاريخ الاستخراج: ${new Date().toLocaleDateString('ar-EG')}`]);
   wsData.push([]);
   
@@ -3487,7 +3504,15 @@ function exportClientsDetailsExcel() {
   
   XLSX.utils.book_append_sheet(wb, ws, 'تقرير العملاء النشطين');
   
-  const fileName = `تقرير_تفاصيل_العملاء_${selectedMonth || 'كل_الاوقات'}.xlsx`;
+  let fileSuffix = 'كل_الاوقات';
+  if (dateFrom && dateTo) {
+    fileSuffix = `من_${dateFrom}_إلى_${dateTo}`;
+  } else if (dateFrom) {
+    fileSuffix = `من_${dateFrom}`;
+  } else if (dateTo) {
+    fileSuffix = `حتى_${dateTo}`;
+  }
+  const fileName = `تقرير_تفاصيل_العملاء_${fileSuffix}.xlsx`;
   XLSX.writeFile(wb, fileName);
   showToast('تم تصدير ملف تفاصيل العملاء بنجاح!', 'success');
 }
@@ -3786,7 +3811,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('db-from').value = firstDay;
   document.getElementById('db-to').value   = today;
   document.getElementById('att-month').value = today.slice(0,7);
-  document.getElementById('clients-filter-month').value = today.slice(0,7);
   
   // Set default visits date filters from start of current month to end of next month (two months range)
   // const y = now.getFullYear();
@@ -4456,11 +4480,23 @@ function exportSingleClientExcel() {
     return;
   }
 
-  const reports = (STATE.reports || []).filter(r => String(r['العميل']) === String(clientName));
-  const visits = (STATE.visits || []).filter(v => String(v['العميل']) === String(clientName));
+  const dateFrom = document.getElementById('clients-filter-date-from')?.value || '';
+  const dateTo = document.getElementById('clients-filter-date-to')?.value || '';
+
+  let reports = (STATE.reports || []).filter(r => String(r['العميل']) === String(clientName));
+  let visits = (STATE.visits || []).filter(v => String(v['العميل']) === String(clientName));
+
+  if (dateFrom) {
+    reports = reports.filter(r => r['التاريخ'] && r['التاريخ'] >= dateFrom);
+    visits = visits.filter(v => v['تاريخ الزيارة'] && v['تاريخ الزيارة'] >= dateFrom);
+  }
+  if (dateTo) {
+    reports = reports.filter(r => r['التاريخ'] && r['التاريخ'] <= dateTo);
+    visits = visits.filter(v => v['تاريخ الزيارة'] && v['تاريخ الزيارة'] <= dateTo);
+  }
 
   if (reports.length === 0 && visits.length === 0) {
-    showToast('لا توجد سجلات عمل أو زيارات لتصديرها لهذا العميل!', 'error');
+    showToast('لا توجد سجلات عمل أو زيارات لتصديرها لهذا العميل في النطاق الزمني المحدد!', 'error');
     return;
   }
 
@@ -4500,7 +4536,16 @@ function exportSingleClientExcel() {
     const ws2 = XLSX.utils.json_to_sheet(sheet2Data.length > 0 ? sheet2Data : [{'تنبيه': 'لا توجد زيارات ميدانية مسجلة لهذا العميل بعد'}]);
     XLSX.utils.book_append_sheet(wb, ws2, 'سجل ومتابعة الزيارات (CRM)');
 
-    XLSX.writeFile(wb, `تقرير_العميل_${clientName}.xlsx`);
+    let fileSuffix = 'كل_الاوقات';
+    if (dateFrom && dateTo) {
+      fileSuffix = `من_${dateFrom}_إلى_${dateTo}`;
+    } else if (dateFrom) {
+      fileSuffix = `من_${dateFrom}`;
+    } else if (dateTo) {
+      fileSuffix = `حتى_${dateTo}`;
+    }
+
+    XLSX.writeFile(wb, `تقرير_العميل_${clientName}_${fileSuffix}.xlsx`);
     showToast('تم تصدير ملف إكسل العميل بنجاح!', 'success');
   } catch(e) {
     showToast('تعذر تصدير تقرير العميل', 'error');
@@ -4643,16 +4688,26 @@ function openClientDetailsModal(clientName) {
   document.getElementById('cli-details-teams').textContent = '—';
   document.getElementById('cli-details-emps').textContent = '—';
 
+  const dateFrom = document.getElementById('clients-filter-date-from')?.value || '';
+  const dateTo = document.getElementById('clients-filter-date-to')?.value || '';
+
   // 1. Process Reports (سجلات العمل)
-  const rows = (STATE.reports || []).filter(r => String(r['العميل']) === String(clientName));
+  let rows = (STATE.reports || []).filter(r => String(r['العميل']) === String(clientName));
+  if (dateFrom) {
+    rows = rows.filter(r => r['التاريخ'] && r['التاريخ'] >= dateFrom);
+  }
+  if (dateTo) {
+    rows = rows.filter(r => r['التاريخ'] && r['التاريخ'] <= dateTo);
+  }
+
   const teamMap = {};
   STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
 
   if (rows.length === 0) {
-    document.getElementById('cli-details-hours').textContent = '0';
+    document.getElementById('cli-details-hours').textContent = '0:00';
     document.getElementById('cli-details-teams').textContent = '0';
     document.getElementById('cli-details-emps').textContent = '0';
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text3);">لا توجد ساعات عمل مسجلة لهذا العميل بعد</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text3);">لا توجد ساعات عمل مسجلة لهذا العميل في النطاق الزمني المحدد</td></tr>`;
   } else {
     let totalMinutes = 0;
     const uniqueTeams = new Set();
@@ -4671,7 +4726,9 @@ function openClientDetailsModal(clientName) {
       if (row.emp_id) uniqueEmps.add(row.emp_id);
     });
 
-    document.getElementById('cli-details-hours').textContent = (totalMinutes / 60).toFixed(1);
+    const totalH = Math.floor(totalMinutes / 60);
+    const totalM = totalMinutes % 60;
+    document.getElementById('cli-details-hours').textContent = `${totalH}:${String(totalM).padStart(2, '0')}`;
     document.getElementById('cli-details-teams').textContent = uniqueTeams.size;
     document.getElementById('cli-details-emps').textContent = uniqueEmps.size;
 
@@ -4688,7 +4745,13 @@ function openClientDetailsModal(clientName) {
   }
 
   // 2. Process Visits CRM (سجل ومتابعة الزيارات)
-  const clientVisits = (STATE.visits || []).filter(v => String(v['العميل']) === String(clientName));
+  let clientVisits = (STATE.visits || []).filter(v => String(v['العميل']) === String(clientName));
+  if (dateFrom) {
+    clientVisits = clientVisits.filter(v => v['تاريخ الزيارة'] && v['تاريخ الزيارة'] >= dateFrom);
+  }
+  if (dateTo) {
+    clientVisits = clientVisits.filter(v => v['تاريخ الزيارة'] && v['تاريخ الزيارة'] <= dateTo);
+  }
   const vTbody = document.getElementById('cli-details-visits-tbody');
   
   let completed = 0;
