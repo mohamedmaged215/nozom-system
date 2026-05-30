@@ -1321,8 +1321,8 @@ tr.row-has-note td:first-child {
     ═══════════════════════════════════════════════ -->
     <div class="panel" id="panel-visits">
       <!-- Filters and Add Button -->
-      <div class="filter-bar" style="margin-bottom:1.25rem; display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap;">
-        <div style="display:flex; gap:10px; flex-wrap:wrap; flex:1;">
+      <div class="filter-bar">
+        <div class="filter-row">
           <div class="filter-group" id="visits-team-wrap" style="min-width:140px;">
             <label>التيم</label>
             <select id="visits-filter-team" style="font-size:12px; padding:6px 10px;" onchange="populateEmpFilter('visits-filter-emp', 'visits-filter-team'); filterVisitsList()">
@@ -1345,7 +1345,7 @@ tr.row-has-note td:first-child {
               <option value="ملغية">ملغية</option>
             </select>
           </div>
-          <div style="display:flex; gap:10px;">
+          <div class="filter-row-dates">
             <div class="filter-group" style="min-width:115px;">
               <label>التاريخ من</label>
               <input type="date" id="visits-filter-date-from" style="font-size:12px; padding:5px 10px; height:32px; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); color:var(--text);" onchange="filterVisitsList()">
@@ -1360,7 +1360,7 @@ tr.row-has-note td:first-child {
             <input type="text" id="visits-search" placeholder="البحث عن العميل..." oninput="filterVisitsList()" style="font-size:12px; padding:6px 12px; height:32px;">
           </div>
         </div>
-        <div style="display:flex; gap:10px; align-items:center;">
+        <div class="filter-row-buttons">
           <!-- View Toggle Switch -->
           <div style="display:flex; background:var(--bg4); border:1px solid var(--border); border-radius:var(--radius-s); padding:2px;">
             <button class="btn btn-secondary btn-sm" id="btn-view-cards" onclick="toggleVisitsView('cards')" style="border:none; background:var(--accent-s2); color:var(--accent-l); padding:5px 10px; font-size:12px; border-radius:6px;">كروت</button>
