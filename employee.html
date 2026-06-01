@@ -925,7 +925,8 @@ function collectData(){
       from:`${fh}:${fm} ${fp==='AM'?'ص':'م'}`,
       to:`${th}:${tm} ${tp==='AM'?'ص':'م'}`,
       dur:pill&&!pill.classList.contains('empty')?pill.textContent:'0:00',
-      desc:document.getElementById(`desc-${id}`)?.value.trim()||''
+      desc:document.getElementById(`desc-${id}`)?.value.trim()||'',
+      source: completedTasksMap[id] ? 'إسناد' : 'ذاتي'
     });
     // لو كانت المهمة تابعة لتكليف مسند، نضيف معرف التكليف المكتمل
     if (completedTasksMap[id]) {
@@ -1019,6 +1020,7 @@ async function submitReport(appendOverride){
       'إلى': r.to,
       'المدة': r.dur,
       'وصف المهمة': r.desc,
+      'مصدر المهمة': r.source || 'ذاتي',
       'وقت الإرسال': new Date().toISOString()
     });
   });
@@ -1482,6 +1484,7 @@ async function submitSupTaskCompletion() {
     'إلى': '',
     'المدة': '0:00',
     'وصف المهمة': desc || "تم إتمام التكليف المسند بنجاح.",
+    'مصدر المهمة': 'إسناد',
     'وقت الإرسال': new Date().toISOString()
   });
 
@@ -1508,7 +1511,8 @@ async function submitSupTaskCompletion() {
         from: "",
         to: "",
         dur: "0:00",
-        desc: desc || "تم إتمام التكليف المسند بنجاح."
+        desc: desc || "تم إتمام التكليف المسند بنجاح.",
+        source: "إسناد"
       }],
       completedTaskIds: [activeSupTaskId]
     };
@@ -1573,6 +1577,7 @@ async function submitSupManualTask() {
     'إلى': '',
     'المدة': '0:00',
     'وصف المهمة': desc || "تم إنجاز المهمة للعميل بنجاح.",
+    'مصدر المهمة': 'ذاتي',
     'وقت الإرسال': new Date().toISOString()
   });
 
@@ -1595,7 +1600,8 @@ async function submitSupManualTask() {
         from: "",
         to: "",
         dur: "0:00",
-        desc: desc || "تم إنجاز المهمة للعميل بنجاح."
+        desc: desc || "تم إنجاز المهمة للعميل بنجاح.",
+        source: "ذاتي"
       }],
       completedTaskIds: []
     };
