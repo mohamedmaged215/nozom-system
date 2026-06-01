@@ -2450,11 +2450,23 @@ async function initDashboard() {
 // POPULATE FILTERS
 // ══════════════════════════════════════════════════════
 function populateFilters() {
+  // حفظ القيم المحددة حالياً لتفادي فقدانها عند التحديث التلقائي
+  const savedValues = {};
+  const teamSelectors = ['db-team','rep-team','att-team','links-filter','emp-filter-team','new-emp-team','new-client-team','clients-filter-team','visits-filter-team','visit-form-team'];
+  teamSelectors.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) savedValues[id] = el.value;
+  });
+  const empSelectors = ['rep-emp', 'att-emp', 'visits-filter-emp'];
+  empSelectors.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) savedValues[id] = el.value;
+  });
+
   const teams = STATE.role === 'supervisor'
     ? STATE.teams.filter(t => t.id === STATE.teamId)
     : STATE.teams;
 
-  const teamSelectors = ['db-team','rep-team','att-team','links-filter','emp-filter-team','new-emp-team','new-client-team','clients-filter-team','visits-filter-team','visit-form-team'];
   teamSelectors.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -2470,12 +2482,13 @@ function populateFilters() {
       el.innerHTML += `<option value="${t.id}">${t['اسم التيم']}</option>`;
     });
     if (STATE.role === 'supervisor') el.value = STATE.teamId;
+    else if (savedValues[id] !== undefined) el.value = savedValues[id];
   });
 
-  // Employees in rep filter
-  populateEmpFilter('rep-emp', 'rep-team');
-  populateEmpFilter('att-emp', 'att-team');
-  populateEmpFilter('visits-filter-emp', 'visits-filter-team');
+  // Employees in rep filter (مع استعادة القيمة المحفوظة)
+  populateEmpFilter('rep-emp', 'rep-team', savedValues['rep-emp']);
+  populateEmpFilter('att-emp', 'att-team', savedValues['att-emp']);
+  populateEmpFilter('visits-filter-emp', 'visits-filter-team', savedValues['visits-filter-emp']);
 
   // Populate client select for Dashboard Client Explorer
   const clientExplorerDl = document.getElementById('db-client-explorer-dl');
@@ -2518,7 +2531,7 @@ function populateFilters() {
   }
 }
 
-function populateEmpFilter(empSelId, teamSelId) {
+function populateEmpFilter(empSelId, teamSelId, savedVal) {
   const teamSel = document.getElementById(teamSelId);
   const empSel  = document.getElementById(empSelId);
   if (!empSel) return;
@@ -2530,6 +2543,10 @@ function populateEmpFilter(empSelId, teamSelId) {
   if (teamId) emps = emps.filter(e => e.team_id === teamId);
   empSel.innerHTML = '<option value="">الكل</option>';
   emps.forEach(e => { empSel.innerHTML += `<option value="${e.id}">${e['الاسم']}</option>`; });
+  
+  if (savedVal !== undefined && savedVal !== '') {
+    empSel.value = savedVal;
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -2904,11 +2921,36 @@ function exportReports() {
     });
 
     let lastEmp = null;
+    let empMins = 0;
+
     sorted.forEach(r => {
-      // سطر فاصل بين كل موظف وتاني
-      if (lastEmp !== null && r['اسم الموظف'] !== lastEmp) {
-        wsData.push([]); 
+      const dur = r['المدة'] || '';
+      let currentMins = 0;
+      if (dur.includes(':')) {
+        const parts = dur.split(':').map(Number);
+        currentMins = (parts[0] || 0) * 60 + (parts[1] || 0);
       }
+
+      if (lastEmp !== null && r['اسم الموظف'] !== lastEmp) {
+        const empH = Math.floor(empMins / 60);
+        const empM = empMins % 60;
+        wsData.push([
+          `إجمالي ${lastEmp}`,
+          '',
+          '',
+          '',
+          '',
+          '',
+          'إجمالي ساعات الموظف:',
+          `${empH}:${String(empM).padStart(2, '0')}`,
+          '',
+          '',
+          ''
+        ]);
+        wsData.push([]); // سطر فارغ فاصل
+        empMins = 0;
+      }
+
       wsData.push([
         r['اسم الموظف']||'',
         r['التاريخ']||'',
@@ -2922,10 +2964,30 @@ function exportReports() {
         r['التقييم'] ? `${r['التقييم']}/5` : '',
         r['ملاحظات المشرف']||''
       ]);
+      
+      empMins += currentMins;
       lastEmp = r['اسم الموظف'];
     });
 
-    // إجمالي الساعات
+    if (lastEmp !== null) {
+      const empH = Math.floor(empMins / 60);
+      const empM = empMins % 60;
+      wsData.push([
+        `إجمالي ${lastEmp}`,
+        '',
+        '',
+        '',
+        '',
+        '',
+        'إجمالي ساعات الموظف:',
+        `${empH}:${String(empM).padStart(2, '0')}`,
+        '',
+        '',
+        ''
+      ]);
+    }
+
+    // إجمالي الساعات الكلي للتيم
     let totalMins = 0;
     sorted.forEach(r => {
       const dur = r['المدة'] || '';
@@ -2937,7 +2999,7 @@ function exportReports() {
     const totalH = Math.floor(totalMins/60);
     const totalM = totalMins % 60;
     wsData.push([]);
-    wsData.push(['', '', '', '', '', '', '', 'الإجمالي:', `${totalH}:${String(totalM).padStart(2,'0')}`]);
+    wsData.push(['', '', '', '', '', '', 'إجمالي التيم الكلي:', `${totalH}:${String(totalM).padStart(2,'0')}`]);
 
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
