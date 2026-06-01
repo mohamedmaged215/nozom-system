@@ -3819,8 +3819,27 @@ async function refreshAll() {
   document.getElementById('loading-overlay').style.display = 'flex';
   await refreshData();
   await loadDashboard();
+  
+  // تحديث التبويب النشط حالياً تلقائياً بلحظتها
+  const activePanel = document.querySelector('.panel.active')?.id;
+  if (activePanel === 'panel-reports') {
+    loadReports();
+  } else if (activePanel === 'panel-attendance') {
+    loadAttendance();
+  } else if (activePanel === 'panel-visits') {
+    filterVisitsList();
+  } else if (activePanel === 'panel-tasks') {
+    loadAssignedTasksList();
+  } else if (activePanel === 'panel-employees') {
+    renderEmployeesList();
+  } else if (activePanel === 'panel-clients') {
+    renderClientsList();
+  } else if (activePanel === 'panel-teams') {
+    renderTeams();
+  }
+
   document.getElementById('loading-overlay').style.display = 'none';
-  showToast('تم التحديث', 'success');
+  showToast('تم التحديث بنجاح', 'success');
 }
 
 function exportExcel() {
