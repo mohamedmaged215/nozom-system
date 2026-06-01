@@ -959,7 +959,25 @@ async function submitReport(appendOverride){
   const data=collectData();
   if(!data.date){showToast('حدد تاريخ التقرير','error');return;}
   if(!data.rows.length){showToast('أضف مهمة واحدة على الأقل','error');return;}
-  if(!data.rows[0].client){showToast('أدخل اسم العميل للمهمة الأولى','error');return;}
+  // التأكد من إدخال اسم العميل والوقت لكل مهمة في التقرير
+  for (let i = 0; i < data.rows.length; i++) {
+    const r = data.rows[i];
+    if (!r.client || !r.client.trim()) {
+      showToast(`يرجى تحديد العميل للمهمة رقم ${i + 1}`, 'error');
+      return;
+    }
+    
+    // فحص وقت المهمة (يجب أن يكون 5 دقائق على الأقل)
+    let taskMinutes = 0;
+    if (r.dur && r.dur.includes(':')) {
+      const parts = r.dur.split(':').map(Number);
+      taskMinutes = (parts[0] || 0) * 60 + (parts[1] || 0);
+    }
+    if (taskMinutes < 5) {
+      showToast(`المهمة رقم ${i + 1} وقتها غير صالح أو أقل من 5 دقائق. يرجى إدخال الوقت الفعلي بشكل صحيح.`, 'error');
+      return;
+    }
+  }
 
   // 1️⃣ فحص التعارض محلياً في 0 مللي ثانية
   if (appendOverride === undefined) {
