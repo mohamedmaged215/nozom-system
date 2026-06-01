@@ -1239,6 +1239,7 @@ tr.row-has-note td:first-child {
                 <th>إلى</th>
                 <th>المدة</th>
                 <th>الوصف</th>
+                <th>التقييم</th>
                 <th>ملاحظات المشرف</th>
               </tr>
             </thead>
@@ -1682,11 +1683,12 @@ tr.row-has-note td:first-child {
       </div>
     </div>
     
-    <div id="emp-perf-kpis-container" style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:1.25rem;">
+    <div id="emp-perf-kpis-container" style="display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:1.25rem;">
       <div class="kpi-card c-blue" id="emp-perf-card-hours" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">إجمالي ساعات العمل</div><div class="kpi-value c-blue" id="emp-perf-hours" style="font-size:18px;">0</div></div>
       <div class="kpi-card c-green" id="emp-perf-card-present" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">أيام الحضور</div><div class="kpi-value c-green" id="emp-perf-present" style="font-size:18px;">0</div></div>
       <div class="kpi-card c-red" id="emp-perf-card-absent" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">أيام الغياب</div><div class="kpi-value c-red" id="emp-perf-absent" style="font-size:18px;">0</div></div>
       <div class="kpi-card c-purple" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">التكليفات المنجزة</div><div class="kpi-value c-purple" id="emp-perf-tasks-done" style="font-size:18px;">0</div></div>
+      <div class="kpi-card c-yellow" id="emp-perf-card-rating" style="padding:10px; background:var(--bg4);"><div class="kpi-label" style="font-size:9px; margin-bottom:4px;">معدل التقييم العام</div><div class="kpi-value c-yellow" id="emp-perf-rating" style="font-size:18px;">—</div></div>
     </div>
 
     <!-- Tabs Header -->
@@ -1747,6 +1749,8 @@ tr.row-has-note td:first-child {
               <th>نوع المهمة</th>
               <th id="emp-perf-th-dur">المدة</th>
               <th>الوصف</th>
+              <th>التقييم</th>
+              <th>ملاحظات المشرف</th>
             </tr>
           </thead>
           <tbody id="emp-perf-reports-tbody">
@@ -1914,8 +1918,19 @@ tr.row-has-note td:first-child {
 <!-- Edit Supervisor Note Modal -->
 <div class="modal-overlay" id="modal-report-note">
   <div class="modal">
-    <div class="modal-title">📝 ملاحظة المشرف على التقرير</div>
+    <div class="modal-title">📝 ملاحظة وتقييم المشرف على التقرير</div>
     <input type="hidden" id="note-report-id">
+    <div class="modal-field" style="margin-bottom:1.25rem;">
+      <label>⭐ تقييم جودة المهمة (من 1 إلى 5)</label>
+      <select id="note-rating-input" style="width: 100%; height:38px; background: var(--bg4); border: 1px solid var(--border); border-radius: var(--radius-s); color: var(--text); padding: 0 10px; font-family: var(--sans); font-size: 13px; outline: none;">
+        <option value="">-- بدون تقييم --</option>
+        <option value="5">⭐⭐⭐⭐⭐ ممتاز (5/5)</option>
+        <option value="4">⭐⭐⭐⭐ جيد جداً (4/5)</option>
+        <option value="3">⭐⭐⭐ جيد (3/5)</option>
+        <option value="2">⭐⭐ مقبول (2/5)</option>
+        <option value="1">⭐ ضعيف (1/5)</option>
+      </select>
+    </div>
     <div class="modal-field">
       <label>الملاحظة (مثال: المهمة أخذت وقتاً طويلاً جداً أو ملاحظات على التسليم)</label>
       <textarea id="note-text-input" rows="4" style="width: 100%; background: var(--bg4); border: 1px solid var(--border); border-radius: var(--radius-s); color: var(--text); padding: 10px; font-family: var(--sans); font-size: 13px; outline: none; resize: vertical;" placeholder="اكتب ملاحظتك على التقرير هنا..."></textarea>
@@ -2795,7 +2810,7 @@ function loadReports() {
   const to     = document.getElementById('rep-to').value;
 
   const tbody = document.getElementById('rep-tbody');
-  tbody.innerHTML = `<tr><td colspan="10"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="11"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
 
   let rows = STATE.reports || [];
   if (team)  rows = rows.filter(r => String(r.team_id) === String(team));
@@ -2806,7 +2821,7 @@ function loadReports() {
   document.getElementById('rep-count').textContent = `التقارير (${rows.length})`;
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="10"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">لا توجد تقارير</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">لا توجد تقارير</div></div></td></tr>`;
     return;
   }
   const teamMap = {};
@@ -2815,8 +2830,11 @@ function loadReports() {
   tbody.innerHTML = rows.map(r => {
     const hasNoteClass = r['ملاحظات المشرف'] ? 'row-has-note' : '';
     const noteText = r['ملاحظات المشرف'] || '';
+    const ratingVal = r['التقييم'] || '';
+    let starsHtml = ratingVal ? '⭐'.repeat(parseInt(ratingVal)) + ` (${ratingVal}/5)` : '<span style="color:var(--text3);">—</span>';
+    
     const editBtn = (STATE.role === 'supervisor' || STATE.role === 'admin')
-      ? `<button class="btn btn-secondary btn-sm" onclick="openEditNoteModal('${r.id}')" style="padding:2px 6px; font-size:10px; flex-shrink: 0;" title="إضافة/تعديل ملاحظة">📝</button>`
+      ? `<button class="btn btn-secondary btn-sm" onclick="openEditNoteModal('${r.id}')" style="padding:2px 6px; font-size:10px; flex-shrink: 0;" title="إضافة/تعديل ملاحظة وتقييم">📝</button>`
       : '';
 
     return `
@@ -2830,6 +2848,7 @@ function loadReports() {
         <td>${r['إلى']||''}</td>
         <td><span style="color:var(--success);font-weight:600">${r['المدة']||''}</span></td>
         <td class="td-trunc" title="${(r['وصف المهمة']||'').replace(/"/g,'&quot;')}">${r['وصف المهمة']||''}</td>
+        <td style="font-weight: 600; color: var(--accent-l); white-space: nowrap;">${starsHtml}</td>
         <td>
           <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; min-width: 140px;">
             <span style="font-size:12px; color:var(--warning); font-weight:600; white-space: normal; word-break: break-word;">${noteText}</span>
@@ -2850,8 +2869,8 @@ function exportReports() {
   STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
 
   const wb = XLSX.utils.book_new();
-  const headers = ['اسم الموظف','التاريخ','العميل','نوع المهمة','من','إلى','المدة','وصف المهمة','ملاحظات المشرف'];
-  const colWidths = [20, 14, 28, 18, 10, 10, 10, 35, 25];
+  const headers = ['اسم الموظف','التاريخ','العميل','نوع المهمة','من','إلى','المدة','وصف المهمة','التقييم','ملاحظات المشرف'];
+  const colWidths = [20, 14, 28, 18, 10, 10, 10, 35, 12, 25];
 
   // جمع التيمات الموجودة في البيانات
   const teamIds = [...new Set(data.map(r => r.team_id))];
@@ -2868,7 +2887,7 @@ function exportReports() {
     const wsData = [];
 
     // سطر العنوان
-    wsData.push([`التيم: ${teamName}`, '', '', `الفترة: ${period}`, '', '', '', '', '']);
+    wsData.push([`التيم: ${teamName}`, '', '', `الفترة: ${period}`, '', '', '', '', '', '']);
     wsData.push([]); // فراغ
     wsData.push(headers);
 
@@ -2894,6 +2913,7 @@ function exportReports() {
         r['إلى']||'',
         r['المدة']||'',
         r['وصف المهمة']||'',
+        r['التقييم'] ? `${r['التقييم']}/5` : '',
         r['ملاحظات المشرف']||''
       ]);
       lastEmp = r['اسم الموظف'];
@@ -4104,6 +4124,7 @@ function openEmployeePerformanceModal(empId, empName, teamId) {
     document.getElementById('emp-perf-card-hours').style.display = 'none';
     document.getElementById('emp-perf-card-present').style.display = 'none';
     document.getElementById('emp-perf-card-absent').style.display = 'none';
+    document.getElementById('emp-perf-card-rating').style.display = 'none';
     document.getElementById('perf-tab-present').style.display = 'none';
     document.getElementById('perf-tab-absent').style.display = 'none';
     document.getElementById('emp-perf-kpis-container').style.gridTemplateColumns = '1fr';
@@ -4113,9 +4134,10 @@ function openEmployeePerformanceModal(empId, empName, teamId) {
     document.getElementById('emp-perf-card-hours').style.display = 'block';
     document.getElementById('emp-perf-card-present').style.display = 'block';
     document.getElementById('emp-perf-card-absent').style.display = 'block';
+    document.getElementById('emp-perf-card-rating').style.display = 'block';
     document.getElementById('perf-tab-present').style.display = 'flex';
     document.getElementById('perf-tab-absent').style.display = 'flex';
-    document.getElementById('emp-perf-kpis-container').style.gridTemplateColumns = 'repeat(4, 1fr)';
+    document.getElementById('emp-perf-kpis-container').style.gridTemplateColumns = 'repeat(5, 1fr)';
     document.getElementById('emp-perf-th-dur').style.display = '';
   }
 
@@ -4134,6 +4156,7 @@ function openEmployeePerformanceModal(empId, empName, teamId) {
   document.getElementById('emp-perf-present').textContent = '—';
   document.getElementById('emp-perf-absent').textContent = '—';
   document.getElementById('emp-perf-tasks-done').textContent = '—';
+  document.getElementById('emp-perf-rating').textContent = '—';
  
   openModal('modal-emp-performance');
   switchPerfTab('tasks'); // وضع التبويب الأول كافتراضي عند الفتح
@@ -4148,7 +4171,7 @@ function openEmployeePerformanceModal(empId, empName, teamId) {
 
   let totalMinutes = 0;
   if (empReports.length === 0) {
-    rTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text3); padding: 1.5rem 0;">لا توجد مهام مسجلة هذا الشهر</td></tr>`;
+    rTbody.innerHTML = `<tr><td colspan="${isSupervisor ? 6 : 7}" style="text-align:center; color:var(--text3); padding: 1.5rem 0;">لا توجد مهام مسجلة هذا الشهر</td></tr>`;
   } else {
     rTbody.innerHTML = empReports.map(r => {
       const dur = r['المدة'] || '';
@@ -4157,6 +4180,8 @@ function openEmployeePerformanceModal(empId, empName, teamId) {
         totalMinutes += (parts[0] || 0) * 60 + (parts[1] || 0);
       }
       const durCell = isSupervisor ? '' : `<td style="color:var(--success); font-weight:600;">${r['المدة'] || ''}</td>`;
+      const ratingVal = r['التقييم'] || '';
+      let starsHtml = ratingVal ? '⭐'.repeat(parseInt(ratingVal)) + ` (${ratingVal}/5)` : '<span style="color:var(--text3);">—</span>';
       return `
         <tr>
           <td>${r['التاريخ'] || ''}</td>
@@ -4164,6 +4189,8 @@ function openEmployeePerformanceModal(empId, empName, teamId) {
           <td>${r['نوع المهمة'] || ''}</td>
           ${durCell}
           <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(r['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${r['وصف المهمة'] || ''}</td>
+          <td style="font-weight: 600; color: var(--accent-l); white-space: nowrap;">${starsHtml}</td>
+          <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(r['ملاحظات المشرف'] || '').replace(/"/g, '&quot;')}">${r['ملاحظات المشرف'] || ''}</td>
         </tr>
       `;
     }).join('');
@@ -4172,6 +4199,17 @@ function openEmployeePerformanceModal(empId, empName, teamId) {
   const perfH = Math.floor(totalMinutes / 60);
   const perfM = totalMinutes % 60;
   document.getElementById('emp-perf-hours').textContent = `${perfH}:${String(perfM).padStart(2,'0')}`;
+
+  // حساب النسبة المئوية الإجمالية للتقييم
+  const ratedReports = empReports.filter(r => r['التقييم'] && !isNaN(r['التقييم']) && Number(r['التقييم']) > 0);
+  if (ratedReports.length > 0) {
+    const totalScore = ratedReports.reduce((s, r) => s + Number(r['التقييم']), 0);
+    const maxPossible = ratedReports.length * 5;
+    const percentage = Math.round((totalScore / maxPossible) * 100);
+    document.getElementById('emp-perf-rating').textContent = `${percentage}%`;
+  } else {
+    document.getElementById('emp-perf-rating').textContent = '—';
+  }
 
   let present = 0, absent = 0;
   const [y, m] = month.split('-').map(Number);
@@ -4513,6 +4551,7 @@ function exportSingleClientExcel() {
     'نوع المهمة': r['نوع المهمة'] || '',
     'المدة (ساعة:دقيقة)': r['المدة'] || '',
     'وصف المهمة بالتفصيل': r['وصف المهمة'] || '',
+    'التقييم': r['التقييم'] ? `${r['التقييم']}/5` : '',
     'ملاحظات المشرف': r['ملاحظات المشرف'] || ''
   }));
 
@@ -4582,6 +4621,7 @@ function exportEmployeeProfileExcel() {
     'نوع المهمة': r['نوع المهمة'] || '',
     'المدة (ساعة:دقيقة)': r['المدة'] || '',
     'تفاصيل وصف المهمة': r['وصف المهمة'] || '',
+    'التقييم': r['التقييم'] ? `${r['التقييم']}/5` : '',
     'ملاحظات المشرف': r['ملاحظات المشرف'] || ''
   }));
 
@@ -4823,20 +4863,22 @@ function openEditNoteModal(id) {
   if (!report) return;
   document.getElementById('note-report-id').value = id;
   document.getElementById('note-text-input').value = report['ملاحظات المشرف'] || '';
+  document.getElementById('note-rating-input').value = report['التقييم'] || '';
   openModal('modal-report-note');
 }
 
 async function saveReportNote() {
   const id = document.getElementById('note-report-id').value;
   const note = document.getElementById('note-text-input').value.trim();
+  const rating = document.getElementById('note-rating-input').value;
   
   document.getElementById('loading-overlay').style.display = 'flex';
   try {
-    const r = await apiPost('updateReportNote', { id, note });
+    const r = await apiPost('updateReportNote', { id, note, rating });
     document.getElementById('loading-overlay').style.display = 'none'; // إخفاء شاشة التحميل فوراً عند استلام الاستجابة
     
     if (r.ok) {
-      showToast('تم حفظ ملاحظة المشرف بنجاح!', 'success');
+      showToast('تم حفظ ملاحظة وتقييم المشرف بنجاح!', 'success');
       closeModal('modal-report-note');
       
       // تحديث البيانات محلياً في الجدول فوراً لتفادي الانتظار وتحديث الواجهة بلحظتها
@@ -4844,25 +4886,21 @@ async function saveReportNote() {
         const found = window._reportData.find(x => String(x.id) === String(id));
         if (found) {
           found['ملاحظات المشرف'] = note;
+          found['التقييم'] = rating;
           
-          // تحديث الصف المعين في الـ DOM مباشرة دون الحاجة لإعادة طلب الشبكة بالكامل!
-          // هذا يجعل التطبيق فائق السرعة واستجابة فورية!
-          const rowsInDom = document.querySelectorAll('#rep-tbody tr');
-          rowsInDom.forEach(tr => {
-            const btn = tr.querySelector(`button[onclick*="'${id}'"]`);
-            if (btn) {
-              // وجدنا الصف! نقوم بتحديث الـ class والـ noteText والحواف الذهبية فوراً
-              tr.className = note ? 'row-has-note' : '';
-              const noteSpan = tr.querySelector('td:last-child span');
-              if (noteSpan) {
-                noteSpan.textContent = note;
-              }
-            }
-          });
+          loadReports();
+        }
+      }
+      
+      if (STATE.reports) {
+        const foundState = STATE.reports.find(x => String(x.id) === String(id));
+        if (foundState) {
+          foundState['ملاحظات المشرف'] = note;
+          foundState['التقييم'] = rating;
         }
       }
     } else {
-      showToast(r.error || 'فشل حفظ الملاحظة', 'error');
+      showToast(r.error || 'فشل حفظ الملاحظة والتقييم', 'error');
     }
   } catch (e) {
     showToast('تعذر الاتصال بقاعدة البيانات', 'error');
