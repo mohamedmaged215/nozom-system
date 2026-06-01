@@ -2837,13 +2837,18 @@ function loadReports() {
       ? `<button class="btn btn-secondary btn-sm" onclick="openEditNoteModal('${r.id}')" style="padding:2px 6px; font-size:10px; flex-shrink: 0;" title="إضافة/تعديل ملاحظة وتقييم">📝</button>`
       : '';
 
+    const sourceVal = r['مصدر المهمة'] || 'ذاتي';
+    const sourceBadge = sourceVal === 'إسناد'
+      ? `<br><span style="font-size:10px; background:var(--warning-s); color:var(--warning); padding:2px 8px; border-radius:10px; font-weight:600; display:inline-block; margin-top:4px;">📋 إسناد</span>`
+      : `<br><span style="font-size:10px; background:var(--success-s); color:var(--success); padding:2px 8px; border-radius:10px; font-weight:600; display:inline-block; margin-top:4px;">✍️ ذاتي</span>`;
+
     return `
       <tr class="${hasNoteClass}">
         <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}')" title="اضغط لعرض الأداء الشهري">${r['اسم الموظف']||''}</strong></td>
         <td><span style="font-size:11px;color:var(--text3)">${teamMap[r.team_id]||r.team_id||''}</span></td>
         <td>${r['التاريخ']||''}</td>
         <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(r['العميل'])}')" title="عرض تفاصيل العميل">${r['العميل']||''}</span></td>
-        <td>${r['نوع المهمة']||''}</td>
+        <td>${r['نوع المهمة']||''}${sourceBadge}</td>
         <td>${r['من']||''}</td>
         <td>${r['إلى']||''}</td>
         <td><span style="color:var(--success);font-weight:600">${r['المدة']||''}</span></td>
@@ -2869,8 +2874,8 @@ function exportReports() {
   STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
 
   const wb = XLSX.utils.book_new();
-  const headers = ['اسم الموظف','التاريخ','العميل','نوع المهمة','من','إلى','المدة','وصف المهمة','التقييم','ملاحظات المشرف'];
-  const colWidths = [20, 14, 28, 18, 10, 10, 10, 35, 12, 25];
+  const headers = ['اسم الموظف','التاريخ','العميل','نوع المهمة','مصدر المهمة','من','إلى','المدة','وصف المهمة','التقييم','ملاحظات المشرف'];
+  const colWidths = [20, 14, 28, 18, 14, 10, 10, 10, 35, 12, 25];
 
   // جمع التيمات الموجودة في البيانات
   const teamIds = [...new Set(data.map(r => r.team_id))];
@@ -2887,7 +2892,7 @@ function exportReports() {
     const wsData = [];
 
     // سطر العنوان
-    wsData.push([`التيم: ${teamName}`, '', '', `الفترة: ${period}`, '', '', '', '', '', '']);
+    wsData.push([`التيم: ${teamName}`, '', '', `الفترة: ${period}`, '', '', '', '', '', '', '']);
     wsData.push([]); // فراغ
     wsData.push(headers);
 
@@ -2909,6 +2914,7 @@ function exportReports() {
         r['التاريخ']||'',
         r['العميل']||'',
         r['نوع المهمة']||'',
+        r['مصدر المهمة']||'ذاتي',
         r['من']||'',
         r['إلى']||'',
         r['المدة']||'',
@@ -2931,7 +2937,7 @@ function exportReports() {
     const totalH = Math.floor(totalMins/60);
     const totalM = totalMins % 60;
     wsData.push([]);
-    wsData.push(['', '', '', '', '', '', 'الإجمالي:', `${totalH}:${String(totalM).padStart(2,'0')}`]);
+    wsData.push(['', '', '', '', '', '', '', 'الإجمالي:', `${totalH}:${String(totalM).padStart(2,'0')}`]);
 
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
@@ -2948,6 +2954,70 @@ function exportReports() {
     const sheetName = teamName.slice(0, 30);
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
   });
+
+  // ── إضافة ورقة تقييم الموظفين ──
+  const isSupervisorMode = (STATE.role === 'supervisor') || (teamIds.length === 1);
+  const evalHeaders = isSupervisorMode
+    ? ['اسم الموظف', 'نسبة التقييم العام']
+    : ['اسم الموظف', 'اسم التيم', 'نسبة التقييم العام'];
+
+  const evalWsData = [];
+  evalWsData.push([`تقييم أداء الموظفين`, '', '']);
+  evalWsData.push([]); // سطر فارغ
+  evalWsData.push(evalHeaders);
+
+  const uniqueEmps = {};
+  data.forEach(r => {
+    if (!r.emp_id) return;
+    if (!uniqueEmps[r.emp_id]) {
+      uniqueEmps[r.emp_id] = {
+        id: r.emp_id,
+        name: r['اسم الموظف'] || '',
+        teamId: r.team_id,
+        ratings: []
+      };
+    }
+    const val = Number(r['التقييم']);
+    if (r['التقييم'] && !isNaN(val) && val > 0) {
+      uniqueEmps[r.emp_id].ratings.push(val);
+    }
+  });
+
+  const evalRows = Object.values(uniqueEmps).map(emp => {
+    let percentageStr = '—';
+    if (emp.ratings.length > 0) {
+      const totalScore = emp.ratings.reduce((a, b) => a + b, 0);
+      const maxPossible = emp.ratings.length * 5;
+      percentageStr = `${Math.round((totalScore / maxPossible) * 100)}%`;
+    }
+    return {
+      name: emp.name,
+      teamName: teamMap[emp.teamId] || emp.teamId || 'غير محدد',
+      percentage: percentageStr
+    };
+  });
+
+  // فرز الموظفين بالاسم أبجدياً
+  evalRows.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+
+  evalRows.forEach(row => {
+    if (isSupervisorMode) {
+      evalWsData.push([row.name, row.percentage]);
+    } else {
+      evalWsData.push([row.name, row.teamName, row.percentage]);
+    }
+  });
+
+  const evalWs = XLSX.utils.aoa_to_sheet(evalWsData);
+  evalWs['!cols'] = isSupervisorMode
+    ? [{ wch: 25 }, { wch: 20 }]
+    : [{ wch: 25 }, { wch: 20 }, { wch: 20 }];
+  
+  evalWs['!merges'] = [
+    { s:{r:0,c:0}, e:{r:0,c: isSupervisorMode ? 1 : 2} }
+  ];
+
+  XLSX.utils.book_append_sheet(wb, evalWs, 'تقييم الموظفين');
 
   // لو كل البيانات من تيم واحد — ملف بسيط بدون تعدد sheets
   const dateStr = new Date().toISOString().slice(0,10);
@@ -4182,11 +4252,17 @@ function openEmployeePerformanceModal(empId, empName, teamId) {
       const durCell = isSupervisor ? '' : `<td style="color:var(--success); font-weight:600;">${r['المدة'] || ''}</td>`;
       const ratingVal = r['التقييم'] || '';
       let starsHtml = ratingVal ? '⭐'.repeat(parseInt(ratingVal)) + ` (${ratingVal}/5)` : '<span style="color:var(--text3);">—</span>';
+
+      const sourceVal = r['مصدر المهمة'] || 'ذاتي';
+      const sourceBadge = sourceVal === 'إسناد'
+        ? `<br><span style="font-size:10px; background:var(--warning-s); color:var(--warning); padding:2px 8px; border-radius:10px; font-weight:600; display:inline-block; margin-top:4px;">📋 إسناد</span>`
+        : `<br><span style="font-size:10px; background:var(--success-s); color:var(--success); padding:2px 8px; border-radius:10px; font-weight:600; display:inline-block; margin-top:4px;">✍️ ذاتي</span>`;
+
       return `
         <tr>
           <td>${r['التاريخ'] || ''}</td>
           <td><strong>${r['العميل'] || ''}</strong></td>
-          <td>${r['نوع المهمة'] || ''}</td>
+          <td>${r['نوع المهمة'] || ''}${sourceBadge}</td>
           ${durCell}
           <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(r['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${r['وصف المهمة'] || ''}</td>
           <td style="font-weight: 600; color: var(--accent-l); white-space: nowrap;">${starsHtml}</td>
@@ -4549,6 +4625,7 @@ function exportSingleClientExcel() {
     'الموظف المسؤول': r['اسم الموظف'] || '',
     'الفريق المشارك': teamMap[r.team_id] || r.team_id || '',
     'نوع المهمة': r['نوع المهمة'] || '',
+    'مصدر المهمة': r['مصدر المهمة'] || 'ذاتي',
     'المدة (ساعة:دقيقة)': r['المدة'] || '',
     'وصف المهمة بالتفصيل': r['وصف المهمة'] || '',
     'التقييم': r['التقييم'] ? `${r['التقييم']}/5` : '',
@@ -4619,6 +4696,7 @@ function exportEmployeeProfileExcel() {
     'التاريخ': r['التاريخ'] || '',
     'اسم العميل': r['العميل'] || '',
     'نوع المهمة': r['نوع المهمة'] || '',
+    'مصدر المهمة': r['مصدر المهمة'] || 'ذاتي',
     'المدة (ساعة:دقيقة)': r['المدة'] || '',
     'تفاصيل وصف المهمة': r['وصف المهمة'] || '',
     'التقييم': r['التقييم'] ? `${r['التقييم']}/5` : '',
