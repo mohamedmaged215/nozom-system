@@ -2854,18 +2854,13 @@ function loadReports() {
       ? `<button class="btn btn-secondary btn-sm" onclick="openEditNoteModal('${r.id}')" style="padding:2px 6px; font-size:10px; flex-shrink: 0;" title="إضافة/تعديل ملاحظة وتقييم">📝</button>`
       : '';
 
-    const sourceVal = r['مصدر المهمة'] || 'ذاتي';
-    const sourceBadge = sourceVal === 'إسناد'
-      ? `<br><span style="font-size:10px; background:var(--warning-s); color:var(--warning); padding:2px 8px; border-radius:10px; font-weight:600; display:inline-block; margin-top:4px;">📋 إسناد</span>`
-      : `<br><span style="font-size:10px; background:var(--success-s); color:var(--success); padding:2px 8px; border-radius:10px; font-weight:600; display:inline-block; margin-top:4px;">✍️ ذاتي</span>`;
-
     return `
       <tr class="${hasNoteClass}">
         <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}')" title="اضغط لعرض الأداء الشهري">${r['اسم الموظف']||''}</strong></td>
         <td><span style="font-size:11px;color:var(--text3)">${teamMap[r.team_id]||r.team_id||''}</span></td>
         <td>${r['التاريخ']||''}</td>
         <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(r['العميل'])}')" title="عرض تفاصيل العميل">${r['العميل']||''}</span></td>
-        <td>${r['نوع المهمة']||''}${sourceBadge}</td>
+        <td>${r['نوع المهمة']||''}</td>
         <td>${r['من']||''}</td>
         <td>${r['إلى']||''}</td>
         <td><span style="color:var(--success);font-weight:600">${r['المدة']||''}</span></td>
@@ -4334,16 +4329,11 @@ function openEmployeePerformanceModal(empId, empName, teamId) {
       const ratingVal = r['التقييم'] || '';
       let starsHtml = ratingVal ? '⭐'.repeat(parseInt(ratingVal)) + ` (${ratingVal}/5)` : '<span style="color:var(--text3);">—</span>';
 
-      const sourceVal = r['مصدر المهمة'] || 'ذاتي';
-      const sourceBadge = sourceVal === 'إسناد'
-        ? `<br><span style="font-size:10px; background:var(--warning-s); color:var(--warning); padding:2px 8px; border-radius:10px; font-weight:600; display:inline-block; margin-top:4px;">📋 إسناد</span>`
-        : `<br><span style="font-size:10px; background:var(--success-s); color:var(--success); padding:2px 8px; border-radius:10px; font-weight:600; display:inline-block; margin-top:4px;">✍️ ذاتي</span>`;
-
       return `
         <tr>
           <td>${r['التاريخ'] || ''}</td>
           <td><strong>${r['العميل'] || ''}</strong></td>
-          <td>${r['نوع المهمة'] || ''}${sourceBadge}</td>
+          <td>${r['نوع المهمة'] || ''}</td>
           ${durCell}
           <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(r['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${r['وصف المهمة'] || ''}</td>
           <td style="font-weight: 600; color: var(--accent-l); white-space: nowrap;">${starsHtml}</td>
