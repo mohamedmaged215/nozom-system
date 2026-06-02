@@ -289,7 +289,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
   <div id="recurring-tasks-section" style="margin-bottom: 1.5rem;">
     <div class="section-header" style="margin-bottom: 0.75rem;">
       <span class="section-title" style="color:var(--accent); display:flex; align-items:center; gap:6px; font-size: 12.5px; font-weight:700;">
-        🔄 قائمة المهام المطلوبة (المجدولة دورياً)
+        قائمة المهام المطلوبة
       </span>
     </div>
     <div class="card" style="padding:1.25rem; border:1px solid rgba(139, 92, 246, 0.15); background:var(--bg3);">
@@ -1221,9 +1221,24 @@ function renderAssignedTasks(tasks) {
 }
 
 function importAssignedTask(taskId, client, tasktype, desc) {
-  // إضافة بطاقة مهمة جديدة في التقرير
-  addTask();
-  const id = taskCounter;
+  let id = taskCounter;
+  let reused = false;
+  
+  if (taskIds.length === 1) {
+    const firstId = taskIds[0];
+    const cVal = document.getElementById(`client-${firstId}`)?.value || '';
+    const tVal = document.getElementById(`tasktype-${firstId}`)?.value || '';
+    const dVal = document.getElementById(`desc-${firstId}`)?.value || '';
+    if (!cVal.trim() && !tVal.trim() && !dVal.trim()) {
+      id = firstId;
+      reused = true;
+    }
+  }
+
+  if (!reused) {
+    addTask();
+    id = taskCounter;
+  }
   
   // تعبئة البيانات بالقيم
   document.getElementById(`client-${id}`).value = client;
@@ -1276,7 +1291,7 @@ function initEmployeeRecurringTasks() {
 
   placeholder.style.display = 'none';
 
-  // بناء كروت الشركات ككبسولات تفاعلية
+  // بناء كروت الشركات ككبسولات تفاعلية بدون إيموجي
   cardsContainer.innerHTML = clientsWithTasks.map(clientName => {
     const taskCount = myRecTasks.filter(t => t['العميل'] === clientName).length;
     const isSelected = clientName === activeRecClient;
@@ -1286,7 +1301,7 @@ function initEmployeeRecurringTasks() {
     
     return `
       <div class="client-capsule" style="padding:8px 14px; border-radius:30px; cursor:pointer; font-size:12px; transition:all 0.25s ease; color:var(--text); ${activeBorder} display:flex; align-items:center; gap:6px;" onclick="selectRecClient(\`${escapeHtml(clientName)}\`)">
-        🏢 <span>${escapeHtml(clientName)}</span>
+        <span>${escapeHtml(clientName)}</span>
         <span style="font-size:10px; background:var(--accent-s); color:var(--accent); padding:1px 6px; border-radius:20px; font-weight:600;">${taskCount}</span>
       </div>
     `;
@@ -1304,7 +1319,7 @@ function initEmployeeRecurringTasks() {
 function selectRecClient(clientName) {
   activeRecClient = clientName;
   
-  // إعادة بناء الكروت لتحديث التحديد البصري النشط
+  // إعادة بناء الكروت لتحديث التحديد البصري النشط بدون إيموجي
   const myRecTasks = (STATE.recurringTasks || []).filter(t => String(t.emp_id) === String(EMP_ID));
   const clientsWithTasks = [...new Set(myRecTasks.map(t => t['العميل']))].filter(Boolean);
   const cardsContainer = document.getElementById('rec-client-cards-container');
@@ -1318,7 +1333,7 @@ function selectRecClient(clientName) {
       
       return `
         <div class="client-capsule" style="padding:8px 14px; border-radius:30px; cursor:pointer; font-size:12px; transition:all 0.25s ease; color:var(--text); ${activeBorder} display:flex; align-items:center; gap:6px;" onclick="selectRecClient(\`${escapeHtml(c)}\`)">
-          🏢 <span>${escapeHtml(c)}</span>
+          <span>${escapeHtml(c)}</span>
           <span style="font-size:10px; background:var(--accent-s); color:var(--accent); padding:1px 6px; border-radius:20px; font-weight:600;">${taskCount}</span>
         </div>
       `;
@@ -1330,7 +1345,7 @@ function selectRecClient(clientName) {
   if (detailPanel) detailPanel.style.display = 'block';
 
   const titleEl = document.getElementById('active-rec-client-title');
-  if (titleEl) titleEl.textContent = `📋 مهام شركة / عميل: ${clientName}`;
+  if (titleEl) titleEl.textContent = `مهام شركة / عميل: ${clientName}`;
 
   const weekBadge = document.getElementById('active-week-badge');
   if (weekBadge) weekBadge.textContent = `الأسبوع الحالي: ${getCurrentWeekOfMonth()}`;
@@ -1341,10 +1356,32 @@ function selectRecClient(clientName) {
 
 function switchRecTab(tabName) {
   activeRecTab = tabName;
-  ['daily', 'weekly', 'monthly'].forEach(t => {
-    const btn = document.getElementById(`rec-tab-${t}-btn`);
+  renderEmployeeRecurringTasks();
+}
+
+function renderEmployeeRecurringTasks() {
+  const container = document.getElementById('rec-tasks-sub-container');
+  if (!container || !activeRecClient) return;
+
+  const myRecTasks = (STATE.recurringTasks || []).filter(t => String(t.emp_id) === String(EMP_ID) && t['العميل'] === activeRecClient);
+  const currentWeek = getCurrentWeekOfMonth();
+
+  // حساب العدادات لكل تصنيف وتحديث التبويبات ديناميكياً
+  const dailyCount = myRecTasks.filter(t => t['التكرار'] === 'يومي').length;
+  const weeklyCount = myRecTasks.filter(t => t['التكرار'] === 'أسبوعي').length;
+  const monthlyCount = myRecTasks.filter(t => t['التكرار'] === 'شهري').length;
+
+  const tabsConfig = [
+    { key: 'daily', label: 'يومية', count: dailyCount },
+    { key: 'weekly', label: 'أسبوعية', count: weeklyCount },
+    { key: 'monthly', label: 'شهرية', count: monthlyCount }
+  ];
+
+  tabsConfig.forEach(t => {
+    const btn = document.getElementById(`rec-tab-${t.key}-btn`);
     if (btn) {
-      if (t === tabName) {
+      btn.textContent = `${t.label} (${t.count})`;
+      if (t.key === activeRecTab) {
         btn.className = 'btn btn-sm btn-primary';
         btn.style.background = '';
         btn.style.color = '';
@@ -1357,16 +1394,6 @@ function switchRecTab(tabName) {
       }
     }
   });
-
-  renderEmployeeRecurringTasks();
-}
-
-function renderEmployeeRecurringTasks() {
-  const container = document.getElementById('rec-tasks-sub-container');
-  if (!container || !activeRecClient) return;
-
-  const myRecTasks = (STATE.recurringTasks || []).filter(t => String(t.emp_id) === String(EMP_ID) && t['العميل'] === activeRecClient);
-  const currentWeek = getCurrentWeekOfMonth();
 
   let filtered = [];
   if (activeRecTab === 'daily') {
@@ -1405,7 +1432,7 @@ function renderEmployeeRecurringTasks() {
           ${escapeHtml(t['وصف المهمة']) || 'مهمة دورية ثابتة'}
         </div>
         <button class="btn btn-primary btn-sm" style="width:100%; justify-content:center; padding:6px; font-size:11.5px; background:var(--accent-s); color:var(--accent); border:1px solid rgba(139,92,246,0.15);" onclick="importRecurringTask(\`${escapeHtml(t['العميل'])}\`, \`${escapeHtml(t['نوع المهمة'])}\`, \`${escapeHtml(t['وصف المهمة'])}\`)">
-          ➕ إضافة لتقريري اليومي
+          إضافة لتقريري اليومي
         </button>
       </div>
     `;
@@ -1413,9 +1440,24 @@ function renderEmployeeRecurringTasks() {
 }
 
 function importRecurringTask(client, tasktype, desc) {
-  // إضافة بطاقة مهمة جديدة في التقرير اليومي
-  addTask();
-  const id = taskCounter;
+  let id = taskCounter;
+  let reused = false;
+  
+  if (taskIds.length === 1) {
+    const firstId = taskIds[0];
+    const cVal = document.getElementById(`client-${firstId}`)?.value || '';
+    const tVal = document.getElementById(`tasktype-${firstId}`)?.value || '';
+    const dVal = document.getElementById(`desc-${firstId}`)?.value || '';
+    if (!cVal.trim() && !tVal.trim() && !dVal.trim()) {
+      id = firstId;
+      reused = true;
+    }
+  }
+
+  if (!reused) {
+    addTask();
+    id = taskCounter;
+  }
 
   // تعبئة المدخلات فوراً وبشكل صامت
   const clientInput = document.getElementById(`client-${id}`);
