@@ -285,6 +285,44 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
     </div>
   </div>
 
+  <!-- قسم المهام الدورية المطلوبة (قوالب التكليفات الوراثية) -->
+  <div id="recurring-tasks-section" style="margin-bottom: 1.5rem;">
+    <div class="section-header" style="margin-bottom: 0.75rem;">
+      <span class="section-title" style="color:var(--accent); display:flex; align-items:center; gap:6px; font-size: 12.5px; font-weight:700;">
+        🔄 قائمة المهام المطلوبة (المجدولة دورياً)
+      </span>
+    </div>
+    <div class="card" style="padding:1.25rem; border:1px solid rgba(139, 92, 246, 0.15); background:var(--bg3);">
+      
+      <!-- حاوية كروت الشركات التفاعلية التي تحتوي على مهام فقط -->
+      <div id="rec-client-cards-container" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:0;">
+        <!-- سيتم ملؤه ديناميكياً بكبسولات الشركات التفاعلية -->
+      </div>
+      
+      <!-- لوحة التفاصيل والمهام المنسدلة للشركة النشطة -->
+      <div id="rec-tasks-detail-panel" style="display:none; border-top:1px solid var(--border-color); padding-top:15px; margin-top:15px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h4 id="active-rec-client-title" style="margin:0; font-size:13px; color:var(--accent-l); font-weight:700;">مهام شركة</h4>
+          <span id="active-week-badge" style="font-size:10px; background:var(--warning-s); color:var(--warning); padding:2px 8px; border-radius:10px; font-weight:600;">الأسبوع الحالي: ...</span>
+        </div>
+        
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;" id="rec-task-tabs">
+          <button id="rec-tab-daily-btn" class="btn btn-sm" style="flex:1; justify-content:center; font-size:11px;" onclick="switchRecTab('daily')">يومية</button>
+          <button id="rec-tab-weekly-btn" class="btn btn-sm" style="flex:1; justify-content:center; font-size:11px;" onclick="switchRecTab('weekly')">أسبوعية</button>
+          <button id="rec-tab-monthly-btn" class="btn btn-sm" style="flex:1; justify-content:center; font-size:11px;" onclick="switchRecTab('monthly')">شهرية</button>
+        </div>
+        
+        <div id="rec-tasks-sub-container" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px;">
+          <!-- سيتم عرض المهام حسب التبويب النشط -->
+        </div>
+      </div>
+      
+      <div id="rec-tasks-placeholder" style="text-align:center; padding:1rem; color:var(--text3); font-size:12.5px; margin-bottom:0;">
+        لا توجد مهام دورية مجدولة لك حالياً على أي شركة. سيقوم المشرف ببنائها لك وتظهر هنا تلقائياً!
+      </div>
+    </div>
+  </div>
+
   <div class="stats-row">
     <div class="stat-card"><div class="stat-label">عدد المهام</div><div class="stat-value accent" id="stat-tasks">0</div></div>
     <div class="stat-card"><div class="stat-label">إجمالي الوقت</div><div class="stat-value success" id="stat-time">0:00</div></div>
@@ -495,12 +533,13 @@ async function init(){
 
   // 1️⃣ جلب الفرق والموظفين والعملاء والتقارير والمهام بالتوازي للتحميل الفوري
   try {
-    const [tr, er, clR, repR, tskR] = await Promise.all([
+    const [tr, er, clR, repR, tskR, recR] = await Promise.all([
       apiFetch({action:'getTeams'}),
       apiFetch({action:'getEmployees'}),
       apiFetch({action:'getClients'}),
       apiFetch({action:'getReports', empName: EMP_NAME}),
-      apiFetch({action:'getAssignedTasks'})
+      apiFetch({action:'getAssignedTasks'}),
+      apiFetch({action:'getRecurringTasks'})
     ]);
 
     if (tr.ok && tr.teams) {
@@ -515,6 +554,7 @@ async function init(){
     STATE.clients = clR.ok ? clR : { ok: false, clients: [] };
     STATE.reports = repR.ok ? (repR.rows || []) : [];
     STATE.tasks = tskR.ok ? (tskR.tasks || []) : [];
+    STATE.recurringTasks = recR.ok ? (recR.recurringTasks || []) : [];
   } catch(e) {
     console.error("Failed to load initial teams/employees:", e);
   }
@@ -658,6 +698,8 @@ async function onTeamSwitch() {
       if (actions) actions.style.display = 'none';
       const assignedSection = document.getElementById('assigned-tasks-section');
       if (assignedSection) assignedSection.style.display = 'none';
+      const recurringSection = document.getElementById('recurring-tasks-section');
+      if (recurringSection) recurringSection.style.display = 'none';
 
       // إظهار لوحة المشرفين
       document.getElementById('supervisor-board').style.display = 'block';
@@ -683,6 +725,9 @@ async function onTeamSwitch() {
       const actions = document.querySelector('.actions');
       if (actions) actions.style.display = 'grid';
       document.getElementById('supervisor-board').style.display = 'none';
+      
+      const recurringSection = document.getElementById('recurring-tasks-section');
+      if (recurringSection) recurringSection.style.display = 'block';
 
       // تصفية التكليفات المسندة للموظف العادي محلياً فوراً
       const trTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'معلقة');
@@ -691,6 +736,10 @@ async function onTeamSwitch() {
       } else {
         document.getElementById('assigned-tasks-section').style.display = 'none';
       }
+
+      // تهيئة المهام الدورية التفاعلية للموظف
+      initEmployeeRecurringTasks();
+
       quietRefreshEmployeeTasks(); // تحديث صامت خلفي
       addTask();
     }
@@ -1192,6 +1241,198 @@ function importAssignedTask(taskId, client, tasktype, desc) {
   showToast('تم إدراج التكليف في تقريرك بنجاح. يرجى إدخال الوقت الفعلي.', 'success');
 }
 
+// ══════════════════════════════════════════════════════
+// RECURRING TASKS HELPERS (قوالب المهام الدورية الوراثية)
+// ══════════════════════════════════════════════════════
+let activeRecClient = '';
+let activeRecTab = 'daily';
+
+function getCurrentWeekOfMonth() {
+  const day = new Date().getDate();
+  if (day <= 7) return 'الأسبوع الأول';
+  if (day <= 14) return 'الأسبوع الثاني';
+  if (day <= 21) return 'الأسبوع الثالث';
+  return 'الأسبوع الرابع';
+}
+
+function initEmployeeRecurringTasks() {
+  const cardsContainer = document.getElementById('rec-client-cards-container');
+  const placeholder = document.getElementById('rec-tasks-placeholder');
+  const detailPanel = document.getElementById('rec-tasks-detail-panel');
+  if (!cardsContainer || !placeholder || !detailPanel) return;
+
+  // فلترة المهام الدورية الخاصة بهذا الموظف فقط
+  const myRecTasks = (STATE.recurringTasks || []).filter(t => String(t.emp_id) === String(EMP_ID));
+  
+  // استخراج أسماء الشركات التي لديها مهام فقط
+  const clientsWithTasks = [...new Set(myRecTasks.map(t => t['العميل']))].filter(Boolean);
+
+  if (clientsWithTasks.length === 0) {
+    cardsContainer.innerHTML = '';
+    placeholder.style.display = 'block';
+    detailPanel.style.display = 'none';
+    return;
+  }
+
+  placeholder.style.display = 'none';
+
+  // بناء كروت الشركات ككبسولات تفاعلية
+  cardsContainer.innerHTML = clientsWithTasks.map(clientName => {
+    const taskCount = myRecTasks.filter(t => t['العميل'] === clientName).length;
+    const isSelected = clientName === activeRecClient;
+    const activeBorder = isSelected 
+      ? 'border:1.5px solid var(--accent); background:rgba(139,92,246,0.15); box-shadow: 0 0 10px rgba(139,92,246,0.3); font-weight:700;' 
+      : 'border:1px solid rgba(255,255,255,0.08); background:var(--bg-main); font-weight:500;';
+    
+    return `
+      <div class="client-capsule" style="padding:8px 14px; border-radius:30px; cursor:pointer; font-size:12px; transition:all 0.25s ease; color:var(--text); ${activeBorder} display:flex; align-items:center; gap:6px;" onclick="selectRecClient(\`${escapeHtml(clientName)}\`)">
+        🏢 <span>${escapeHtml(clientName)}</span>
+        <span style="font-size:10px; background:var(--accent-s); color:var(--accent); padding:1px 6px; border-radius:20px; font-weight:600;">${taskCount}</span>
+      </div>
+    `;
+  }).join('');
+
+  if (activeRecClient && clientsWithTasks.includes(activeRecClient)) {
+    detailPanel.style.display = 'block';
+    renderEmployeeRecurringTasks();
+  } else {
+    // اختيار أول شركة افتراضياً
+    selectRecClient(clientsWithTasks[0]);
+  }
+}
+
+function selectRecClient(clientName) {
+  activeRecClient = clientName;
+  
+  // إعادة بناء الكروت لتحديث التحديد البصري النشط
+  const myRecTasks = (STATE.recurringTasks || []).filter(t => String(t.emp_id) === String(EMP_ID));
+  const clientsWithTasks = [...new Set(myRecTasks.map(t => t['العميل']))].filter(Boolean);
+  const cardsContainer = document.getElementById('rec-client-cards-container');
+  if (cardsContainer) {
+    cardsContainer.innerHTML = clientsWithTasks.map(c => {
+      const taskCount = myRecTasks.filter(t => t['العميل'] === c).length;
+      const isSelected = c === clientName;
+      const activeBorder = isSelected 
+        ? 'border:1.5px solid var(--accent); background:rgba(139,92,246,0.15); box-shadow: 0 0 10px rgba(139,92,246,0.3); font-weight:700;' 
+        : 'border:1px solid rgba(255,255,255,0.08); background:var(--bg-main); font-weight:500;';
+      
+      return `
+        <div class="client-capsule" style="padding:8px 14px; border-radius:30px; cursor:pointer; font-size:12px; transition:all 0.25s ease; color:var(--text); ${activeBorder} display:flex; align-items:center; gap:6px;" onclick="selectRecClient(\`${escapeHtml(c)}\`)">
+          🏢 <span>${escapeHtml(c)}</span>
+          <span style="font-size:10px; background:var(--accent-s); color:var(--accent); padding:1px 6px; border-radius:20px; font-weight:600;">${taskCount}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // تفعيل القسم المفصل
+  const detailPanel = document.getElementById('rec-tasks-detail-panel');
+  if (detailPanel) detailPanel.style.display = 'block';
+
+  const titleEl = document.getElementById('active-rec-client-title');
+  if (titleEl) titleEl.textContent = `📋 مهام شركة / عميل: ${clientName}`;
+
+  const weekBadge = document.getElementById('active-week-badge');
+  if (weekBadge) weekBadge.textContent = `الأسبوع الحالي: ${getCurrentWeekOfMonth()}`;
+
+  // تصفية وعرض المهام
+  renderEmployeeRecurringTasks();
+}
+
+function switchRecTab(tabName) {
+  activeRecTab = tabName;
+  ['daily', 'weekly', 'monthly'].forEach(t => {
+    const btn = document.getElementById(`rec-tab-${t}-btn`);
+    if (btn) {
+      if (t === tabName) {
+        btn.className = 'btn btn-sm btn-primary';
+        btn.style.background = '';
+        btn.style.color = '';
+        btn.style.border = '';
+      } else {
+        btn.className = 'btn btn-sm btn-secondary';
+        btn.style.background = 'transparent';
+        btn.style.color = 'var(--text2)';
+        btn.style.border = '1px solid var(--border-color)';
+      }
+    }
+  });
+
+  renderEmployeeRecurringTasks();
+}
+
+function renderEmployeeRecurringTasks() {
+  const container = document.getElementById('rec-tasks-sub-container');
+  if (!container || !activeRecClient) return;
+
+  const myRecTasks = (STATE.recurringTasks || []).filter(t => String(t.emp_id) === String(EMP_ID) && t['العميل'] === activeRecClient);
+  const currentWeek = getCurrentWeekOfMonth();
+
+  let filtered = [];
+  if (activeRecTab === 'daily') {
+    filtered = myRecTasks.filter(t => t['التكرار'] === 'يومي');
+  } else if (activeRecTab === 'weekly') {
+    filtered = myRecTasks.filter(t => t['التكرار'] === 'أسبوعي');
+  } else {
+    filtered = myRecTasks.filter(t => t['التكرار'] === 'شهري');
+  }
+
+  if (filtered.length === 0) {
+    const typeLabel = activeRecTab === 'daily' ? 'يومية' : (activeRecTab === 'weekly' ? 'أسبوعية' : 'شهرية');
+    container.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; padding:1rem; color:var(--text3); font-size:12px;">لا توجد مهام دورية ${typeLabel} مجدولة لهذه الشركة</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(t => {
+    const isCurrentWeek = activeRecTab === 'weekly' && t['الأسبوع'] === currentWeek;
+    
+    // تمييز بصري ذهبي متوهج للأسبوع التقويمي الحالي
+    const cardStyle = isCurrentWeek
+      ? 'border:1.5px solid var(--warning); background:rgba(251,191,36,0.06); box-shadow: 0 0 12px rgba(251,191,36,0.15);'
+      : 'border:1px solid rgba(255,255,255,0.05); background:var(--bg4);';
+
+    const weekPill = t['الأسبوع']
+      ? `<span style="font-size:10px; background:${isCurrentWeek ? 'var(--warning-s)' : 'var(--border-color)'}; color:${isCurrentWeek ? 'var(--warning)' : 'var(--text3)'}; padding:2px 8px; border-radius:10px; font-weight:600; margin-left:auto;">${t['الأسبوع']}</span>`
+      : '';
+
+    return `
+      <div class="task-card" style="margin-bottom:0; padding:12px; transition:all 0.2s ease; ${cardStyle}">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:10px; background:var(--accent-s); color:var(--accent); padding:2px 8px; border-radius:10px; font-weight:600;">${t['نوع المهمة']}</span>
+          ${weekPill}
+        </div>
+        <div style="font-size:12px; color:var(--text); margin-bottom:10px; line-height:1.4; font-weight:500;">
+          ${escapeHtml(t['وصف المهمة']) || 'مهمة دورية ثابتة'}
+        </div>
+        <button class="btn btn-primary btn-sm" style="width:100%; justify-content:center; padding:6px; font-size:11.5px; background:var(--accent-s); color:var(--accent); border:1px solid rgba(139,92,246,0.15);" onclick="importRecurringTask(\`${escapeHtml(t['العميل'])}\`, \`${escapeHtml(t['نوع المهمة'])}\`, \`${escapeHtml(t['وصف المهمة'])}\`)">
+          ➕ إضافة لتقريري اليومي
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+function importRecurringTask(client, tasktype, desc) {
+  // إضافة بطاقة مهمة جديدة في التقرير اليومي
+  addTask();
+  const id = taskCounter;
+
+  // تعبئة المدخلات فوراً وبشكل صامت
+  const clientInput = document.getElementById(`client-${id}`);
+  const typeSelect = document.getElementById(`tasktype-${id}`);
+  const descInput = document.getElementById(`desc-${id}`);
+
+  if (clientInput) clientInput.value = client;
+  if (typeSelect) typeSelect.value = tasktype;
+  if (descInput) descInput.value = desc;
+
+  // تحديث الإحصائيات العامة فوراً
+  updateStats();
+  calcTotal();
+
+  showToast('تم إدراج المهمة الدورية لتقرير اليوم بنجاح! حدد الوقت الفعلي فقط.', 'success');
+}
+
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
@@ -1418,11 +1659,18 @@ async function quietRefreshSupervisorData() {
 
 async function quietRefreshEmployeeTasks() {
   try {
-    const tr = await apiFetch({ action: 'getAssignedTasks', empId: EMP_ID, status: 'معلقة' });
+    const [tr, recR] = await Promise.all([
+      apiFetch({ action: 'getAssignedTasks', empId: EMP_ID, status: 'معلقة' }),
+      apiFetch({ action: 'getRecurringTasks' })
+    ]);
     if (tr.ok && tr.tasks) {
       STATE.tasks = STATE.tasks.filter(t => String(t.emp_id) !== String(EMP_ID)).concat(tr.tasks);
       const trTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'معلقة');
       renderAssignedTasks(trTasks);
+    }
+    if (recR.ok && recR.recurringTasks) {
+      STATE.recurringTasks = recR.recurringTasks;
+      initEmployeeRecurringTasks();
     }
   } catch(e) {}
 }
