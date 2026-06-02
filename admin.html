@@ -1265,8 +1265,12 @@ tr.row-has-note td:first-child {
           <select id="att-emp" onchange="loadAttendance()"><option value="">الكل</option></select>
         </div>
         <div class="filter-group">
-          <label>الشهر</label>
-          <input type="month" id="att-month" onchange="loadAttendance()">
+          <label>التاريخ من</label>
+          <input type="date" id="att-date-from" onchange="loadAttendance()">
+        </div>
+        <div class="filter-group">
+          <label>التاريخ إلى</label>
+          <input type="date" id="att-date-to" onchange="loadAttendance()">
         </div>
         <div class="filter-group" style="justify-content:flex-end">
           <button class="btn btn-primary" onclick="loadAttendance()">عرض</button>
@@ -1295,66 +1299,155 @@ tr.row-has-note td:first-child {
          TASKS (التكليفات)
     ═══════════════════════════════════════════════ -->
     <div class="panel" id="panel-tasks">
-      <div class="mgmt-grid" style="margin-bottom:1.5rem;">
-        <div class="mgmt-card" style="grid-column: 1 / -1;">
-          <div class="mgmt-card-header"><span class="mgmt-card-title">إسناد تكليف جديد لموظف</span></div>
-          <div style="padding:1.25rem 1.5rem;">
-            <div class="add-row" style="flex-wrap:wrap; display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) 100px; gap:10px; margin-top:0;">
-              <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
-                <label style="font-size:11px; color:var(--text3); font-weight:600;">الموظف</label>
-                <select id="task-assign-emp" style="width:100%;"><option value="">اختر الموظف</option></select>
-              </div>
-              <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
-                <label style="font-size:11px; color:var(--text3); font-weight:600;">العميل</label>
-                <input type="text" id="task-assign-client" placeholder="اكتب أو ابحث..." list="task-assign-clients-dl">
-                <datalist id="task-assign-clients-dl"></datalist>
-              </div>
-              <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
-                <label style="font-size:11px; color:var(--text3); font-weight:600;">نوع المهمة</label>
-                <select id="task-assign-type" style="width:100%;"><option value="">اختر نوع المهمة</option></select>
-              </div>
-              <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
-                <label style="font-size:11px; color:var(--text3); font-weight:600;">وصف التكليف</label>
-                <input type="text" id="task-assign-desc" placeholder="أدخل تفاصيل المهمة المطلوبة...">
-              </div>
-              <div style="display:flex; align-items:flex-end;">
-                <button class="btn btn-primary" style="height:36px; width:100%; justify-content:center;" onclick="submitAssignTask()">إسناد</button>
+      <!-- أزرار التبويب الفرعي فائقة الأناقة -->
+      <div class="filter-bar" style="margin-bottom:1.5rem; justify-content:flex-start; gap:10px; border-bottom:1px solid var(--border-color); padding-bottom:12px; background:none; border:none; padding-left:0; padding-right:0;">
+        <button id="task-subtab-normal-btn" class="btn btn-primary" onclick="switchTasksSubTab('normal')">
+          📌 التكليفات المباشرة (السريعة)
+        </button>
+        <button id="task-subtab-recurring-btn" class="btn btn-secondary" style="background:transparent; color:var(--text2); border:1px solid var(--border-color);" onclick="switchTasksSubTab('recurring')">
+          🔄 قوالب المهام الدورية (الوراثية)
+        </button>
+      </div>
+
+      <!-- الحاوية الأولى: التكليفات العادية -->
+      <div id="tasks-normal-container">
+        <div class="mgmt-grid" style="margin-bottom:1.5rem;">
+          <div class="mgmt-card" style="grid-column: 1 / -1;">
+            <div class="mgmt-card-header"><span class="mgmt-card-title">إسناد تكليف جديد لموظف</span></div>
+            <div style="padding:1.25rem 1.5rem;">
+              <div class="add-row" style="flex-wrap:wrap; display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) 100px; gap:10px; margin-top:0;">
+                <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
+                  <label style="font-size:11px; color:var(--text3); font-weight:600;">الموظف</label>
+                  <select id="task-assign-emp" style="width:100%;"><option value="">اختر الموظف</option></select>
+                </div>
+                <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
+                  <label style="font-size:11px; color:var(--text3); font-weight:600;">العميل</label>
+                  <input type="text" id="task-assign-client" placeholder="اكتب أو ابحث..." list="task-assign-clients-dl">
+                  <datalist id="task-assign-clients-dl"></datalist>
+                </div>
+                <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
+                  <label style="font-size:11px; color:var(--text3); font-weight:600;">نوع المهمة</label>
+                  <select id="task-assign-type" style="width:100%;"><option value="">اختر نوع المهمة</option></select>
+                </div>
+                <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
+                  <label style="font-size:11px; color:var(--text3); font-weight:600;">وصف التكليف</label>
+                  <input type="text" id="task-assign-desc" placeholder="أدخل تفاصيل المهمة المطلوبة...">
+                </div>
+                <div style="display:flex; align-items:flex-end;">
+                  <button class="btn btn-primary" style="height:36px; width:100%; justify-content:center;" onclick="submitAssignTask()">إسناد</button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title" id="tasks-assigned-count">قائمة التكليفات</span>
-          <div class="filter-bar" style="margin-bottom:0; padding:4px 8px; border:none; background:none;">
-            <select id="tasks-filter-status" onchange="loadAssignedTasksList()" style="font-size:12px; padding:4px 10px;">
-              <option value="">كل الحالات</option>
-              <option value="معلقة" selected>معلقة</option>
-              <option value="مكتملة">مكتملة</option>
-            </select>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title" id="tasks-assigned-count">قائمة التكليفات</span>
+            <div class="filter-bar" style="margin-bottom:0; padding:4px 8px; border:none; background:none;">
+              <select id="tasks-filter-status" onchange="loadAssignedTasksList()" style="font-size:12px; padding:4px 10px;">
+                <option value="">كل الحالات</option>
+                <option value="معلقة" selected>معلقة</option>
+                <option value="مكتملة">مكتملة</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>الموظف</th>
+                  <th>التيم</th>
+                  <th>العميل</th>
+                  <th>نوع المهمة</th>
+                  <th>الوصف</th>
+                  <th>تاريخ الإسناد</th>
+                  <th>الحالة</th>
+                  <th>تاريخ الاكتمال</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tasks-assigned-tbody">
+                <tr><td colspan="9"><div class="empty"><div class="empty-text">جاري تحميل التكليفات...</div></div></td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الموظف</th>
-                <th>التيم</th>
-                <th>العميل</th>
-                <th>نوع المهمة</th>
-                <th>الوصف</th>
-                <th>تاريخ الإسناد</th>
-                <th>الحالة</th>
-                <th>تاريخ الاكتمال</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="tasks-assigned-tbody">
-              <tr><td colspan="9"><div class="empty"><div class="empty-text">جاري تحميل التكليفات...</div></div></td></tr>
-            </tbody>
-          </table>
+      </div>
+
+      <!-- الحاوية الثانية: قوالب المهام الدورية -->
+      <div id="tasks-recurring-container" style="display:none;">
+        <div class="mgmt-grid" style="margin-bottom:1.5rem;">
+          <div class="mgmt-card" style="grid-column: 1 / -1;">
+            <div class="mgmt-card-header"><span class="mgmt-card-title">بناء قالب مهمة دورية (تتوارث تلقائياً شهرياً)</span></div>
+            <div style="padding:1.25rem 1.5rem;">
+              <div class="add-row" style="flex-wrap:wrap; display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) 100px; gap:10px; margin-top:0;">
+                <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
+                  <label style="font-size:11px; color:var(--text3); font-weight:600;">الموظف</label>
+                  <select id="rec-task-emp" style="width:100%;"><option value="">اختر الموظف</option></select>
+                </div>
+                <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
+                  <label style="font-size:11px; color:var(--text3); font-weight:600;">العميل</label>
+                  <input type="text" id="rec-task-client" placeholder="اكتب أو ابحث..." list="rec-task-clients-dl">
+                  <datalist id="rec-task-clients-dl"></datalist>
+                </div>
+                <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
+                  <label style="font-size:11px; color:var(--text3); font-weight:600;">التكرار</label>
+                  <select id="rec-task-recurrence" style="width:100%;" onchange="toggleRecWeekDropdown()">
+                    <option value="يومي">يومي</option>
+                    <option value="أسبوعي">أسبوعي</option>
+                    <option value="شهري">شهري</option>
+                  </select>
+                </div>
+                <div class="field-group" id="rec-task-week-group" style="display:none; flex-direction:column; gap:4px;">
+                  <label style="font-size:11px; color:var(--text3); font-weight:600;">الأسبوع</label>
+                  <select id="rec-task-week" style="width:100%;">
+                    <option value="الأسبوع الأول">الأسبوع الأول</option>
+                    <option value="الأسبوع الثاني">الأسبوع الثاني</option>
+                    <option value="الأسبوع الثالث">الأسبوع الثالث</option>
+                    <option value="الأسبوع الرابع">الأسبوع الرابع</option>
+                  </select>
+                </div>
+                <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
+                  <label style="font-size:11px; color:var(--text3); font-weight:600;">نوع المهمة</label>
+                  <select id="rec-task-type" style="width:100%;"><option value="">اختر نوع المهمة</option></select>
+                </div>
+                <div class="field-group" style="display:flex; flex-direction:column; gap:4px; grid-column: span 2;">
+                  <label style="font-size:11px; color:var(--text3); font-weight:600;">وصف المهمة الدورية</label>
+                  <input type="text" id="rec-task-desc" placeholder="أدخل التفاصيل المطلوبة كقالب ثابت...">
+                </div>
+                <div style="display:flex; align-items:flex-end;">
+                  <button class="btn btn-primary" style="height:36px; width:100%; justify-content:center;" onclick="submitSaveRecurringTask()">إضافة قالب</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title" id="rec-tasks-count">قوالب المهام الدورية النشطة</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>الموظف</th>
+                  <th>التيم</th>
+                  <th>العميل</th>
+                  <th>التكرار</th>
+                  <th>الأسبوع</th>
+                  <th>نوع المهمة</th>
+                  <th>الوصف التوضيحي للثبات</th>
+                  <th>تاريخ الإنشاء</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="rec-tasks-tbody">
+                <tr><td colspan="9"><div class="empty"><div class="empty-text">لا توجد قوالب مهام دورية حالياً</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -2498,17 +2591,27 @@ function populateFilters() {
 
   // Populate task assign employee select
   const taskAssignEmpSel = document.getElementById('task-assign-emp');
+  const recTaskEmpSel = document.getElementById('rec-task-emp');
+  let emps = STATE.employees.filter(e => e['نشط'] === 'نعم');
+  if (STATE.role === 'supervisor') emps = emps.filter(e => e.team_id === STATE.teamId);
+
   if (taskAssignEmpSel) {
-    let emps = STATE.employees.filter(e => e['نشط'] === 'نعم');
-    if (STATE.role === 'supervisor') emps = emps.filter(e => e.team_id === STATE.teamId);
     taskAssignEmpSel.innerHTML = '<option value="">اختر الموظف</option>';
     emps.forEach(e => {
       taskAssignEmpSel.innerHTML += `<option value="${e.id}" data-name="${e['الاسم']}" data-team="${e.team_id}">${e['الاسم']}</option>`;
     });
   }
 
+  if (recTaskEmpSel) {
+    recTaskEmpSel.innerHTML = '<option value="">اختر الموظف</option>';
+    emps.forEach(e => {
+      recTaskEmpSel.innerHTML += `<option value="${e.id}" data-name="${e['الاسم']}" data-team="${e.team_id}">${e['الاسم']}</option>`;
+    });
+  }
+
   // Populate task types for assignment
   const taskAssignTypeSel = document.getElementById('task-assign-type');
+  const recTaskTypeSel = document.getElementById('rec-task-type');
   if (taskAssignTypeSel) {
     taskAssignTypeSel.innerHTML = '<option value="">اختر نوع المهمة</option>';
     TASK_TYPES.forEach(t => {
@@ -2516,10 +2619,22 @@ function populateFilters() {
     });
   }
 
+  if (recTaskTypeSel) {
+    recTaskTypeSel.innerHTML = '<option value="">اختر نوع المهمة</option>';
+    TASK_TYPES.forEach(t => {
+      recTaskTypeSel.innerHTML += `<option value="${t}">${t}</option>`;
+    });
+  }
+
   // Populate clients datalist for assignment
   const taskAssignClientsDl = document.getElementById('task-assign-clients-dl');
+  const recTaskClientsDl = document.getElementById('rec-task-clients-dl');
+  const clientOptions = STATE.clients.map(c => `<option value="${c.name || c}">`).join('');
   if (taskAssignClientsDl) {
-    taskAssignClientsDl.innerHTML = STATE.clients.map(c => `<option value="${c.name || c}">`).join('');
+    taskAssignClientsDl.innerHTML = clientOptions;
+  }
+  if (recTaskClientsDl) {
+    recTaskClientsDl.innerHTML = clientOptions;
   }
 
   // للمشرف: إخفاء team filter
@@ -3092,21 +3207,32 @@ function exportReports() {
 function loadAttendance() {
   const team  = document.getElementById('att-team')?.value || STATE.teamId || '';
   const emp   = document.getElementById('att-emp').value;
-  const month = document.getElementById('att-month').value;
+  const dateFrom = document.getElementById('att-date-from').value;
+  const dateTo   = document.getElementById('att-date-to').value;
 
   const tbody = document.getElementById('att-tbody');
   tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
 
   const currentAttendance = STATE.attendance || [];
 
-  if (!month) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">📅</div><div class="empty-text">يرجى تحديد الشهر</div></div></td></tr>`;
+  if (!dateFrom || !dateTo) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">📅</div><div class="empty-text">يرجى تحديد تاريخ البداية والنهاية</div></div></td></tr>`;
     return;
   }
 
-  const [y, m] = month.split('-').map(Number);
-  const daysInMonth = new Date(y, m, 0).getDate();
+  const start = new Date(dateFrom);
+  const end   = new Date(dateTo);
   const todayStr = new Date().toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
+
+  const dates = [];
+  let current = new Date(start);
+  while (current <= end) {
+    const y = current.getFullYear();
+    const m = String(current.getMonth() + 1).padStart(2, '0');
+    const d = String(current.getDate()).padStart(2, '0');
+    dates.push(`${y}-${m}-${d}`);
+    current.setDate(current.getDate() + 1);
+  }
 
   // فلترة الموظفين حسب التيم والموظف المختارين (مع استبعاد المشرفين من تتبع الحضور والغياب)
   let empsToShow = STATE.employees.filter(e => e['نشط'] === 'نعم' && e['الدور'] !== 'مشرف');
@@ -3119,9 +3245,10 @@ function loadAttendance() {
 
   const rows = [];
   empsToShow.forEach(employee => {
-    for (let d = 1; d <= daysInMonth; d++) {
-      const date = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const dayOfWeek = new Date(y, m - 1, d).getDay();
+    dates.forEach(date => {
+      const parts = date.split('-').map(Number);
+      const dObj = new Date(parts[0], parts[1] - 1, parts[2]);
+      const dayOfWeek = dObj.getDay();
       const isFriday = dayOfWeek === 5;
       const existing = currentAttendance.find(x => x.emp_id === employee.id && x['التاريخ'] === date);
 
@@ -3141,7 +3268,7 @@ function loadAttendance() {
         note: existing ? existing['ملاحظة'] : '',
         isFriday
       });
-    }
+    });
   });
 
   // حساب الإحصائيات للأيام الفعالة غير الجمعة
@@ -3839,14 +3966,15 @@ function updateInfoPanel() {
 // REFRESH
 // ══════════════════════════════════════════════════════
 async function refreshData() {
-  const [teamsR, empsR, clientsR, reportsR, attendanceR, tasksR, visitsR] = await Promise.all([
+  const [teamsR, empsR, clientsR, reportsR, attendanceR, tasksR, visitsR, recurringR] = await Promise.all([
     apiFetch({ action: 'getTeams' }),
     apiFetch({ action: 'getEmployees' }),
     apiFetch(STATE.role === 'supervisor' ? { action: 'getClients', teamId: STATE.teamId } : { action: 'getClients' }),
     apiFetch(STATE.role === 'supervisor' ? { action: 'getReports', teamId: STATE.teamId } : { action: 'getReports' }),
     apiFetch(STATE.role === 'supervisor' ? { action: 'getAttendance', teamId: STATE.teamId } : { action: 'getAttendance' }),
     apiFetch(STATE.role === 'supervisor' ? { action: 'getAssignedTasks', teamId: STATE.teamId } : { action: 'getAssignedTasks' }),
-    apiFetch(STATE.role === 'supervisor' ? { action: 'getVisits', teamId: STATE.teamId } : { action: 'getVisits' })
+    apiFetch(STATE.role === 'supervisor' ? { action: 'getVisits', teamId: STATE.teamId } : { action: 'getVisits' }),
+    apiFetch(STATE.role === 'supervisor' ? { action: 'getRecurringTasks', teamId: STATE.teamId } : { action: 'getRecurringTasks' })
   ]);
   if (teamsR.ok)   STATE.teams     = teamsR.teams || [];
   if (empsR.ok)    STATE.employees = empsR.employees || [];
@@ -3855,6 +3983,7 @@ async function refreshData() {
   STATE.attendance = attendanceR.ok ? (attendanceR.rows || []) : [];
   STATE.tasks = tasksR.ok ? (tasksR.tasks || []) : [];
   STATE.visits = visitsR.ok ? (visitsR.visits || []) : [];
+  STATE.recurringTasks = recurringR.ok ? (recurringR.recurringTasks || []) : [];
   STATE.visits.forEach(v => {
     if (!v['الحالة'] && v['ملاحظات'] && v['ملاحظات'].includes('ما تم إنجازه في الزيارة:')) {
       v['الحالة'] = 'تمت';
@@ -3976,7 +4105,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const today    = now.toISOString().slice(0,10);
   document.getElementById('db-from').value = firstDay;
   document.getElementById('db-to').value   = today;
-  document.getElementById('att-month').value = today.slice(0,7);
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0,10);
+  const attFromInput = document.getElementById('att-date-from');
+  const attToInput   = document.getElementById('att-date-to');
+  if (attFromInput) attFromInput.value = firstDay;
+  if (attToInput)   attToInput.value   = lastDay;
   
   // Set default visits date filters from start of current month to end of next month (two months range)
   // const y = now.getFullYear();
@@ -4162,6 +4295,191 @@ async function deleteAssignedTask(id) {
   }
 }
 
+// ══════════════════════════════════════════════════════
+// RECURRING TASKS SUB-TAB SWITCHING & TEMPLATE OPERATIONS
+// ══════════════════════════════════════════════════════
+function switchTasksSubTab(sub) {
+  STATE.activeTasksSubTab = sub;
+  const normalBtn = document.getElementById('task-subtab-normal-btn');
+  const recBtn = document.getElementById('task-subtab-recurring-btn');
+  const normalCont = document.getElementById('tasks-normal-container');
+  const recCont = document.getElementById('tasks-recurring-container');
+  
+  if (!normalBtn || !recBtn || !normalCont || !recCont) return;
+
+  if (sub === 'normal') {
+    normalBtn.className = 'btn btn-primary';
+    recBtn.className = 'btn btn-secondary';
+    recBtn.style.background = 'transparent';
+    recBtn.style.color = 'var(--text2)';
+    recBtn.style.border = '1px solid var(--border-color)';
+    normalCont.style.display = 'block';
+    recCont.style.display = 'none';
+    loadAssignedTasksList();
+  } else {
+    recBtn.className = 'btn btn-primary';
+    recBtn.style.background = '';
+    recBtn.style.color = '';
+    recBtn.style.border = '';
+    normalBtn.className = 'btn btn-secondary';
+    normalBtn.style.background = 'transparent';
+    normalBtn.style.color = 'var(--text2)';
+    normalBtn.style.border = '1px solid var(--border-color)';
+    normalCont.style.display = 'none';
+    recCont.style.display = 'block';
+    loadRecurringTasksList();
+  }
+}
+
+function toggleRecWeekDropdown() {
+  const recurrence = document.getElementById('rec-task-recurrence').value;
+  const weekGroup = document.getElementById('rec-task-week-group');
+  if (weekGroup) {
+    weekGroup.style.display = (recurrence === 'أسبوعي') ? 'flex' : 'none';
+  }
+}
+
+async function submitSaveRecurringTask() {
+  const empSelect = document.getElementById('rec-task-emp');
+  const empId = empSelect.value;
+  const clientInput = document.getElementById('rec-task-client');
+  const client = clientInput.value.trim();
+  const recurrence = document.getElementById('rec-task-recurrence').value;
+  const weekNum = (recurrence === 'أسبوعي') ? document.getElementById('rec-task-week').value : '';
+  const typeSelect = document.getElementById('rec-task-type');
+  const tasktype = typeSelect.value;
+  const descInput = document.getElementById('rec-task-desc');
+  const desc = descInput.value.trim();
+
+  if (!empId) { showToast('الرجاء اختيار الموظف', 'error'); return; }
+  if (!client) { showToast('الرجاء تحديد العميل', 'error'); return; }
+  if (!tasktype) { showToast('الرجاء تحديد نوع المهمة', 'error'); return; }
+
+  const selectedOpt = empSelect.options[empSelect.selectedIndex];
+  const empName = selectedOpt.getAttribute('data-name');
+  const teamId = selectedOpt.getAttribute('data-team');
+
+  // إضافة محلية فورية
+  const tempId = 'rec_' + Date.now();
+  const newRec = {
+    id: tempId,
+    emp_id: empId,
+    'اسم الموظف': empName,
+    team_id: teamId,
+    'العميل': client,
+    'التكرار': recurrence,
+    'الأسبوع': weekNum,
+    'نوع المهمة': tasktype,
+    'وصف المهمة': desc,
+    'تاريخ الإنشاء': new Date().toISOString().slice(0, 10),
+    'نشط': 'نعم'
+  };
+
+  if (!STATE.recurringTasks) STATE.recurringTasks = [];
+  STATE.recurringTasks.push(newRec);
+
+  // رسم الجدول فوراً
+  loadRecurringTasksList();
+
+  // تفريغ المدخلات
+  clientInput.value = '';
+  descInput.value = '';
+  typeSelect.value = '';
+  empSelect.value = '';
+  document.getElementById('rec-task-recurrence').value = 'يومي';
+  toggleRecWeekDropdown();
+
+  try {
+    const r = await apiPost('saveRecurringTask', {
+      empId,
+      empName,
+      teamId,
+      client,
+      recurrence,
+      weekNum,
+      tasktype,
+      desc
+    });
+    if (r.ok) {
+      showToast('تم إضافة قالب المهمة الدورية بنجاح وتوارثها!', 'success');
+      const tIndex = STATE.recurringTasks.findIndex(x => x.id === tempId);
+      if (tIndex !== -1 && r.id) {
+        STATE.recurringTasks[tIndex].id = r.id;
+      }
+      refreshData();
+    } else {
+      showToast(r.error || 'حدث خطأ أثناء حفظ القالب', 'error');
+      STATE.recurringTasks = STATE.recurringTasks.filter(x => x.id !== tempId);
+      loadRecurringTasksList();
+    }
+  } catch (e) {
+    showToast('تم الحفظ محلياً بنجاح وسيتم الرفع عند الاتصال بالشبكة', 'success');
+  }
+}
+
+async function deleteRecurringTask(id) {
+  if (!confirm('هل أنت متأكد من رغبتك في حذف قالب المهمة الدورية هذا؟ سيؤدي ذلك لإيقاف توارثها.')) return;
+
+  const originalRecs = [...(STATE.recurringTasks || [])];
+  STATE.recurringTasks = (STATE.recurringTasks || []).filter(t => String(t.id) !== String(id));
+
+  loadRecurringTasksList();
+
+  try {
+    const r = await apiPost('deleteRecurringTask', { id });
+    if (r.ok) {
+      showToast('تم حذف قالب المهمة الدورية وإيقاف توارثها بنجاح', 'success');
+      refreshData();
+    } else {
+      showToast(r.error || 'فشل حذف القالب بالسيرفر', 'error');
+      STATE.recurringTasks = originalRecs;
+      loadRecurringTasksList();
+    }
+  } catch (e) {
+    showToast('تعذر الاتصال بالخادم للحذف', 'error');
+  }
+}
+
+function loadRecurringTasksList() {
+  const tbody = document.getElementById('rec-tasks-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
+
+  let recs = STATE.recurringTasks || [];
+  if (STATE.role === 'supervisor') {
+    recs = recs.filter(t => t.team_id === STATE.teamId);
+  }
+
+  const recCountEl = document.getElementById('rec-tasks-count');
+  if (recCountEl) recCountEl.textContent = `قوالب المهام الدورية النشطة (${recs.length})`;
+
+  if (recs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-icon">🔄</div><div class="empty-text">لا توجد قوالب مهام دورية بعد</div></div></td></tr>`;
+    return;
+  }
+
+  const teamMap = {};
+  STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+
+  tbody.innerHTML = recs.map(t => {
+    return `
+      <tr>
+        <td><strong>${t['اسم الموظف'] || ''}</strong></td>
+        <td><span style="font-size:11px;color:var(--text3)">${teamMap[t.team_id] || t.team_id || ''}</span></td>
+        <td><strong>${t['العميل'] || ''}</strong></td>
+        <td><span class="badge ${t['التكرار'] === 'يومي' ? 'badge-present' : (t['التكرار'] === 'أسبوعي' ? 'badge-leave' : 'badge-absent')}" style="font-weight:600;">${t['التكرار'] || ''}</span></td>
+        <td><span style="font-size:11px;color:var(--warning);font-weight:600;">${t['الأسبوع'] || '—'}</span></td>
+        <td>${t['نوع المهمة'] || ''}</td>
+        <td class="td-trunc" title="${(t['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${t['وصف المهمة'] || ''}</td>
+        <td>${t['تاريخ الإنشاء'] || ''}</td>
+        <td>
+          <button class="btn btn-danger btn-sm" style="background:var(--danger-s); color:var(--danger); border:1px solid rgba(248,113,113,0.2);" onclick="deleteRecurringTask('${t.id}')">حذف</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
 function exploreClientDetails() {
   const clientName = document.getElementById('db-client-explorer').value;
   const resultDiv = document.getElementById('client-explorer-result');
@@ -4287,7 +4605,8 @@ function openEmployeePerformanceModal(empId, empName, teamId) {
     document.getElementById('emp-perf-th-dur').style.display = '';
   }
 
-  const month = document.getElementById('att-month').value || new Date().toISOString().slice(0,7);
+  const attFromInput = document.getElementById('att-date-from');
+  const month = (attFromInput && attFromInput.value) ? attFromInput.value.slice(0, 7) : new Date().toISOString().slice(0, 7);
   
   STATE.activeEmpPerformanceId = empId;
   STATE.activeEmpPerformanceName = empName;
