@@ -246,13 +246,13 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
     <!-- Quick action to submit manual task -->
     <div style="display: flex; justify-content: flex-end; margin-bottom: 1.25rem;">
       <button class="btn btn-submit" style="background:var(--accent); font-size: 13.0px; padding: 10px 18px; font-weight:600;" onclick="openSupManualTaskModal()">
-        📝 تسجيل إنجاز مهمة جديدة
+        تسجيل إنجاز مهمة جديدة
       </button>
     </div>
 
     <div class="section-header" style="margin-bottom: 0.75rem;">
       <span class="section-title" style="color:var(--warning); display:flex; align-items:center; gap:6px; font-size: 12.5px; font-weight:700; text-transform:none; letter-spacing:0;">
-        📌 تكليفاتك المسندة من الإدارة وحالتها
+        تكليفاتك المسندة من الإدارة وحالتها
       </span>
     </div>
     
@@ -265,7 +265,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
   <div id="assigned-tasks-section" style="display:none; margin-bottom: 1.5rem;">
     <div class="section-header" style="margin-bottom: 0.75rem;">
       <span class="section-title" style="color:var(--warning); display:flex; align-items:center; gap:6px;">
-        📌 المهام المسندة إليك اليوم
+        المهام المسندة إليك اليوم
       </span>
     </div>
     <div id="assigned-tasks-container" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;">
@@ -277,7 +277,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
   <div id="assigned-visits-section" style="display:none; margin-bottom: 1.5rem;">
     <div class="section-header" style="margin-bottom: 0.75rem;">
       <span class="section-title" style="color:var(--success); display:flex; align-items:center; gap:6px; font-size: 12.5px; font-weight:700;">
-        🚗 الزيارات الميدانية المجدولة لك
+        الزيارات الميدانية المجدولة لك
       </span>
     </div>
     <div id="assigned-visits-container" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;">
@@ -318,7 +318,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
       </div>
       
       <div id="rec-tasks-placeholder" style="text-align:center; padding:1rem; color:var(--text3); font-size:12.5px; margin-bottom:0;">
-        لا توجد مهام دورية مجدولة لك حالياً على أي شركة. سيقوم المشرف ببنائها لك وتظهر هنا تلقائياً!
+        لا توجد مهام دورية لك حالياً على أي شركة. سيقوم المشرف ببنائها لك وتظهر هنا تلقائياً!
       </div>
     </div>
   </div>
@@ -382,7 +382,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
     </div>
     <div class="modal-actions" style="margin-top: 15px;">
       <button class="btn-sm-cancel" onclick="closeModal('modal-sup-complete')">إلغاء</button>
-      <button class="btn-sm-confirm" id="btn-sup-comp-confirm" style="background:var(--success);" onclick="submitSupTaskCompletion()">✔️ تأكيد الإتمام</button>
+      <button class="btn-sm-confirm" id="btn-sup-comp-confirm" style="background:var(--success);" onclick="submitSupTaskCompletion()">تأكيد الإتمام</button>
     </div>
   </div>
 </div>
@@ -412,7 +412,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
 
     <div class="modal-actions" style="margin-top: 15px;">
       <button class="btn-sm-cancel" onclick="closeModal('modal-sup-manual')">إلغاء</button>
-      <button class="btn-sm-confirm" id="btn-sup-manual-submit" onclick="submitSupManualTask()">📝 تسجيل وإرسال</button>
+      <button class="btn-sm-confirm" id="btn-sup-manual-submit" onclick="submitSupManualTask()">تسجيل وإرسال</button>
     </div>
   </div>
 </div>
@@ -420,7 +420,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
 <div class="modal-overlay" id="modal-report-conflict">
   <div class="modal" style="width: 440px; max-width:90%;">
     <div class="modal-title" style="color: var(--warning); font-size: 15px; font-weight:750; display:flex; align-items:center; gap:6px;">
-      ⚠️ تقرير مرسل مسبقاً لهذا اليوم
+      تقرير مرسل مسبقاً لهذا اليوم
     </div>
     <div style="font-size: 13px; color: var(--text2); margin-bottom: 18px; line-height: 1.6;">
       لقد قمت بإرسال تقرير لهذا اليوم (<span id="conflict-report-date" style="color:var(--accent-l); font-weight:700;"></span>) مسبقاً.
@@ -429,10 +429,10 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
     </div>
     <div style="display:flex; flex-direction:column; gap:10px;">
       <button class="btn" style="background:var(--success); color:#fff; width:100%; justify-content:flex-start; padding:12px 16px; font-family:var(--sans); font-weight:600;" onclick="confirmSubmitWithAppend(true)">
-        ➕ إضافة تراكمية (إضافة المهام الحالية للتقرير السابق)
+        إضافة تراكمية (إضافة المهام الحالية للتقرير السابق)
       </button>
       <button class="btn" style="background:var(--danger); color:#fff; width:100%; justify-content:flex-start; padding:12px 16px; font-family:var(--sans); font-weight:600;" onclick="confirmSubmitWithAppend(false)">
-        🔄 استبدال بالكامل (مسح التقرير السابق واعتماد الحالي)
+        استبدال بالكامل (مسح التقرير السابق واعتماد الحالي)
       </button>
     </div>
     <div class="modal-actions" style="margin-top: 15px;">
@@ -444,7 +444,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
 <!-- مودال إتمام الزيارة الميدانية للموظف -->
 <div class="modal-overlay" id="modal-emp-visit-complete">
   <div class="modal" style="width: 440px; max-width:90%;">
-    <div class="modal-title" style="color: var(--success); font-size: 15px; font-weight:750;">📝 إتمام الزيارة الميدانية</div>
+    <div class="modal-title" style="color: var(--success); font-size: 15px; font-weight:750;">إتمام الزيارة الميدانية</div>
     <div style="font-size: 12.5px; color: var(--text2); margin-bottom: 14px; line-height: 1.6;">
       العميل: <strong id="emp-visit-comp-client" style="color:var(--text)">—</strong><br>
     </div>
@@ -456,12 +456,12 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
     <div class="field-group" id="emp-visit-next-schedule-group" style="margin-top: 12px; display: none;">
       <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-weight:700; color:var(--success);">
         <input type="checkbox" id="emp-visit-next-check" checked style="width: 16px; height: 16px; accent-color: var(--success); cursor: pointer;">
-        🔄 جدولة الزيارة القادمة تلقائياً بناءً على التكرار (<span id="emp-visit-next-freq-text">أسبوعي</span>)
+        جدولة الزيارة القادمة تلقائياً بناءً على التكرار (<span id="emp-visit-next-freq-text">أسبوعي</span>)
       </label>
     </div>
     <div class="modal-actions" style="margin-top: 15px;">
       <button class="btn-sm-cancel" onclick="closeModal('modal-emp-visit-complete')">إلغاء</button>
-      <button class="btn-sm-confirm" id="btn-emp-visit-comp-confirm" style="background:var(--success);" onclick="submitEmployeeVisitCompletion()">✔️ تأكيد الإتمام</button>
+      <button class="btn-sm-confirm" id="btn-emp-visit-comp-confirm" style="background:var(--success);" onclick="submitEmployeeVisitCompletion()">تأكيد الإتمام</button>
     </div>
   </div>
 </div>
@@ -515,6 +515,9 @@ let activeSupTaskId=null;
 let currentSupRole='موظف';
 let globalTeamsList = [];
 let employeeRecords = [];
+
+const getLocalDateString = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const getLocalMonthString = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 
 async function apiFetch(p){const r=await fetch(API+'?'+new URLSearchParams(p));return r.json();}
 async function apiPost(a,d){const r=await fetch(API,{method:'POST',body:JSON.stringify({action:a,...d})});return r.json();}
@@ -599,7 +602,7 @@ async function init(){
   currentSupRole = role;
 
   document.getElementById('header-date').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  document.getElementById('report-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('report-date').value=getLocalDateString();
 
   // تشغيل التهيئة والتنبيهات للفريق الحالي
   await onTeamSwitch();
@@ -1213,7 +1216,7 @@ function renderAssignedTasks(tasks) {
       <div style="font-weight:600; font-size:13px; margin-bottom:4px; color:var(--text);">${escapeHtml(t['نوع المهمة'])}</div>
       <div style="font-size:12px; color:var(--text2); margin-bottom:10px; line-height:1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="${escapeHtml(t['وصف المهمة'])}">${escapeHtml(t['وصف المهمة']) || 'لا يوجد وصف تفصيلي'}</div>
       <button class="btn btn-warning btn-sm" style="width:100%; justify-content:center; padding:6px; font-size:12px; background:var(--warning-s); color:var(--warning); border:1px solid rgba(251,191,36,0.2);" onclick="importAssignedTask('${t.id}', \`${escapeHtml(t['العميل'])}\`, \`${escapeHtml(t['نوع المهمة'])}\`, \`${escapeHtml(t['وصف المهمة'])}\`)">
-        ➕ إضافة للتقرير
+        إضافة للتقرير
       </button>
     </div>
   `).join('');
@@ -1406,7 +1409,7 @@ function renderEmployeeRecurringTasks() {
 
   if (filtered.length === 0) {
     const typeLabel = activeRecTab === 'daily' ? 'يومية' : (activeRecTab === 'weekly' ? 'أسبوعية' : 'شهرية');
-    container.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; padding:1rem; color:var(--text3); font-size:12px;">لا توجد مهام دورية ${typeLabel} مجدولة لهذه الشركة</div>`;
+    container.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; padding:1rem; color:var(--text3); font-size:12px;">لا توجد مهام دورية ${typeLabel} لهذه الشركة</div>`;
     return;
   }
 
@@ -1533,13 +1536,13 @@ function renderEmployeeVisits(visits) {
         </div>
         <div style="font-weight:750; font-size:13.5px; margin-bottom:4px; color:var(--text);">زيارة للعميل: ${escapeHtml(v['العميل'])}</div>
         <div style="font-size:12px; color:var(--text2); margin-bottom:6px; font-weight:500;">
-          ⏰ الموعد: <span style="color:var(--accent-l);">${v['تاريخ الزيارة'] || ''} في ${v['وقت الزيارة'] || ''}</span>
+          الموعد: <span style="color:var(--accent-l);">${v['تاريخ الزيارة'] || ''} في ${v['وقت الزيارة'] || ''}</span>
         </div>
         <div style="font-size:12px; color:var(--text2); margin-bottom:12px; line-height:1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;" title="${escapeHtml(v['ملاحظات'])}">
-          🎯 المطلوب: ${escapeHtml(v['ملاحظات']) || 'لا يوجد تفاصيل إضافية'}
+          المطلوب: ${escapeHtml(v['ملاحظات']) || 'لا يوجد تفاصيل إضافية'}
         </div>
         <button class="btn" style="width:100%; justify-content:center; padding:6px; font-size:12px; background:var(--success-s); color:var(--success); border:1px solid rgba(74,222,128,0.2); font-weight:700;" onclick="openEmployeeCompleteVisitModal('${v.id}', \`${escapeHtml(v['العميل'])}\`)">
-          ✅ إتمام الزيارة
+          إتمام الزيارة
         </button>
       </div>
     `;
@@ -1621,7 +1624,7 @@ async function submitEmployeeVisitCompletion() {
         'التكرار': freq,
         'الحالة': 'مجدولة',
         'ملاحظات': '',
-        'تاريخ الإنشاء': new Date().toISOString().slice(0, 10)
+        'تاريخ الإنشاء': getLocalDateString()
       });
     }
   }
@@ -1655,7 +1658,7 @@ async function submitEmployeeVisitCompletion() {
   }
 
   btn.disabled = false;
-  btn.textContent = '✔️ تأكيد الإتمام';
+  btn.textContent = 'تأكيد الإتمام';
 }
 
 // ══════════════════════════════════════════════════════
@@ -1741,7 +1744,7 @@ function renderSupervisorTasks(tasks) {
           <div style="font-size:11px; color:var(--text3); margin-bottom:15px;">تاريخ الإسناد: ${t['تاريخ الإسناد'] || ''}</div>
         </div>
         <button class="btn btn-warning" style="width:100%; justify-content:center; padding:9px; font-size:12.5px; background:var(--warning-s); color:var(--warning); border:1px solid rgba(251,191,36,0.25); font-weight:700;" onclick="openSupTaskCompletionModal('${t.id}', \`${escapeHtml(t['العميل'])}\`, \`${escapeHtml(t['نوع المهمة'])}\`)">
-          ✔️ تأكيد إتمام التكليف
+          تأكيد إتمام التكليف
         </button>
       </div>
     `;
@@ -1838,7 +1841,7 @@ async function submitSupTaskCompletion() {
     showToast('تم التسجيل محلياً، جاري المزامنة في الخلفية', 'success');
   }
   btn.disabled = false;
-  btn.textContent = '✔️ تأكيد الإتمام';
+  btn.textContent = 'تأكيد الإتمام';
 }
 
 function openSupManualTaskModal() {
@@ -1926,7 +1929,7 @@ async function submitSupManualTask() {
     showToast('تم التسجيل محلياً، جاري المزامنة في الخلفية', 'success');
   }
   btn.disabled = false;
-  btn.textContent = '📝 تسجيل وإرسال';
+  btn.textContent = 'تسجيل وإرسال';
 }
 
 init();
