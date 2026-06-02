@@ -1379,7 +1379,7 @@ tr.row-has-note td:first-child {
       <div id="tasks-recurring-container" style="display:none;">
         <div class="mgmt-grid" style="margin-bottom:1.5rem;">
           <div class="mgmt-card" style="grid-column: 1 / -1;">
-            <div class="mgmt-card-header"><span class="mgmt-card-title">بناء قالب مهمة دورية (تتوارث تلقائياً شهرياً)</span></div>
+            <div class="mgmt-card-header"><span class="mgmt-card-title">بناء مهمه دوريه تتوارث تلقائياً شهرياً</span></div>
             <div style="padding:1.25rem 1.5rem;">
               <div class="add-row" style="flex-wrap:wrap; display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) 100px; gap:10px; margin-top:0;">
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
@@ -1417,7 +1417,7 @@ tr.row-has-note td:first-child {
                   <input type="text" id="rec-task-desc" placeholder="أدخل التفاصيل المطلوبة كقالب ثابت...">
                 </div>
                 <div style="display:flex; align-items:flex-end;">
-                  <button class="btn btn-primary" style="height:36px; width:100%; justify-content:center;" onclick="submitSaveRecurringTask()">إضافة قالب</button>
+                  <button class="btn btn-primary" style="height:36px; width:100%; justify-content:center;" onclick="submitSaveRecurringTask()">إضافة مهمة</button>
                 </div>
               </div>
             </div>
@@ -1426,7 +1426,7 @@ tr.row-has-note td:first-child {
 
         <div class="card">
           <div class="card-header">
-            <span class="card-title" id="rec-tasks-count">قوالب المهام الدورية النشطة</span>
+            <span class="card-title" id="rec-tasks-count">المهام الدورية النشطة</span>
           </div>
           <div class="table-wrap">
             <table>
@@ -1444,7 +1444,7 @@ tr.row-has-note td:first-child {
                 </tr>
               </thead>
               <tbody id="rec-tasks-tbody">
-                <tr><td colspan="9"><div class="empty"><div class="empty-text">لا توجد قوالب مهام دورية حالياً</div></div></td></tr>
+                <tr><td colspan="9"><div class="empty"><div class="empty-text">لا توجد مهام دورية حالياً</div></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -2176,6 +2176,8 @@ tr.row-has-note td:first-child {
 // CONFIG
 // ══════════════════════════════════════════════════════
 const API = 'https://script.google.com/macros/s/AKfycbzgYKZQiepr-XJwn928zSTpUnWFznF8SLi4ENwNOCmql6280H2zr3mPh3QumHErifWUWQ/exec';
+const getLocalDateString = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const getLocalMonthString = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 const EMPLOYEE_URL = 'employee.html'; // هيتغير لو Netlify URL مختلف
 const TASK_TYPES = ['مبيعات','مشتريات','بنوك','تسجيلات','إقفالات شهرية','إقفالات سنوية','تقارير','إقرارات شهرية','إقرارات ربع سنوية','تفريغ','قوائم مالية','متابعة عملاء يومية','اجتماع','اجتماع العمل الأسبوعي','أمور تقنية','إضافي'];
 
@@ -2498,14 +2500,15 @@ function doLogout() {
 async function initDashboard() {
   document.getElementById('loading-overlay').style.display = 'flex';
   try {
-    const [teamsR, empsR, clientsR, reportsR, attendanceR, tasksR, visitsR] = await Promise.all([
+    const [teamsR, empsR, clientsR, reportsR, attendanceR, tasksR, visitsR, recurringR] = await Promise.all([
       apiFetch({ action: 'getTeams' }),
       apiFetch({ action: 'getEmployees' }),
       apiFetch(STATE.role === 'supervisor' ? { action: 'getClients', teamId: STATE.teamId } : { action: 'getClients' }),
       apiFetch(STATE.role === 'supervisor' ? { action: 'getReports', teamId: STATE.teamId } : { action: 'getReports' }),
       apiFetch(STATE.role === 'supervisor' ? { action: 'getAttendance', teamId: STATE.teamId } : { action: 'getAttendance' }),
       apiFetch(STATE.role === 'supervisor' ? { action: 'getAssignedTasks', teamId: STATE.teamId } : { action: 'getAssignedTasks' }),
-      apiFetch(STATE.role === 'supervisor' ? { action: 'getVisits', teamId: STATE.teamId } : { action: 'getVisits' })
+      apiFetch(STATE.role === 'supervisor' ? { action: 'getVisits', teamId: STATE.teamId } : { action: 'getVisits' }),
+      apiFetch(STATE.role === 'supervisor' ? { action: 'getRecurringTasks', teamId: STATE.teamId } : { action: 'getRecurringTasks' })
     ]);
     
     if (teamsR.ok)   STATE.teams     = teamsR.teams || [];
@@ -2515,6 +2518,7 @@ async function initDashboard() {
     STATE.attendance = attendanceR.ok ? (attendanceR.rows || []) : [];
     STATE.tasks = tasksR.ok ? (tasksR.tasks || []) : [];
     STATE.visits = visitsR.ok ? (visitsR.visits || []) : [];
+    STATE.recurringTasks = recurringR.ok ? (recurringR.recurringTasks || []) : [];
     STATE.visits.forEach(v => {
       if (!v['الحالة'] && v['ملاحظات'] && v['ملاحظات'].includes('ما تم إنجازه في الزيارة:')) {
         v['الحالة'] = 'تمت';
@@ -3192,7 +3196,7 @@ function exportReports() {
   XLSX.utils.book_append_sheet(wb, evalWs, 'تقييم الموظفين');
 
   // لو كل البيانات من تيم واحد — ملف بسيط بدون تعدد sheets
-  const dateStr = new Date().toISOString().slice(0,10);
+  const dateStr = getLocalDateString();
   const fileName = teamIds.length === 1
     ? `تقارير_${teamMap[teamIds[0]]||'التيم'}_${dateStr}.xlsx`
     : `تقارير_كل_التيمات_${dateStr}.xlsx`;
@@ -3455,7 +3459,7 @@ async function confirmTeam() {
       'اسم التيم': name,
       'مشرف': sup,
       'كلمة مرور المشرف': pw,
-      'تاريخ الإنشاء': new Date().toISOString().slice(0, 10),
+      'تاريخ الإنشاء': getLocalDateString(),
       'نشط': 'نعم'
     });
   }
@@ -3583,7 +3587,7 @@ async function addEmployee() {
     'الاسم': name,
     team_id: teamId,
     'الدور': role,
-    'تاريخ الإضافة': new Date().toISOString().slice(0, 10),
+    'تاريخ الإضافة': getLocalDateString(),
     'نشط': 'نعم'
   });
 
@@ -4231,7 +4235,7 @@ async function submitAssignTask() {
     'العميل': client,
     'نوع المهمة': tasktype,
     'وصف المهمة': desc,
-    'تاريخ الإسناد': new Date().toISOString().slice(0, 10),
+    'تاريخ الإسناد': getLocalDateString(),
     'الحالة': 'معلقة',
     'تاريخ الاكتمال': ''
   };
@@ -4376,7 +4380,7 @@ async function submitSaveRecurringTask() {
     'الأسبوع': weekNum,
     'نوع المهمة': tasktype,
     'وصف المهمة': desc,
-    'تاريخ الإنشاء': new Date().toISOString().slice(0, 10),
+    'تاريخ الإنشاء': getLocalDateString(),
     'نشط': 'نعم'
   };
 
@@ -4406,14 +4410,14 @@ async function submitSaveRecurringTask() {
       desc
     });
     if (r.ok) {
-      showToast('تم إضافة قالب المهمة الدورية بنجاح وتوارثها!', 'success');
+      showToast('تم إضافة المهمة الدورية بنجاح وتوارثها!', 'success');
       const tIndex = STATE.recurringTasks.findIndex(x => x.id === tempId);
       if (tIndex !== -1 && r.id) {
         STATE.recurringTasks[tIndex].id = r.id;
       }
       refreshData();
     } else {
-      showToast(r.error || 'حدث خطأ أثناء حفظ القالب', 'error');
+      showToast(r.error || 'حدث خطأ أثناء حفظ المهمة الدورية', 'error');
       STATE.recurringTasks = STATE.recurringTasks.filter(x => x.id !== tempId);
       loadRecurringTasksList();
     }
@@ -4423,7 +4427,7 @@ async function submitSaveRecurringTask() {
 }
 
 async function deleteRecurringTask(id) {
-  if (!confirm('هل أنت متأكد من رغبتك في حذف قالب المهمة الدورية هذا؟ سيؤدي ذلك لإيقاف توارثها.')) return;
+  if (!confirm('هل أنت متأكد من رغبتك في حذف المهمة الدورية هذه؟ سيؤدي ذلك لإيقاف توارثها.')) return;
 
   const originalRecs = [...(STATE.recurringTasks || [])];
   STATE.recurringTasks = (STATE.recurringTasks || []).filter(t => String(t.id) !== String(id));
@@ -4433,10 +4437,10 @@ async function deleteRecurringTask(id) {
   try {
     const r = await apiPost('deleteRecurringTask', { id });
     if (r.ok) {
-      showToast('تم حذف قالب المهمة الدورية وإيقاف توارثها بنجاح', 'success');
+      showToast('تم حذف المهمة الدورية وإيقاف توارثها بنجاح', 'success');
       refreshData();
     } else {
-      showToast(r.error || 'فشل حذف القالب بالسيرفر', 'error');
+      showToast(r.error || 'فشل حذف المهمة الدورية بالسيرفر', 'error');
       STATE.recurringTasks = originalRecs;
       loadRecurringTasksList();
     }
@@ -4456,10 +4460,10 @@ function loadRecurringTasksList() {
   }
 
   const recCountEl = document.getElementById('rec-tasks-count');
-  if (recCountEl) recCountEl.textContent = `قوالب المهام الدورية النشطة (${recs.length})`;
+  if (recCountEl) recCountEl.textContent = `المهام الدورية النشطة (${recs.length})`;
 
   if (recs.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-icon">🔄</div><div class="empty-text">لا توجد قوالب مهام دورية بعد</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-text">لا توجد مهام دورية بعد</div></div></td></tr>`;
     return;
   }
 
@@ -4611,7 +4615,7 @@ function openEmployeePerformanceModal(empId, empName, teamId) {
   }
 
   const attFromInput = document.getElementById('att-date-from');
-  const month = (attFromInput && attFromInput.value) ? attFromInput.value.slice(0, 7) : new Date().toISOString().slice(0, 7);
+  const month = (attFromInput && attFromInput.value) ? attFromInput.value.slice(0, 7) : getLocalMonthString();
   
   STATE.activeEmpPerformanceId = empId;
   STATE.activeEmpPerformanceName = empName;
@@ -5820,7 +5824,7 @@ function quickScheduleVisitForClient(clientName, teamId) {
   
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  const tomorrowStr = getLocalDateString(tomorrow);
   document.getElementById('visit-form-date').value = tomorrowStr;
   document.getElementById('visit-form-time').value = '10:00 ص';
   document.getElementById('visit-form-notes').focus();
@@ -5832,7 +5836,7 @@ function openAddVisitModal() {
   document.getElementById('visit-form-title').textContent = '🗓️ إضافة زيارة جديدة';
   document.getElementById('visit-form-id').value = '';
   document.getElementById('visit-form-whatsapp').value = '';
-  document.getElementById('visit-form-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('visit-form-date').value = getLocalDateString();
   document.getElementById('visit-form-time').value = '';
   document.getElementById('visit-form-frequency').value = 'مرة واحدة';
   document.getElementById('visit-form-status').value = 'مجدولة';
@@ -5937,7 +5941,7 @@ async function saveVisitForm() {
       'التكرار': frequency,
       'الحالة': status,
       'ملاحظات': notes,
-      'تاريخ الإنشاء': new Date().toISOString().slice(0, 10)
+      'تاريخ الإنشاء': getLocalDateString()
     });
   }
   
@@ -6030,7 +6034,7 @@ function toggleNextVisitCustomDate(freq) {
     if (freq === 'مخصص') {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 7);
-      document.getElementById('visit-complete-next-date').value = tomorrow.toISOString().slice(0, 10);
+      document.getElementById('visit-complete-next-date').value = getLocalDateString(tomorrow);
       document.getElementById('visit-complete-next-time').value = '10:00 ص';
     }
   }
@@ -6086,7 +6090,7 @@ async function saveVisitComplete() {
       'التكرار': nextFrequency,
       'الحالة': 'مجدولة',
       'ملاحظات': '',
-      'تاريخ الإنشاء': new Date().toISOString().slice(0, 10)
+      'تاريخ الإنشاء': getLocalDateString()
     });
   }
   
