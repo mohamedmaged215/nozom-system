@@ -1299,13 +1299,13 @@ tr.row-has-note td:first-child {
          TASKS (التكليفات)
     ═══════════════════════════════════════════════ -->
     <div class="panel" id="panel-tasks">
-      <!-- أزرار التبويب الفرعي فائقة الأناقة -->
+      <!-- أزرار التبويب الفرعي -->
       <div class="filter-bar" style="margin-bottom:1.5rem; justify-content:flex-start; gap:10px; border-bottom:1px solid var(--border-color); padding-bottom:12px; background:none; border:none; padding-left:0; padding-right:0;">
         <button id="task-subtab-normal-btn" class="btn btn-primary" onclick="switchTasksSubTab('normal')">
-          📌 التكليفات المباشرة (السريعة)
+          انشاء مهمه طارئه
         </button>
         <button id="task-subtab-recurring-btn" class="btn btn-secondary" style="background:transparent; color:var(--text2); border:1px solid var(--border-color);" onclick="switchTasksSubTab('recurring')">
-          🔄 قوالب المهام الدورية (الوراثية)
+          انشاء مهمات متكرره
         </button>
       </div>
 
@@ -4101,11 +4101,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Set default dates
   const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
-  const today    = now.toISOString().slice(0,10);
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  const firstDay = `${y}-${m}-01`;
+  const today = `${y}-${m}-${d}`;
   document.getElementById('db-from').value = firstDay;
   document.getElementById('db-to').value   = today;
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0,10);
+
+  const lastDayDate = new Date(y, now.getMonth() + 1, 0);
+  const lastDay = `${y}-${m}-${String(lastDayDate.getDate()).padStart(2, '0')}`;
   const attFromInput = document.getElementById('att-date-from');
   const attToInput   = document.getElementById('att-date-to');
   if (attFromInput) attFromInput.value = firstDay;
