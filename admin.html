@@ -1217,6 +1217,15 @@ tr.row-has-note td:first-child {
           <label>إلى تاريخ</label>
           <input type="date" id="rep-to" onchange="loadReports()">
         </div>
+        <div class="filter-group">
+          <label>العدد في الصفحة</label>
+          <select id="rep-limit" onchange="loadReports(1)">
+            <option value="40">40</option>
+            <option value="100">100</option>
+            <option value="250">250</option>
+            <option value="500">500</option>
+          </select>
+        </div>
         <div class="filter-group" style="justify-content:flex-end">
           <button class="btn btn-primary" onclick="loadReports()">بحث</button>
         </div>
@@ -2955,6 +2964,8 @@ async function loadReports(page = 1) {
   const empId  = document.getElementById('rep-emp').value;
   const from   = document.getElementById('rep-from').value;
   const to     = document.getElementById('rep-to').value;
+  const limitVal = document.getElementById('rep-limit')?.value || '40';
+  const limit  = parseInt(limitVal, 10) || 40;
 
   const tbody = document.getElementById('rep-tbody');
   const paginationContainer = document.getElementById('rep-pagination');
@@ -2965,7 +2976,7 @@ async function loadReports(page = 1) {
   const params = {
     action: 'getReports',
     page: page,
-    limit: 25
+    limit: limit
   };
   if (team) params.teamId = team;
   if (empId) params.empId = empId;
@@ -2979,8 +2990,15 @@ async function loadReports(page = 1) {
       return;
     }
 
-    const rows = res.rows || [];
-    const totalCount = res.totalCount || 0;
+    let rows = res.rows || [];
+    let totalCount = res.totalCount;
+
+    // Fallback: If Apps Script hasn't been deployed/updated with pagination support yet
+    if (totalCount === undefined) {
+      totalCount = rows.length;
+      const startIndex = (page - 1) * limit;
+      rows = rows.slice(startIndex, startIndex + limit);
+    }
 
     document.getElementById('rep-count').textContent = `التقارير (${totalCount})`;
 
@@ -3038,7 +3056,10 @@ function renderReportsPagination(totalCount, currentPage) {
   const paginationContainer = document.getElementById('rep-pagination');
   if (!paginationContainer) return;
 
-  const totalPages = Math.ceil(totalCount / 25);
+  const limitVal = document.getElementById('rep-limit')?.value || '40';
+  const limit  = parseInt(limitVal, 10) || 40;
+
+  const totalPages = Math.ceil(totalCount / limit);
   if (totalPages <= 1) {
     paginationContainer.innerHTML = '';
     return;
@@ -4083,6 +4104,37 @@ function updateInfoPanel() {
 // REFRESH
 // ══════════════════════════════════════════════════════
 async function refreshData() {
+  const team = STATE.role === 'supervisor' ? STATE.teamId : (document.getElementById('db-team')?.value || '');
+  
+  try {
+    const res = await apiFetch({ action: 'getAdminInitData', teamId: team });
+    if (res.ok && res.teams) {
+      STATE.teams          = res.teams || [];
+      STATE.employees      = res.employees || [];
+      STATE.clients        = res.clients || [];
+      STATE.reports        = [];
+      STATE.attendance     = [];
+      STATE.tasks          = res.tasks || [];
+      STATE.visits         = res.visits || [];
+      STATE.recurringTasks = res.recurringTasks || [];
+      TASK_TYPES           = res.taskTypes || [];
+      
+      STATE.visits.forEach(v => {
+        if (!v['الحالة'] && v['ملاحظات'] && v['ملاحظات'].includes('ما تم إنجازه في الزيارة:')) {
+          v['الحالة'] = 'تمت';
+        }
+      });
+      if (STATE.role === 'supervisor') {
+        STATE.employees = STATE.employees.filter(e => e.team_id === STATE.teamId);
+      }
+      populateFilters();
+      return;
+    }
+  } catch (err) {
+    console.warn("getAdminInitData failed, trying fallback...", err);
+  }
+
+  // Fallback
   const [teamsR, empsR, clientsR, tasksR, visitsR, recurringR, taskTypesR] = await Promise.all([
     apiFetch({ action: 'getTeams' }),
     apiFetch({ action: 'getEmployees' }),
