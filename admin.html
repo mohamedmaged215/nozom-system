@@ -1294,7 +1294,10 @@ tr.row-has-note td:first-child {
         <div class="kpi-card c-yellow"><div class="kpi-label">إجمالي السجلات</div><div class="kpi-value c-yellow" id="att-total">0</div></div>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">سجل الحضور</span></div>
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="card-title">سجل الحضور</span>
+          <button class="btn btn-secondary btn-sm" onclick="exportAttendanceExcel()">تصدير Excel</button>
+        </div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -3025,20 +3028,20 @@ async function loadReports(page = 1) {
 
       return `
         <tr class="${hasNoteClass}">
-          <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}')" title="اضغط لعرض الأداء الشهري">${r['اسم الموظف']||''}</strong></td>
-          <td><span style="font-size:11px;color:var(--text3)">${teamMap[r.team_id]||r.team_id||''}</span></td>
-          <td>${r['التاريخ']||''}</td>
-          <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(r['العميل'])}')" title="عرض تفاصيل العميل">${r['العميل']||''}</span></td>
-          <td>${r['نوع المهمة']||''}</td>
+          <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}')" title="اضغط لعرض الأداء الشهري">${escapeHtml(r['اسم الموظف']||'')}</strong></td>
+          <td><span style="font-size:11px;color:var(--text3)">${escapeHtml(teamMap[r.team_id]||r.team_id||'')}</span></td>
+          <td>${escapeHtml(r['التاريخ']||'')}</td>
+          <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(r['العميل'])}')" title="عرض تفاصيل العميل">${escapeHtml(r['العميل']||'')}</span></td>
+          <td>${escapeHtml(r['نوع المهمة']||'')}</td>
           <td>${recBadge}</td>
-          <td>${r['من']||''}</td>
-          <td>${r['إلى']||''}</td>
-          <td><span style="color:var(--success);font-weight:600">${r['المدة']||''}</span></td>
-          <td class="td-trunc" title="${(r['وصف المهمة']||'').replace(/"/g,'&quot;')}">${r['وصف المهمة']||''}</td>
+          <td>${escapeHtml(r['من']||'')}</td>
+          <td>${escapeHtml(r['إلى']||'')}</td>
+          <td><span style="color:var(--success);font-weight:600">${escapeHtml(r['المدة']||'')}</span></td>
+          <td class="td-trunc" title="${escapeHtml(r['وصف المهمة']||'')}">${escapeHtml(r['وصف المهمة']||'')}</td>
           <td style="font-weight: 600; color: var(--accent-l); white-space: nowrap;">${starsHtml}</td>
           <td>
             <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; min-width: 140px;">
-              <span style="font-size:12px; color:var(--warning); font-weight:600; white-space: normal; word-break: break-word;">${noteText}</span>
+              <span style="font-size:12px; color:var(--warning); font-weight:600; white-space: normal; word-break: break-word;">${escapeHtml(noteText)}</span>
               ${editBtn}
             </div>
           </td>
@@ -3331,7 +3334,7 @@ async function exportReports() {
 // ══════════════════════════════════════════════════════
 // ATTENDANCE
 // ══════════════════════════════════════════════════════
-function loadAttendance() {
+async function loadAttendance() {
   const team  = document.getElementById('att-team')?.value || STATE.teamId || '';
   const emp   = document.getElementById('att-emp').value;
   const dateFrom = document.getElementById('att-date-from').value;
@@ -3340,12 +3343,34 @@ function loadAttendance() {
   const tbody = document.getElementById('att-tbody');
   tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
 
-  const currentAttendance = STATE.attendance || [];
-
   if (!dateFrom || !dateTo) {
     tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">📅</div><div class="empty-text">يرجى تحديد تاريخ البداية والنهاية</div></div></td></tr>`;
     return;
   }
+
+  // Fetch dynamic attendance data from server for the selected range!
+  const params = {
+    action: 'getAttendance',
+    dateFrom: dateFrom,
+    dateTo: dateTo
+  };
+  if (team) params.teamId = team;
+  if (emp) params.empId = emp;
+
+  try {
+    const res = await apiFetch(params);
+    if (res.ok) {
+      STATE.attendance = res.rows || [];
+    } else {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-text">خطأ في جلب الحضور: ${res.error || ''}</div></div></td></tr>`;
+      return;
+    }
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-text">فشل الاتصال بالخادم</div></div></td></tr>`;
+    return;
+  }
+
+  const currentAttendance = STATE.attendance || [];
 
   const start = new Date(dateFrom);
   const end   = new Date(dateTo);
@@ -3398,6 +3423,9 @@ function loadAttendance() {
     });
   });
 
+  // تخزين البيانات للتصدير
+  window._attendanceData = rows;
+
   // حساب الإحصائيات للأيام الفعالة غير الجمعة
   let present = 0, absent = 0, holiday = 0;
   rows.forEach(r => {
@@ -3443,6 +3471,126 @@ function loadAttendance() {
       <td><button class="btn btn-secondary btn-sm" onclick="openAttEdit('${row.empId}','${escapeHtml(row.empName)}','${row.teamId}','${row.date}','${row.status}','${escapeHtml(row.note || '')}')">تعديل</button></td>
     </tr>`;
   }).join('');
+}
+
+function exportAttendanceExcel() {
+  const data = window._attendanceData;
+  if (!data || !data.length) {
+    showToast('لا توجد بيانات حضور لتصديرها', 'error');
+    return;
+  }
+
+  showToast('جاري تحضير ملف الحضور...', 'info');
+
+  const teamMap = {};
+  STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+
+  const wb = XLSX.utils.book_new();
+
+  // 1. خلاصة الحضور (Summary Sheet)
+  const summaryHeaders = ['اسم الموظف', 'التيم', 'عدد أيام العمل المقيمة', 'أيام الحضور', 'أيام الغياب', 'أيام الإجازة/عطلات أخرى', 'نسبة الحضور (%)'];
+  const summaryRows = [];
+
+  const empMap = {};
+  data.forEach(r => {
+    if (!empMap[r.empId]) {
+      empMap[r.empId] = {
+        name: r.empName,
+        teamName: teamMap[r.teamId] || r.teamId || '',
+        totalDays: 0,
+        present: 0,
+        absent: 0,
+        holiday: 0
+      };
+    }
+    if (!r.isFriday && r.status !== '—') {
+      empMap[r.empId].totalDays++;
+      if (r.status === 'حاضر') empMap[r.empId].present++;
+      else if (r.status === 'غياب') empMap[r.empId].absent++;
+      else empMap[r.empId].holiday++;
+    }
+  });
+
+  Object.values(empMap).forEach(e => {
+    const rate = e.totalDays ? ((e.present / e.totalDays) * 100).toFixed(1) + '%' : '0%';
+    summaryRows.push([
+      e.name,
+      e.teamName,
+      e.totalDays,
+      e.present,
+      e.absent,
+      e.holiday,
+      rate
+    ]);
+  });
+
+  const wsSummaryData = [
+    ['خلاصة حضور الموظفين للفترة المحددة', '', '', '', '', '', ''],
+    [],
+    summaryHeaders,
+    ...summaryRows
+  ];
+  const wsSummary = XLSX.utils.aoa_to_sheet(wsSummaryData);
+
+  // 2. سجل الحضور التفصيلي (Detailed Sheet)
+  const detailHeaders = ['اسم الموظف', 'التيم', 'التاريخ', 'اليوم', 'الحالة', 'ملاحظة'];
+  const detailRows = [];
+
+  const sortedDetails = [...data].sort((a, b) => {
+    const cmpDate = a.date.localeCompare(b.date);
+    if (cmpDate !== 0) return cmpDate;
+    return a.empName.localeCompare(b.empName, 'ar');
+  });
+
+  sortedDetails.forEach(r => {
+    detailRows.push([
+      r.empName,
+      teamMap[r.teamId] || r.teamId || '',
+      r.date,
+      r.day,
+      r.status,
+      r.note
+    ]);
+  });
+
+  const wsDetailData = [
+    ['سجل الحضور التفصيلي للموظفين', '', '', '', '', ''],
+    [],
+    detailHeaders,
+    ...detailRows
+  ];
+  const wsDetail = XLSX.utils.aoa_to_sheet(wsDetailData);
+
+  // إعدادات الاتجاه RTL
+  wsSummary['!dir'] = 'rtl';
+  wsDetail['!dir'] = 'rtl';
+
+  wsSummary['!cols'] = [
+    { wch: 25 },
+    { wch: 20 },
+    { wch: 22 },
+    { wch: 15 },
+    { wch: 15 },
+    { wch: 25 },
+    { wch: 18 }
+  ];
+
+  wsDetail['!cols'] = [
+    { wch: 25 },
+    { wch: 20 },
+    { wch: 15 },
+    { wch: 12 },
+    { wch: 15 },
+    { wch: 30 }
+  ];
+
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'خلاصة الحضور');
+  XLSX.utils.book_append_sheet(wb, wsDetail, 'سجل الحضور التفصيلي');
+
+  const dateFrom = document.getElementById('att-date-from').value;
+  const dateTo   = document.getElementById('att-date-to').value;
+  XLSX.writeFile(wb, `سجل_الحضور_من_${dateFrom}_إلى_${dateTo}.xlsx`);
+  showToast('تم تصدير سجل الحضور بنجاح!', 'success');
 }
 
 function openAttEdit(empId, empName, teamId, date, status, note) {
@@ -3666,8 +3814,8 @@ function renderEmployeesList() {
     supervisorsListEl.innerHTML = supervisors.map(e => `
       <div class="mgmt-item" style="border-bottom:1px solid var(--border); padding: 10px 14px; display:flex; justify-content:space-between; align-items:center;">
         <div class="mgmt-item-info">
-          <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600; font-size:13.5px;" onclick="openEmployeePerformanceModal('${e.id}','${escapeHtml(e['الاسم'])}','${e.team_id}')" title="اضغط لعرض الأداء الشهري">${e['الاسم']}</div>
-          <div class="item-meta" style="color:var(--text3); font-size:11px; margin-top:2px;">${teamMap[e.team_id]||''} • مشرف</div>
+          <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600; font-size:13.5px;" onclick="openEmployeePerformanceModal('${e.id}','${escapeHtml(e['الاسم'])}','${e.team_id}')" title="اضغط لعرض الأداء الشهري">${escapeHtml(e['الاسم'])}</div>
+          <div class="item-meta" style="color:var(--text3); font-size:11px; margin-top:2px;">${escapeHtml(teamMap[e.team_id]||'')} • مشرف</div>
         </div>
         <div class="mgmt-item-actions">
           <button class="btn btn-danger btn-sm" onclick="removeEmployee('${e.id}','${e['الاسم']}')" style="padding: 4px 8px; font-size: 11px;">حذف</button>
@@ -3682,8 +3830,8 @@ function renderEmployeesList() {
     staffListEl.innerHTML = staff.map(e => `
       <div class="mgmt-item" style="border-bottom:1px solid var(--border); padding: 10px 14px; display:flex; justify-content:space-between; align-items:center;">
         <div class="mgmt-item-info">
-          <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600; font-size:13.5px;" onclick="openEmployeePerformanceModal('${e.id}','${escapeHtml(e['الاسم'])}','${e.team_id}')" title="اضغط لعرض الأداء الشهري">${e['الاسم']}</div>
-          <div class="item-meta" style="color:var(--text3); font-size:11px; margin-top:2px;">${teamMap[e.team_id]||''} • موظف</div>
+          <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600; font-size:13.5px;" onclick="openEmployeePerformanceModal('${e.id}','${escapeHtml(e['الاسم'])}','${e.team_id}')" title="اضغط لعرض الأداء الشهري">${escapeHtml(e['الاسم'])}</div>
+          <div class="item-meta" style="color:var(--text3); font-size:11px; margin-top:2px;">${escapeHtml(teamMap[e.team_id]||'')} • موظف</div>
         </div>
         <div class="mgmt-item-actions">
           <button class="btn btn-danger btn-sm" onclick="removeEmployee('${e.id}','${e['الاسم']}')" style="padding: 4px 8px; font-size: 11px;">حذف</button>
@@ -3785,7 +3933,7 @@ function renderClientsList() {
     const deleteBtn = `<button class="btn btn-danger btn-sm" onclick="removeClient('${c.id}','${escapeHtml(c.name)}')">حذف</button>`;
     return `
       <div class="mgmt-item">
-        <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(c.name)}')" title="اضغط لعرض تفاصيل وأداء العميل">${c.name}</div>
+        <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(c.name)}')" title="اضغط لعرض تفاصيل وأداء العميل">${escapeHtml(c.name)}</div>
         <div class="mgmt-item-actions">${deleteBtn}</div>
       </div>
     `;
@@ -4234,6 +4382,10 @@ function switchPanel(name) {
     loadAssignedTasksList();
   } else if (name === 'visits') {
     renderVisits();
+  } else if (name === 'attendance') {
+    loadAttendance();
+  } else if (name === 'reports') {
+    loadReports();
   }
 }
 
@@ -6058,15 +6210,15 @@ function renderVisitsTable(list) {
     
     return `
       <tr>
-        <td style="font-weight:600; color:var(--accent-l); cursor:pointer;" onclick="openClientDetailsModal('${escapeHtml(v['العميل'])}')" title="اضغط لعرض تفاصيل العميل والزيارات">${v['العميل']}</td>
-        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${v.emp_id}','${escapeHtml(v['اسم الموظف'])}','${v.team_id}')" title="اضغط لعرض الأداء الشهري">${v['اسم الموظف']}</strong></td>
-        <td><span class="team-badge" style="padding:2px 8px; font-size:11px;">${teamName}</span></td>
-        <td>${v['تاريخ الزيارة']}</td>
-        <td>${v['وقت الزيارة']}</td>
+        <td style="font-weight:600; color:var(--accent-l); cursor:pointer;" onclick="openClientDetailsModal('${escapeHtml(v['العميل'])}')" title="اضغط لعرض تفاصيل العميل والزيارات">${escapeHtml(v['العميل'])}</td>
+        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${v.emp_id}','${escapeHtml(v['اسم الموظف'])}','${v.team_id}')" title="اضغط لعرض الأداء الشهري">${escapeHtml(v['اسم الموظف'])}</strong></td>
+        <td><span class="team-badge" style="padding:2px 8px; font-size:11px;">${escapeHtml(teamName)}</span></td>
+        <td>${escapeHtml(v['تاريخ الزيارة'])}</td>
+        <td>${escapeHtml(v['وقت الزيارة'])}</td>
         <td><span class="badge ${badgeClass}">${badgeText}</span></td>
-        <td>${v['التكرار'] || 'مرة واحدة'}</td>
-        <td><span class="badge ${badgeClass}">${v['الحالة']}</span></td>
-        <td class="td-trunc" style="max-width:200px;" title="${v['ملاحظات'] || ''}">${v['ملاحظات'] || ''}</td>
+        <td>${escapeHtml(v['التكرار'] || 'مرة واحدة')}</td>
+        <td><span class="badge ${badgeClass}">${escapeHtml(v['الحالة'])}</span></td>
+        <td class="td-trunc" style="max-width:200px;" title="${escapeHtml(v['ملاحظات'] || '')}">${escapeHtml(v['ملاحظات'] || '')}</td>
         <td>
           <div style="display:flex; gap:4px; align-items:center;">
             ${waButton}
