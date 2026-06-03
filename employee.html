@@ -555,17 +555,38 @@ async function init(){
     return;
   }
 
-  // 1️⃣ جلب الفرق والموظفين والعملاء والتقارير والمهام بالتوازي للتحميل الفوري
+  // 1️⃣ جلب الفرق والموظفين والعملاء والتقارير والمهام بالكامل للتحميل الفوري
   try {
-    const [tr, er, clR, repR, tskR, recR, taskTypesR] = await Promise.all([
-      apiFetch({action:'getTeams'}),
-      apiFetch({action:'getEmployees'}),
-      apiFetch({action:'getClients'}),
-      apiFetch({action:'getReports', empName: EMP_NAME}),
-      apiFetch({action:'getAssignedTasks'}),
-      apiFetch({action:'getRecurringTasks'}),
-      apiFetch({action:'getTaskTypes'})
-    ]);
+    let tr = { ok: false }, er = { ok: false }, clR = { ok: false }, repR = { ok: false }, tskR = { ok: false }, recR = { ok: false }, taskTypesR = { ok: false };
+    
+    try {
+      const initRes = await apiFetch({ action: 'getEmployeeInitData', empName: EMP_NAME });
+      if (initRes.ok && initRes.teams) {
+        tr = { ok: true, teams: initRes.teams };
+        er = { ok: true, employees: initRes.employees };
+        clR = { ok: true, clients: initRes.clients };
+        repR = { ok: true, rows: initRes.reports };
+        tskR = { ok: true, tasks: initRes.tasks };
+        recR = { ok: true, recurringTasks: initRes.recurringTasks };
+        taskTypesR = { ok: true, taskTypes: initRes.taskTypes };
+      }
+    } catch(err) {
+      console.warn("getEmployeeInitData failed, trying fallback parallel requests...", err);
+    }
+
+    if (!tr.ok) {
+      // Fallback
+      const [trF, erF, clRF, repRF, tskRF, recRF, taskTypesRF] = await Promise.all([
+        apiFetch({action:'getTeams'}),
+        apiFetch({action:'getEmployees'}),
+        apiFetch({action:'getClients'}),
+        apiFetch({action:'getReports', empName: EMP_NAME}),
+        apiFetch({action:'getAssignedTasks'}),
+        apiFetch({action:'getRecurringTasks'}),
+        apiFetch({action:'getTaskTypes'})
+      ]);
+      tr = trF; er = erF; clR = clRF; repR = repRF; tskR = tskRF; recR = recRF; taskTypesR = taskTypesRF;
+    }
 
     if (tr.ok && tr.teams) {
       globalTeamsList = tr.teams;
