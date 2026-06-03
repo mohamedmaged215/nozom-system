@@ -1249,6 +1249,7 @@ tr.row-has-note td:first-child {
             </tbody>
           </table>
         </div>
+        <div id="rep-pagination" style="display:flex; justify-content:center; align-items:center; gap:8px; margin-top:15px; padding:10px 0; direction: rtl;"></div>
       </div>
     </div>
 
@@ -2509,12 +2510,10 @@ function doLogout() {
 async function initDashboard() {
   document.getElementById('loading-overlay').style.display = 'flex';
   try {
-    const [teamsR, empsR, clientsR, reportsR, attendanceR, tasksR, visitsR, recurringR] = await Promise.all([
+    const [teamsR, empsR, clientsR, tasksR, visitsR, recurringR] = await Promise.all([
       apiFetch({ action: 'getTeams' }),
       apiFetch({ action: 'getEmployees' }),
       apiFetch(STATE.role === 'supervisor' ? { action: 'getClients', teamId: STATE.teamId } : { action: 'getClients' }),
-      apiFetch(STATE.role === 'supervisor' ? { action: 'getReports', teamId: STATE.teamId } : { action: 'getReports' }),
-      apiFetch(STATE.role === 'supervisor' ? { action: 'getAttendance', teamId: STATE.teamId } : { action: 'getAttendance' }),
       apiFetch(STATE.role === 'supervisor' ? { action: 'getAssignedTasks', teamId: STATE.teamId } : { action: 'getAssignedTasks' }),
       apiFetch(STATE.role === 'supervisor' ? { action: 'getVisits', teamId: STATE.teamId } : { action: 'getVisits' }),
       apiFetch(STATE.role === 'supervisor' ? { action: 'getRecurringTasks', teamId: STATE.teamId } : { action: 'getRecurringTasks' })
@@ -2523,8 +2522,8 @@ async function initDashboard() {
     if (teamsR.ok)   STATE.teams     = teamsR.teams || [];
     if (empsR.ok)    STATE.employees = empsR.employees || [];
     STATE.clients = parseClientsResponse(clientsR);
-    STATE.reports = reportsR.ok ? (reportsR.rows || []) : [];
-    STATE.attendance = attendanceR.ok ? (attendanceR.rows || []) : [];
+    STATE.reports = [];
+    STATE.attendance = [];
     STATE.tasks = tasksR.ok ? (tasksR.tasks || []) : [];
     STATE.visits = visitsR.ok ? (visitsR.visits || []) : [];
     STATE.recurringTasks = recurringR.ok ? (recurringR.recurringTasks || []) : [];
@@ -2669,7 +2668,7 @@ function populateEmpFilter(empSelId, teamSelId, savedVal) {
 // ══════════════════════════════════════════════════════
 // DASHBOARD
 // ══════════════════════════════════════════════════════
-function loadDashboard() {
+async function loadDashboard() {
   const from = document.getElementById('db-from').value;
   const to   = document.getElementById('db-to').value;
   const team = document.getElementById('db-team')?.value || STATE.teamId || '';
@@ -2677,17 +2676,28 @@ function loadDashboard() {
   // Get supervisor IDs
   const supervisorIds = (STATE.employees || []).filter(e => e['الدور'] === 'مشرف').map(e => String(e.id));
 
-  // 1. Filter reports (exclude supervisors, filter by date and team)
-  let repFiltered = (STATE.reports || []).filter(r => !supervisorIds.includes(String(r.emp_id)));
-  if (from) repFiltered = repFiltered.filter(r => r['التاريخ'] >= from);
-  if (to)   repFiltered = repFiltered.filter(r => r['التاريخ'] <= to);
-  if (team) repFiltered = repFiltered.filter(r => String(r.team_id) === String(team));
+  // Show loading indicators on KPIs
+  document.getElementById('kpi-hours').textContent  = '...';
+  document.getElementById('kpi-att').textContent    = '...';
+  document.getElementById('kpi-rep').textContent    = '...';
 
-  // 2. Filter attendance (exclude supervisors, filter by date and team)
-  let attFiltered = (STATE.attendance || []).filter(a => !supervisorIds.includes(String(a.emp_id)));
-  if (from) attFiltered = attFiltered.filter(a => a['التاريخ'] >= from);
-  if (to)   attFiltered = attFiltered.filter(a => a['التاريخ'] <= to);
-  if (team) attFiltered = attFiltered.filter(a => String(a.team_id) === String(team));
+  // Fetch reports and attendance for the selected date range dynamically
+  const [reportsR, attendanceR] = await Promise.all([
+    apiFetch(STATE.role === 'supervisor'
+      ? { action: 'getReports', teamId: STATE.teamId, dateFrom: from, dateTo: to }
+      : { action: 'getReports', teamId: team, dateFrom: from, dateTo: to }),
+    apiFetch(STATE.role === 'supervisor'
+      ? { action: 'getAttendance', teamId: STATE.teamId, dateFrom: from, dateTo: to }
+      : { action: 'getAttendance', teamId: team, dateFrom: from, dateTo: to })
+  ]);
+
+  // 1. Filter reports (exclude supervisors)
+  let repFiltered = reportsR.ok ? (reportsR.rows || []) : [];
+  repFiltered = repFiltered.filter(r => !supervisorIds.includes(String(r.emp_id)));
+
+  // 2. Filter attendance (exclude supervisors)
+  let attFiltered = attendanceR.ok ? (attendanceR.rows || []) : [];
+  attFiltered = attFiltered.filter(a => !supervisorIds.includes(String(a.emp_id)));
 
   // 3. Filter employees and teams
   let empFiltered = (STATE.employees || []).filter(e => e['نشط'] === 'نعم' && e['الدور'] !== 'مشرف');
@@ -2937,71 +2947,158 @@ function chartOpts(yLabel) {
 // ══════════════════════════════════════════════════════
 // REPORTS
 // ══════════════════════════════════════════════════════
-function loadReports() {
+let currentReportsPage = 1;
+
+async function loadReports(page = 1) {
+  currentReportsPage = page;
   const team   = document.getElementById('rep-team')?.value || STATE.teamId || '';
   const empId  = document.getElementById('rep-emp').value;
   const from   = document.getElementById('rep-from').value;
   const to     = document.getElementById('rep-to').value;
 
   const tbody = document.getElementById('rep-tbody');
+  const paginationContainer = document.getElementById('rep-pagination');
+  
   tbody.innerHTML = `<tr><td colspan="12"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
+  paginationContainer.innerHTML = '';
 
-  let rows = STATE.reports || [];
-  if (team)  rows = rows.filter(r => String(r.team_id) === String(team));
-  if (empId) rows = rows.filter(r => String(r.emp_id) === String(empId));
-  if (from)  rows = rows.filter(r => r['التاريخ'] >= from);
-  if (to)    rows = rows.filter(r => r['التاريخ'] <= to);
+  const params = {
+    action: 'getReports',
+    page: page,
+    limit: 25
+  };
+  if (team) params.teamId = team;
+  if (empId) params.empId = empId;
+  if (from) params.dateFrom = from;
+  if (to) params.dateTo = to;
 
-  document.getElementById('rep-count').textContent = `التقارير (${rows.length})`;
+  try {
+    const res = await apiFetch(params);
+    if (!res.ok) {
+      tbody.innerHTML = `<tr><td colspan="12"><div class="empty"><div class="empty-text">خطأ في جلب البيانات: ${res.error || ''}</div></div></td></tr>`;
+      return;
+    }
 
-  if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="12"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">لا توجد تقارير</div></div></td></tr>`;
-    return;
+    const rows = res.rows || [];
+    const totalCount = res.totalCount || 0;
+
+    document.getElementById('rep-count').textContent = `التقارير (${totalCount})`;
+
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="12"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">لا توجد تقارير</div></div></td></tr>`;
+      return;
+    }
+
+    const teamMap = {};
+    STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+
+    tbody.innerHTML = rows.map(r => {
+      const hasNoteClass = r['ملاحظات المشرف'] ? 'row-has-note' : '';
+      const noteText = r['ملاحظات المشرف'] || '';
+      const ratingVal = r['التقييم'] || '';
+      let starsHtml = ratingVal ? '⭐'.repeat(parseInt(ratingVal)) + ` (${ratingVal}/5)` : '<span style="color:var(--text3);">—</span>';
+      
+      const editBtn = (STATE.role === 'supervisor' || STATE.role === 'admin')
+        ? `<button class="btn btn-secondary btn-sm" onclick="openEditNoteModal('${r.id}')" style="padding:2px 6px; font-size:10px; flex-shrink: 0;" title="إضافة/تعديل ملاحظة وتقييم">📝</button>`
+        : '';
+
+      const recType = r['نوع التكرار'] || 'ذاتي';
+      const recBadge = recType === 'ذاتي' ? `<span style="color:var(--text3); font-size:11px;">ذاتي</span>` : `<span class="badge ${recType === 'يومي' ? 'badge-present' : (recType === 'أسبوعي' ? 'badge-leave' : (recType === 'شهري' ? 'badge-absent' : 'badge-holiday'))}" style="font-weight:600; font-size:10px;">${recType}</span>`;
+
+      return `
+        <tr class="${hasNoteClass}">
+          <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}')" title="اضغط لعرض الأداء الشهري">${r['اسم الموظف']||''}</strong></td>
+          <td><span style="font-size:11px;color:var(--text3)">${teamMap[r.team_id]||r.team_id||''}</span></td>
+          <td>${r['التاريخ']||''}</td>
+          <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(r['العميل'])}')" title="عرض تفاصيل العميل">${r['العميل']||''}</span></td>
+          <td>${r['نوع المهمة']||''}</td>
+          <td>${recBadge}</td>
+          <td>${r['من']||''}</td>
+          <td>${r['إلى']||''}</td>
+          <td><span style="color:var(--success);font-weight:600">${r['المدة']||''}</span></td>
+          <td class="td-trunc" title="${(r['وصف المهمة']||'').replace(/"/g,'&quot;')}">${r['وصف المهمة']||''}</td>
+          <td style="font-weight: 600; color: var(--accent-l); white-space: nowrap;">${starsHtml}</td>
+          <td>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; min-width: 140px;">
+              <span style="font-size:12px; color:var(--warning); font-weight:600; white-space: normal; word-break: break-word;">${noteText}</span>
+              ${editBtn}
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+
+    renderReportsPagination(totalCount, page);
+
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="12"><div class="empty"><div class="empty-text">فشل الاتصال بالخادم</div></div></td></tr>`;
   }
-  const teamMap = {};
-  STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
-
-  tbody.innerHTML = rows.map(r => {
-    const hasNoteClass = r['ملاحظات المشرف'] ? 'row-has-note' : '';
-    const noteText = r['ملاحظات المشرف'] || '';
-    const ratingVal = r['التقييم'] || '';
-    let starsHtml = ratingVal ? '⭐'.repeat(parseInt(ratingVal)) + ` (${ratingVal}/5)` : '<span style="color:var(--text3);">—</span>';
-    
-    const editBtn = (STATE.role === 'supervisor' || STATE.role === 'admin')
-      ? `<button class="btn btn-secondary btn-sm" onclick="openEditNoteModal('${r.id}')" style="padding:2px 6px; font-size:10px; flex-shrink: 0;" title="إضافة/تعديل ملاحظة وتقييم">📝</button>`
-      : '';
-
-    const recType = r['نوع التكرار'] || 'ذاتي';
-    const recBadge = recType === 'ذاتي' ? `<span style="color:var(--text3); font-size:11px;">ذاتي</span>` : `<span class="badge ${recType === 'يومي' ? 'badge-present' : (recType === 'أسبوعي' ? 'badge-leave' : (recType === 'شهري' ? 'badge-absent' : 'badge-holiday'))}" style="font-weight:600; font-size:10px;">${recType}</span>`;
-
-    return `
-      <tr class="${hasNoteClass}">
-        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}')" title="اضغط لعرض الأداء الشهري">${r['اسم الموظف']||''}</strong></td>
-        <td><span style="font-size:11px;color:var(--text3)">${teamMap[r.team_id]||r.team_id||''}</span></td>
-        <td>${r['التاريخ']||''}</td>
-        <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(r['العميل'])}')" title="عرض تفاصيل العميل">${r['العميل']||''}</span></td>
-        <td>${r['نوع المهمة']||''}</td>
-        <td>${recBadge}</td>
-        <td>${r['من']||''}</td>
-        <td>${r['إلى']||''}</td>
-        <td><span style="color:var(--success);font-weight:600">${r['المدة']||''}</span></td>
-        <td class="td-trunc" title="${(r['وصف المهمة']||'').replace(/"/g,'&quot;')}">${r['وصف المهمة']||''}</td>
-        <td style="font-weight: 600; color: var(--accent-l); white-space: nowrap;">${starsHtml}</td>
-        <td>
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; min-width: 140px;">
-            <span style="font-size:12px; color:var(--warning); font-weight:600; white-space: normal; word-break: break-word;">${noteText}</span>
-            ${editBtn}
-          </div>
-        </td>
-      </tr>`;
-  }).join('');
-
-  window._reportData = rows;
 }
 
-function exportReports() {
-  const data = window._reportData;
-  if (!data || !data.length) { showToast('لا توجد بيانات للتصدير'); return; }
+function renderReportsPagination(totalCount, currentPage) {
+  const paginationContainer = document.getElementById('rep-pagination');
+  if (!paginationContainer) return;
+
+  const totalPages = Math.ceil(totalCount / 25);
+  if (totalPages <= 1) {
+    paginationContainer.innerHTML = '';
+    return;
+  }
+
+  let html = '';
+  
+  html += `<button class="btn btn-secondary btn-sm" style="padding:4px 10px; font-size:11px; min-width:50px;" onclick="loadReports(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>السابق</button>`;
+
+  const startPage = Math.max(1, currentPage - 2);
+  const endPage = Math.min(totalPages, currentPage + 2);
+
+  if (startPage > 1) {
+    html += `<button class="btn btn-secondary btn-sm" style="padding:4px 10px; font-size:11px;" onclick="loadReports(1)">1</button>`;
+    if (startPage > 2) {
+      html += `<span style="color:var(--text3); padding:0 4px;">...</span>`;
+    }
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    const activeStyle = i === currentPage ? 'style="background:var(--accent); color:#fff; border-color:var(--accent); padding:4px 10px; font-size:11px;"' : 'style="padding:4px 10px; font-size:11px;"';
+    html += `<button class="btn btn-secondary btn-sm" ${activeStyle} onclick="loadReports(${i})">${i}</button>`;
+  }
+
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) {
+      html += `<span style="color:var(--text3); padding:0 4px;">...</span>`;
+    }
+    html += `<button class="btn btn-secondary btn-sm" style="padding:4px 10px; font-size:11px;" onclick="loadReports(${totalPages})">${totalPages}</button>`;
+  }
+
+  html += `<button class="btn btn-secondary btn-sm" style="padding:4px 10px; font-size:11px; min-width:50px;" onclick="loadReports(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>التالي</button>`;
+
+  html += `<span style="color:var(--text3); font-size:12px; margin-right:12px;">صفحة ${currentPage} من ${totalPages}</span>`;
+
+  paginationContainer.innerHTML = html;
+}
+
+async function exportReports() {
+  const team   = document.getElementById('rep-team')?.value || STATE.teamId || '';
+  const empId  = document.getElementById('rep-emp').value;
+  const from   = document.getElementById('rep-from').value;
+  const to     = document.getElementById('rep-to').value;
+
+  showToast('جاري تحضير البيانات للتصدير...', 'info');
+
+  const params = {
+    action: 'getReports'
+  };
+  if (team) params.teamId = team;
+  if (empId) params.empId = empId;
+  if (from) params.dateFrom = from;
+  if (to) params.dateTo = to;
+
+  const res = await apiFetch(params);
+  if (!res.ok || !res.rows || !res.rows.length) {
+    showToast('لا توجد بيانات لتصديرها للنطاق المحدد', 'error');
+    return;
+  }
+  const data = res.rows;
 
   const teamMap = {};
   STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
@@ -3674,21 +3771,32 @@ function renderClientsList() {
   }).join('');
 }
 
-function exportClientsDetailsExcel() {
+async function exportClientsDetailsExcel() {
   const dateFrom = document.getElementById('clients-filter-date-from')?.value || '';
   const dateTo = document.getElementById('clients-filter-date-to')?.value || '';
   
-  let reports = STATE.reports || [];
+  showToast('جاري جلب تقارير العملاء للتصدير...', 'info');
+  
+  const res = await apiFetch({
+    action: 'getReports',
+    dateFrom: dateFrom,
+    dateTo: dateTo
+  });
+  
+  if (!res.ok) {
+    showToast('فشل جلب البيانات للتصدير', 'error');
+    return;
+  }
+  
+  let reports = res.rows || [];
   let tasks = STATE.tasks || [];
   let visits = STATE.visits || [];
   
   if (dateFrom) {
-    reports = reports.filter(r => r['التاريخ'] && r['التاريخ'] >= dateFrom);
     tasks = tasks.filter(t => t['تاريخ الإسناد'] && t['تاريخ الإسناد'] >= dateFrom);
     visits = visits.filter(v => v['تاريخ الزيارة'] && v['تاريخ الزيارة'] >= dateFrom);
   }
   if (dateTo) {
-    reports = reports.filter(r => r['التاريخ'] && r['التاريخ'] <= dateTo);
     tasks = tasks.filter(t => t['تاريخ الإسناد'] && t['تاريخ الإسناد'] <= dateTo);
     visits = visits.filter(v => v['تاريخ الزيارة'] && v['تاريخ الزيارة'] <= dateTo);
   }
@@ -3975,12 +4083,10 @@ function updateInfoPanel() {
 // REFRESH
 // ══════════════════════════════════════════════════════
 async function refreshData() {
-  const [teamsR, empsR, clientsR, reportsR, attendanceR, tasksR, visitsR, recurringR, taskTypesR] = await Promise.all([
+  const [teamsR, empsR, clientsR, tasksR, visitsR, recurringR, taskTypesR] = await Promise.all([
     apiFetch({ action: 'getTeams' }),
     apiFetch({ action: 'getEmployees' }),
     apiFetch(STATE.role === 'supervisor' ? { action: 'getClients', teamId: STATE.teamId } : { action: 'getClients' }),
-    apiFetch(STATE.role === 'supervisor' ? { action: 'getReports', teamId: STATE.teamId } : { action: 'getReports' }),
-    apiFetch(STATE.role === 'supervisor' ? { action: 'getAttendance', teamId: STATE.teamId } : { action: 'getAttendance' }),
     apiFetch(STATE.role === 'supervisor' ? { action: 'getAssignedTasks', teamId: STATE.teamId } : { action: 'getAssignedTasks' }),
     apiFetch(STATE.role === 'supervisor' ? { action: 'getVisits', teamId: STATE.teamId } : { action: 'getVisits' }),
     apiFetch(STATE.role === 'supervisor' ? { action: 'getRecurringTasks', teamId: STATE.teamId } : { action: 'getRecurringTasks' }),
@@ -3989,8 +4095,8 @@ async function refreshData() {
   if (teamsR.ok)   STATE.teams     = teamsR.teams || [];
   if (empsR.ok)    STATE.employees = empsR.employees || [];
   STATE.clients = parseClientsResponse(clientsR);
-  STATE.reports = reportsR.ok ? (reportsR.rows || []) : [];
-  STATE.attendance = attendanceR.ok ? (attendanceR.rows || []) : [];
+  STATE.reports = [];
+  STATE.attendance = [];
   STATE.tasks = tasksR.ok ? (tasksR.tasks || []) : [];
   STATE.visits = visitsR.ok ? (visitsR.visits || []) : [];
   STATE.recurringTasks = recurringR.ok ? (recurringR.recurringTasks || []) : [];
@@ -4728,7 +4834,7 @@ function openEmployeePerformanceModalByName(empName) {
   }
 }
 
-function openEmployeePerformanceModal(empId, empName, teamId) {
+async function openEmployeePerformanceModal(empId, empName, teamId) {
   const empObj = STATE.employees.find(e => e.id === empId);
   const isSupervisor = empObj && empObj['الدور'] === 'مشرف';
 
@@ -4778,9 +4884,18 @@ function openEmployeePerformanceModal(empId, empName, teamId) {
   const firstDay = `${month}-01`;
   const lastDay = `${month}-31`;
   
-  // تصفية البيانات محلياً فوراً وبسرعة فائقة
-  const empReports = (STATE.reports || []).filter(r => String(r.emp_id) === String(empId) && r['التاريخ'] >= firstDay && r['التاريخ'] <= lastDay);
-  const empAttendance = (STATE.attendance || []).filter(a => String(a.emp_id) === String(empId) && a['التاريخ'].startsWith(month));
+  // تصفية البيانات ديناميكياً وجلبها من السيرفر
+  rTbody.innerHTML = `<tr><td colspan="${isSupervisor ? 6 : 7}" style="text-align:center; padding: 1.5rem 0;"><div class="spin" style="margin:auto"></div></td></tr>`;
+  aTbodyPresent.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 1.5rem 0;"><div class="spin" style="margin:auto"></div></td></tr>`;
+  aTbodyAbsent.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 1.5rem 0;"><div class="spin" style="margin:auto"></div></td></tr>`;
+
+  const [repRes, attRes] = await Promise.all([
+    apiFetch({ action: 'getReports', empId: empId, dateFrom: firstDay, dateTo: lastDay }),
+    apiFetch({ action: 'getAttendance', empId: empId, month: month })
+  ]);
+
+  const empReports = repRes.ok ? (repRes.rows || []) : [];
+  const empAttendance = attRes.ok ? (attRes.rows || []) : [];
   const empTasks = (STATE.tasks || []).filter(t => String(t.emp_id) === String(empId));
 
   let totalMinutes = 0;
@@ -5333,7 +5448,7 @@ function exportEmployeeProfileExcel() {
   }
 }
 
-function openClientDetailsModal(clientName) {
+async function openClientDetailsModal(clientName) {
   STATE.activeClientDetailsName = clientName;
   document.getElementById('client-details-title').textContent = `الملف المتكامل للعميل: ${clientName}`;
   const tbody = document.getElementById('cli-details-reports-tbody');
@@ -5348,14 +5463,17 @@ function openClientDetailsModal(clientName) {
   const dateFrom = document.getElementById('clients-filter-date-from')?.value || '';
   const dateTo = document.getElementById('clients-filter-date-to')?.value || '';
 
-  // 1. Process Reports (سجلات العمل)
-  let rows = (STATE.reports || []).filter(r => String(r['العميل']) === String(clientName));
-  if (dateFrom) {
-    rows = rows.filter(r => r['التاريخ'] && r['التاريخ'] >= dateFrom);
-  }
-  if (dateTo) {
-    rows = rows.filter(r => r['التاريخ'] && r['التاريخ'] <= dateTo);
-  }
+  // 1. Process Reports (سجلات العمل) - جلب ديناميكي عند الطلب من السيرفر
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 1.5rem 0;"><div class="spin" style="margin:auto"></div></td></tr>`;
+  
+  const res = await apiFetch({
+    action: 'getReports',
+    client: clientName,
+    dateFrom: dateFrom,
+    dateTo: dateTo
+  });
+  
+  let rows = res.ok ? (res.rows || []) : [];
 
   const teamMap = {};
   STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
