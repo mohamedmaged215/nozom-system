@@ -303,13 +303,14 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
       <div id="rec-tasks-detail-panel" style="display:none; border-top:1px solid var(--border-color); padding-top:15px; margin-top:15px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h4 id="active-rec-client-title" style="margin:0; font-size:13px; color:var(--accent-l); font-weight:700;">مهام شركة</h4>
-          <span id="active-week-badge" style="font-size:10px; background:var(--warning-s); color:var(--warning); padding:2px 8px; border-radius:10px; font-weight:600;">الأسبوع الحالي: ...</span>
         </div>
         
-        <div style="display: flex; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;" id="rec-task-tabs">
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; flex-wrap: wrap;" id="rec-task-tabs">
           <button id="rec-tab-daily-btn" class="btn btn-sm" style="flex:1; justify-content:center; font-size:11px;" onclick="switchRecTab('daily')">يومية</button>
           <button id="rec-tab-weekly-btn" class="btn btn-sm" style="flex:1; justify-content:center; font-size:11px;" onclick="switchRecTab('weekly')">أسبوعية</button>
           <button id="rec-tab-monthly-btn" class="btn btn-sm" style="flex:1; justify-content:center; font-size:11px;" onclick="switchRecTab('monthly')">شهرية</button>
+          <button id="rec-tab-quarterly-btn" class="btn btn-sm" style="flex:1; justify-content:center; font-size:11px;" onclick="switchRecTab('quarterly')">ربع سنوية</button>
+          <button id="rec-tab-yearly-btn" class="btn btn-sm" style="flex:1; justify-content:center; font-size:11px;" onclick="switchRecTab('yearly')">سنوية</button>
         </div>
         
         <div id="rec-tasks-sub-container" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px;">
@@ -396,13 +397,21 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
       <div class="client-wrap">
         <input type="text" id="sup-manual-client" placeholder="ابحث أو اكتب اسم العميل..." list="sup-manual-clients-dl">
         <datalist id="sup-manual-clients-dl"></datalist>
+        <datalist id="global-task-types-dl"></datalist>
         <button class="btn-add-client" onclick="openAddClient('sup-manual')">+</button>
       </div>
     </div>
 
     <div class="field-group" style="margin-bottom: 12px;">
-      <label>نوع المهمة</label>
-      <select id="sup-manual-type"><option value="">اختر نوع المهمة</option></select>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <label>نوع المهمة</label>
+        <div style="display:flex; gap:4px; align-items:center;">
+          <button type="button" class="btn btn-sm btn-primary" style="height:18px; width:18px; padding:0; font-size:10px; display:flex; align-items:center; justify-content:center; border-radius:3px; background:var(--accent);" onclick="promptAddTaskTypeEmployee()">+</button>
+          <button type="button" class="btn btn-sm btn-danger" style="height:18px; width:18px; padding:0; font-size:10px; display:flex; align-items:center; justify-content:center; border-radius:3px; background:var(--danger-s); color:var(--danger); border:1px solid rgba(248,113,113,0.2);" onclick="promptDeleteTaskTypeEmployee()">✕</button>
+        </div>
+      </div>
+      <input type="text" id="sup-manual-type" placeholder="اختر أو ابحث..." list="sup-manual-type-dl" style="width:100%;">
+      <datalist id="sup-manual-type-dl"></datalist>
     </div>
 
     <div class="field-group">
@@ -475,7 +484,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
 const API = 'https://script.google.com/macros/s/AKfycbzgYKZQiepr-XJwn928zSTpUnWFznF8SLi4ENwNOCmql6280H2zr3mPh3QumHErifWUWQ/exec';
 const HOURS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 const MINS  = ['00','05','10','15','20','25','30','35','40','45','50','55'];
-const TASK_TYPES = ['مبيعات','مشتريات','بنوك','تسجيلات','إقفالات شهرية','إقفالات سنوية','تقارير','إقرارات شهرية','إقرارات ربع سنوية','تفريغ','قوائم مالية','متابعة عملاء يومية','اجتماع','اجتماع العمل الأسبوعي','أمور تقنية','إضافي'];
+let TASK_TYPES = ['مبيعات','مشتريات','بنوك','تسجيلات','إقفالات شهرية','إقفالات سنوية','تقارير','إقرارات شهرية','إقرارات ربع سنوية','تفريغ','قوائم مالية','متابعة عملاء يومية','اجتماع','اجتماع العمل الأسبوعي','أمور تقنية','إضافي'];
 
 const DEFAULT_CLIENTS = [
   'مطعم جبنة حلوم لتقديم الوجبات',
@@ -511,6 +520,7 @@ let STATE = { reports: [], tasks: [], clients: [], visits: [] };
 let EMP_ID='', EMP_NAME='', TEAM_ID='';
 let clients=[], taskIds=[], taskCounter=0, activeClientTaskId=null;
 let completedTasksMap={};
+let completedRecTasksMap={};
 let activeSupTaskId=null;
 let currentSupRole='موظف';
 let globalTeamsList = [];
@@ -521,6 +531,17 @@ const getLocalMonthString = (d = new Date()) => `${d.getFullYear()}-${String(d.g
 
 async function apiFetch(p){const r=await fetch(API+'?'+new URLSearchParams(p));return r.json();}
 async function apiPost(a,d){const r=await fetch(API,{method:'POST',body:JSON.stringify({action:a,...d})});return r.json();}
+
+function populateTaskTypes() {
+  const globalDl = document.getElementById('global-task-types-dl');
+  if (globalDl) {
+    globalDl.innerHTML = TASK_TYPES.map(t => `<option value="${t}">${t}</option>`).join('');
+  }
+  const supDl = document.getElementById('sup-manual-type-dl');
+  if (supDl) {
+    supDl.innerHTML = TASK_TYPES.map(t => `<option value="${t}">${t}</option>`).join('');
+  }
+}
 
 async function init(){
   const p=new URLSearchParams(window.location.search);
@@ -536,13 +557,14 @@ async function init(){
 
   // 1️⃣ جلب الفرق والموظفين والعملاء والتقارير والمهام بالتوازي للتحميل الفوري
   try {
-    const [tr, er, clR, repR, tskR, recR] = await Promise.all([
+    const [tr, er, clR, repR, tskR, recR, taskTypesR] = await Promise.all([
       apiFetch({action:'getTeams'}),
       apiFetch({action:'getEmployees'}),
       apiFetch({action:'getClients'}),
       apiFetch({action:'getReports', empName: EMP_NAME}),
       apiFetch({action:'getAssignedTasks'}),
-      apiFetch({action:'getRecurringTasks'})
+      apiFetch({action:'getRecurringTasks'}),
+      apiFetch({action:'getTaskTypes'})
     ]);
 
     if (tr.ok && tr.teams) {
@@ -558,6 +580,10 @@ async function init(){
     STATE.reports = repR.ok ? (repR.rows || []) : [];
     STATE.tasks = tskR.ok ? (tskR.tasks || []) : [];
     STATE.recurringTasks = recR.ok ? (recR.recurringTasks || []) : [];
+    if (taskTypesR && taskTypesR.ok) {
+      TASK_TYPES = taskTypesR.taskTypes || [];
+      populateTaskTypes();
+    }
   } catch(e) {
     console.error("Failed to load initial teams/employees:", e);
   }
@@ -679,6 +705,7 @@ async function onTeamSwitch() {
     taskIds = [];
     taskCounter = 0;
     completedTasksMap = {};
+    completedRecTasksMap = {};
 
     // إخفاء أو إظهار لوحة المشرف والعادي
     if (role === 'مشرف') {
@@ -761,18 +788,18 @@ function checkExistingReport(){
   const matchingReports = (STATE.reports || []).filter(r => String(r.emp_id) === String(EMP_ID) && r['التاريخ'] === date);
   if(matchingReports.length > 0){
     const b=document.getElementById('period-banner');
-    document.getElementById('period-text').textContent=`يوجد تقرير مُرسَل مسبقاً ليوم ${date} (${matchingReports.length} مهام) — يمكنك الإضافة التراكمية عليه أو استبداله بالكامل.`;
+    document.getElementById('period-text').textContent=`لديك تقارير مرسلة بالفعل لهذا اليوم ${date} (${matchingReports.length} مهام) - سيتم الإضافة للتكليفات الإضافية بدلاً من الاستبدال بالكامل.`;
     b.style.display='flex';
   } else {
     document.getElementById('period-banner').style.display='none';
   }
+  initEmployeeRecurringTasks();
 }
 
 function addTask(){
   const id=++taskCounter; taskIds.push(id);
   const hoursOpts=HOURS.map(h=>`<option value="${h}" label="${h}">${h}</option>`).join('');
   const minsOpts=MINS.map(m=>`<option value="${m}">${m}</option>`).join('');
-  const typesOpts=TASK_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('');
   const dlOpts=clients.map(c=>`<option value="${c}">`).join('');
   const card=document.createElement('div');
   card.className='task-card'; card.id=`task-${id}`;
@@ -798,7 +825,7 @@ function addTask(){
       </div>
       <div class="field-group">
         <label>نوع المهمة</label>
-        <select id="tasktype-${id}"><option value="">اختر النوع</option>${typesOpts}</select>
+        <input type="text" id="tasktype-${id}" placeholder="اختر أو ابحث..." list="global-task-types-dl" style="width:100%;">
       </div>
     </div>
     <div class="grid2">
@@ -865,6 +892,10 @@ function removeTask(id){
     const el = document.getElementById(`assigned-task-card-${taskId}`);
     if (el) el.style.display = 'block';
     delete completedTasksMap[id];
+  }
+  if (completedRecTasksMap[id]) {
+    delete completedRecTasksMap[id];
+    initEmployeeRecurringTasks();
   }
   calcTotal(); updateStats();
   updateRemoveButtons();
@@ -1116,8 +1147,10 @@ async function submitReport(appendOverride){
   taskIds = [];
   taskCounter = 0;
   completedTasksMap = {};
+  completedRecTasksMap = {};
   document.getElementById('assigned-tasks-section').style.display = 'none';
   addTask();
+  initEmployeeRecurringTasks();
 
   btn.disabled=false;
   btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg> إرسال التقرير';
@@ -1265,12 +1298,75 @@ function importAssignedTask(taskId, client, tasktype, desc) {
 let activeRecClient = '';
 let activeRecTab = 'daily';
 
-function getCurrentWeekOfMonth() {
-  const day = new Date().getDate();
-  if (day <= 7) return 'الأسبوع الأول';
-  if (day <= 14) return 'الأسبوع الثاني';
-  if (day <= 21) return 'الأسبوع الثالث';
-  return 'الأسبوع الرابع';
+function parseDateLocal(dateStr) {
+  if (!dateStr) return new Date();
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return new Date();
+  return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+}
+
+function isSameDay(d1, d2) {
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getDate() === d2.getDate();
+}
+
+function getStartOfWeek(date) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = d.getDay();
+  d.setDate(d.getDate() - day);
+  return d;
+}
+
+function isSameWeek(d1, d2) {
+  const w1 = getStartOfWeek(d1);
+  const w2 = getStartOfWeek(d2);
+  return w1.getFullYear() === w2.getFullYear() &&
+         w1.getMonth() === w2.getMonth() &&
+         w1.getDate() === w2.getDate();
+}
+
+function isSameMonth(d1, d2) {
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth();
+}
+
+function getQuarter(date) {
+  return Math.floor(date.getMonth() / 3) + 1;
+}
+
+function isSameQuarter(d1, d2) {
+  return d1.getFullYear() === d2.getFullYear() &&
+         getQuarter(d1) === getQuarter(d2);
+}
+
+function isSameYear(d1, d2) {
+  return d1.getFullYear() === d2.getFullYear();
+}
+
+function isRecurringTaskCompleted(t, reports, selectedDate) {
+  const dSelected = parseDateLocal(selectedDate);
+  const taskReports = reports.filter(r => 
+    String(r.emp_id) === String(EMP_ID) && 
+    String(r.task_id) === String(t.id) &&
+    r['التاريخ']
+  );
+  
+  for (let i = 0; i < taskReports.length; i++) {
+    const rDate = parseDateLocal(taskReports[i]['التاريخ']);
+    if (t['التكرار'] === 'يومي') {
+      if (isSameDay(dSelected, rDate)) return true;
+    } else if (t['التكرار'] === 'أسبوعي') {
+      if (isSameWeek(dSelected, rDate)) return true;
+    } else if (t['التكرار'] === 'شهري') {
+      if (isSameMonth(dSelected, rDate)) return true;
+    } else if (t['التكرار'] === 'ربع سنوي') {
+      if (isSameQuarter(dSelected, rDate)) return true;
+    } else if (t['التكرار'] === 'سنوي') {
+      if (isSameYear(dSelected, rDate)) return true;
+    }
+  }
+  return false;
 }
 
 function initEmployeeRecurringTasks() {
@@ -1279,8 +1375,15 @@ function initEmployeeRecurringTasks() {
   const detailPanel = document.getElementById('rec-tasks-detail-panel');
   if (!cardsContainer || !placeholder || !detailPanel) return;
 
-  // فلترة المهام الدورية الخاصة بهذا الموظف فقط
-  const myRecTasks = (STATE.recurringTasks || []).filter(t => String(t.emp_id) === String(EMP_ID));
+  const selectedDate = document.getElementById('report-date').value;
+  const draftTaskIds = Object.values(completedRecTasksMap).map(item => item.taskId);
+
+  // فلترة المهام الدورية الخاصة بهذا الموظف فقط مع استبعاد المنجز والمسودة
+  const myRecTasks = (STATE.recurringTasks || []).filter(t => 
+    String(t.emp_id) === String(EMP_ID) &&
+    !draftTaskIds.includes(t.id) &&
+    !isRecurringTaskCompleted(t, STATE.reports || [], selectedDate)
+  );
   
   // استخراج أسماء الشركات التي لديها مهام فقط
   const clientsWithTasks = [...new Set(myRecTasks.map(t => t['العميل']))].filter(Boolean);
@@ -1299,13 +1402,13 @@ function initEmployeeRecurringTasks() {
     const taskCount = myRecTasks.filter(t => t['العميل'] === clientName).length;
     const isSelected = clientName === activeRecClient;
     const activeBorder = isSelected 
-      ? 'border:1.5px solid var(--accent); background:rgba(139,92,246,0.15); box-shadow: 0 0 10px rgba(139,92,246,0.3); font-weight:700;' 
-      : 'border:1px solid rgba(255,255,255,0.08); background:var(--bg-main); font-weight:500;';
+      ? 'border:1.5px solid var(--accent); background:rgba(212,112,59,0.15); box-shadow: 0 0 10px rgba(212,112,59,0.3); font-weight:700;' 
+      : 'border:1px solid rgba(255,255,255,0.08); background:var(--bg2); font-weight:500;';
     
     return `
       <div class="client-capsule" style="padding:8px 14px; border-radius:30px; cursor:pointer; font-size:12px; transition:all 0.25s ease; color:var(--text); ${activeBorder} display:flex; align-items:center; gap:6px;" onclick="selectRecClient(\`${escapeHtml(clientName)}\`)">
         <span>${escapeHtml(clientName)}</span>
-        <span style="font-size:10px; background:var(--accent-s); color:var(--accent); padding:1px 6px; border-radius:20px; font-weight:600;">${taskCount}</span>
+        <span style="font-size:10px; background:var(--accent-s); color:var(--accent-l); padding:1px 6px; border-radius:20px; font-weight:600;">${taskCount}</span>
       </div>
     `;
   }).join('');
@@ -1314,7 +1417,7 @@ function initEmployeeRecurringTasks() {
     detailPanel.style.display = 'block';
     renderEmployeeRecurringTasks();
   } else {
-    // اختيار أول شركة افتراضياً
+    // اختيار أول شركة تحتوي على مهام
     selectRecClient(clientsWithTasks[0]);
   }
 }
@@ -1322,8 +1425,16 @@ function initEmployeeRecurringTasks() {
 function selectRecClient(clientName) {
   activeRecClient = clientName;
   
+  const selectedDate = document.getElementById('report-date').value;
+  const draftTaskIds = Object.values(completedRecTasksMap).map(item => item.taskId);
+
   // إعادة بناء الكروت لتحديث التحديد البصري النشط بدون إيموجي
-  const myRecTasks = (STATE.recurringTasks || []).filter(t => String(t.emp_id) === String(EMP_ID));
+  const myRecTasks = (STATE.recurringTasks || []).filter(t => 
+    String(t.emp_id) === String(EMP_ID) &&
+    !draftTaskIds.includes(t.id) &&
+    !isRecurringTaskCompleted(t, STATE.reports || [], selectedDate)
+  );
+  
   const clientsWithTasks = [...new Set(myRecTasks.map(t => t['العميل']))].filter(Boolean);
   const cardsContainer = document.getElementById('rec-client-cards-container');
   if (cardsContainer) {
@@ -1331,13 +1442,13 @@ function selectRecClient(clientName) {
       const taskCount = myRecTasks.filter(t => t['العميل'] === c).length;
       const isSelected = c === clientName;
       const activeBorder = isSelected 
-        ? 'border:1.5px solid var(--accent); background:rgba(139,92,246,0.15); box-shadow: 0 0 10px rgba(139,92,246,0.3); font-weight:700;' 
-        : 'border:1px solid rgba(255,255,255,0.08); background:var(--bg-main); font-weight:500;';
+        ? 'border:1.5px solid var(--accent); background:rgba(212,112,59,0.15); box-shadow: 0 0 10px rgba(212,112,59,0.3); font-weight:700;' 
+        : 'border:1px solid rgba(255,255,255,0.08); background:var(--bg2); font-weight:500;';
       
       return `
         <div class="client-capsule" style="padding:8px 14px; border-radius:30px; cursor:pointer; font-size:12px; transition:all 0.25s ease; color:var(--text); ${activeBorder} display:flex; align-items:center; gap:6px;" onclick="selectRecClient(\`${escapeHtml(c)}\`)">
           <span>${escapeHtml(c)}</span>
-          <span style="font-size:10px; background:var(--accent-s); color:var(--accent); padding:1px 6px; border-radius:20px; font-weight:600;">${taskCount}</span>
+          <span style="font-size:10px; background:var(--accent-s); color:var(--accent-l); padding:1px 6px; border-radius:20px; font-weight:600;">${taskCount}</span>
         </div>
       `;
     }).join('');
@@ -1349,9 +1460,6 @@ function selectRecClient(clientName) {
 
   const titleEl = document.getElementById('active-rec-client-title');
   if (titleEl) titleEl.textContent = `مهام شركة / عميل: ${clientName}`;
-
-  const weekBadge = document.getElementById('active-week-badge');
-  if (weekBadge) weekBadge.textContent = `الأسبوع الحالي: ${getCurrentWeekOfMonth()}`;
 
   // تصفية وعرض المهام
   renderEmployeeRecurringTasks();
@@ -1366,18 +1474,29 @@ function renderEmployeeRecurringTasks() {
   const container = document.getElementById('rec-tasks-sub-container');
   if (!container || !activeRecClient) return;
 
-  const myRecTasks = (STATE.recurringTasks || []).filter(t => String(t.emp_id) === String(EMP_ID) && t['العميل'] === activeRecClient);
-  const currentWeek = getCurrentWeekOfMonth();
+  const selectedDate = document.getElementById('report-date').value;
+  const draftTaskIds = Object.values(completedRecTasksMap).map(item => item.taskId);
+
+  const myRecTasks = (STATE.recurringTasks || []).filter(t => 
+    String(t.emp_id) === String(EMP_ID) && 
+    t['العميل'] === activeRecClient &&
+    !draftTaskIds.includes(t.id) &&
+    !isRecurringTaskCompleted(t, STATE.reports || [], selectedDate)
+  );
 
   // حساب العدادات لكل تصنيف وتحديث التبويبات ديناميكياً
   const dailyCount = myRecTasks.filter(t => t['التكرار'] === 'يومي').length;
   const weeklyCount = myRecTasks.filter(t => t['التكرار'] === 'أسبوعي').length;
   const monthlyCount = myRecTasks.filter(t => t['التكرار'] === 'شهري').length;
+  const quarterlyCount = myRecTasks.filter(t => t['التكرار'] === 'ربع سنوي').length;
+  const yearlyCount = myRecTasks.filter(t => t['التكرار'] === 'سنوي').length;
 
   const tabsConfig = [
     { key: 'daily', label: 'يومية', count: dailyCount },
     { key: 'weekly', label: 'أسبوعية', count: weeklyCount },
-    { key: 'monthly', label: 'شهرية', count: monthlyCount }
+    { key: 'monthly', label: 'شهرية', count: monthlyCount },
+    { key: 'quarterly', label: 'ربع سنوية', count: quarterlyCount },
+    { key: 'yearly', label: 'سنوية', count: yearlyCount }
   ];
 
   tabsConfig.forEach(t => {
@@ -1385,15 +1504,15 @@ function renderEmployeeRecurringTasks() {
     if (btn) {
       btn.textContent = `${t.label} (${t.count})`;
       if (t.key === activeRecTab) {
-        btn.className = 'btn btn-sm btn-primary';
-        btn.style.background = '';
-        btn.style.color = '';
-        btn.style.border = '';
+        btn.className = 'btn btn-sm btn-submit';
+        btn.style.background = 'var(--accent)';
+        btn.style.color = '#fff';
+        btn.style.border = 'none';
       } else {
         btn.className = 'btn btn-sm btn-secondary';
         btn.style.background = 'transparent';
         btn.style.color = 'var(--text2)';
-        btn.style.border = '1px solid var(--border-color)';
+        btn.style.border = '1px solid var(--border)';
       }
     }
   });
@@ -1403,38 +1522,30 @@ function renderEmployeeRecurringTasks() {
     filtered = myRecTasks.filter(t => t['التكرار'] === 'يومي');
   } else if (activeRecTab === 'weekly') {
     filtered = myRecTasks.filter(t => t['التكرار'] === 'أسبوعي');
-  } else {
+  } else if (activeRecTab === 'monthly') {
     filtered = myRecTasks.filter(t => t['التكرار'] === 'شهري');
+  } else if (activeRecTab === 'quarterly') {
+    filtered = myRecTasks.filter(t => t['التكرار'] === 'ربع سنوي');
+  } else if (activeRecTab === 'yearly') {
+    filtered = myRecTasks.filter(t => t['التكرار'] === 'سنوي');
   }
 
   if (filtered.length === 0) {
-    const typeLabel = activeRecTab === 'daily' ? 'يومية' : (activeRecTab === 'weekly' ? 'أسبوعية' : 'شهرية');
-    container.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; padding:1rem; color:var(--text3); font-size:12px;">لا توجد مهام دورية ${typeLabel} لهذه الشركة</div>`;
+    const typeLabel = activeRecTab === 'daily' ? 'يومية' : (activeRecTab === 'weekly' ? 'أسبوعية' : (activeRecTab === 'monthly' ? 'شهرية' : (activeRecTab === 'quarterly' ? 'ربع سنوية' : 'سنوية')));
+    container.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; padding:1rem; color:var(--text3); font-size:12px;">لا توجد مهام دورية ${typeLabel} متبقية لهذه الشركة للفترة الحالية</div>`;
     return;
   }
 
   container.innerHTML = filtered.map(t => {
-    const isCurrentWeek = activeRecTab === 'weekly' && t['الأسبوع'] === currentWeek;
-    
-    // تمييز بصري ذهبي متوهج للأسبوع التقويمي الحالي
-    const cardStyle = isCurrentWeek
-      ? 'border:1.5px solid var(--warning); background:rgba(251,191,36,0.06); box-shadow: 0 0 12px rgba(251,191,36,0.15);'
-      : 'border:1px solid rgba(255,255,255,0.05); background:var(--bg4);';
-
-    const weekPill = t['الأسبوع']
-      ? `<span style="font-size:10px; background:${isCurrentWeek ? 'var(--warning-s)' : 'var(--border-color)'}; color:${isCurrentWeek ? 'var(--warning)' : 'var(--text3)'}; padding:2px 8px; border-radius:10px; font-weight:600; margin-left:auto;">${t['الأسبوع']}</span>`
-      : '';
-
     return `
-      <div class="task-card" style="margin-bottom:0; padding:12px; transition:all 0.2s ease; ${cardStyle}">
+      <div class="task-card" style="margin-bottom:0; padding:12px; border:1px solid rgba(255,255,255,0.05); background:var(--bg2);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <span style="font-size:10px; background:var(--accent-s); color:var(--accent); padding:2px 8px; border-radius:10px; font-weight:600;">${t['نوع المهمة']}</span>
-          ${weekPill}
+          <span style="font-size:10px; background:var(--accent-s); color:var(--accent-l); padding:2px 8px; border-radius:10px; font-weight:600;">${t['نوع المهمة']}</span>
         </div>
         <div style="font-size:12px; color:var(--text); margin-bottom:10px; line-height:1.4; font-weight:500;">
           ${escapeHtml(t['وصف المهمة']) || 'مهمة دورية ثابتة'}
         </div>
-        <button class="btn btn-primary btn-sm" style="width:100%; justify-content:center; padding:6px; font-size:11.5px; background:var(--accent-s); color:var(--accent); border:1px solid rgba(139,92,246,0.15);" onclick="importRecurringTask(\`${escapeHtml(t['العميل'])}\`, \`${escapeHtml(t['نوع المهمة'])}\`, \`${escapeHtml(t['وصف المهمة'])}\`)">
+        <button class="btn btn-primary btn-sm" style="width:100%; justify-content:center; padding:6px; font-size:11.5px; background:var(--accent-s); color:var(--accent-l); border:1px solid rgba(212,112,59,0.15);" onclick="importRecurringTask(\`${escapeHtml(t.id)}\`, \`${escapeHtml(t['التكرار'])}\`, \`${escapeHtml(t['العميل'])}\`, \`${escapeHtml(t['نوع المهمة'])}\`, \`${escapeHtml(t['وصف المهمة'])}\`)">
           إضافة لتقريري اليومي
         </button>
       </div>
@@ -1442,7 +1553,7 @@ function renderEmployeeRecurringTasks() {
   }).join('');
 }
 
-function importRecurringTask(client, tasktype, desc) {
+function importRecurringTask(taskId, recurrence, client, tasktype, desc) {
   let id = taskCounter;
   let reused = false;
   
@@ -1462,19 +1573,18 @@ function importRecurringTask(client, tasktype, desc) {
     id = taskCounter;
   }
 
-  // تعبئة المدخلات فوراً وبشكل صامت
-  const clientInput = document.getElementById(`client-${id}`);
-  const typeSelect = document.getElementById(`tasktype-${id}`);
-  const descInput = document.getElementById(`desc-${id}`);
-
-  if (clientInput) clientInput.value = client;
-  if (typeSelect) typeSelect.value = tasktype;
-  if (descInput) descInput.value = desc;
-
-  // تحديث الإحصائيات العامة فوراً
+  // تعبئة البيانات بالقيم
+  document.getElementById(`client-${id}`).value = client;
+  document.getElementById(`tasktype-${id}`).value = tasktype;
+  document.getElementById(`desc-${id}`).value = desc;
+  
+  // ربط بطاقة التقرير مع المهمة الدورية المستوردة
+  completedRecTasksMap[id] = { taskId, recurrence };
+  
+  // إخفاء بطاقة المهمة الدورية مؤقتاً وتقليل العدادات
+  initEmployeeRecurringTasks();
+  
   updateStats();
-  calcTotal();
-
   showToast('تم إدراج المهمة الدورية لتقرير اليوم بنجاح! حدد الوقت الفعلي فقط.', 'success');
 }
 
@@ -1704,9 +1814,10 @@ async function quietRefreshSupervisorData() {
 
 async function quietRefreshEmployeeTasks() {
   try {
-    const [tr, recR] = await Promise.all([
+    const [tr, recR, taskTypesR] = await Promise.all([
       apiFetch({ action: 'getAssignedTasks', empId: EMP_ID, status: 'معلقة' }),
-      apiFetch({ action: 'getRecurringTasks' })
+      apiFetch({ action: 'getRecurringTasks' }),
+      apiFetch({ action: 'getTaskTypes' })
     ]);
     if (tr.ok && tr.tasks) {
       STATE.tasks = STATE.tasks.filter(t => String(t.emp_id) !== String(EMP_ID)).concat(tr.tasks);
@@ -1716,6 +1827,10 @@ async function quietRefreshEmployeeTasks() {
     if (recR.ok && recR.recurringTasks) {
       STATE.recurringTasks = recR.recurringTasks;
       initEmployeeRecurringTasks();
+    }
+    if (taskTypesR && taskTypesR.ok) {
+      TASK_TYPES = taskTypesR.taskTypes || [];
+      populateTaskTypes();
     }
   } catch(e) {}
 }
@@ -1841,18 +1956,75 @@ async function submitSupTaskCompletion() {
     showToast('تم التسجيل محلياً، جاري المزامنة في الخلفية', 'success');
   }
   btn.disabled = false;
-  btn.textContent = 'تأكيد الإتمام';
+  btn.textContent = 'تأكيد إتمام التكليف';
+}
+async function promptAddTaskTypeEmployee() {
+  if (currentSupRole !== 'مشرف') {
+    showToast('هذه الصلاحية للمشرفين والمدراء فقط', 'error');
+    return;
+  }
+  const name = prompt("أدخل اسم نوع المهمة الجديد الذي ترغب في إضافته:");
+  if (!name || !name.trim()) return;
+  
+  showToast("جاري إضافة نوع المهمة...", "info");
+  
+  try {
+    const r = await apiPost('addTaskType', { name: name.trim() });
+    if (r.ok) {
+      showToast(r.message || "تمت الإضافة بنجاح!", "success");
+      if (r.taskTypes) {
+        TASK_TYPES = r.taskTypes;
+        populateTaskTypes();
+      }
+      quietRefreshEmployeeTasks();
+    } else {
+      showToast(r.error || "خطأ أثناء الإضافة", "error");
+    }
+  } catch(e) {
+    showToast("فشل الاتصال بالخادم", "error");
+  }
+}
+
+async function promptDeleteTaskTypeEmployee() {
+  if (currentSupRole !== 'مشرف') {
+    showToast('هذه الصلاحية للمشرفين والمدراء فقط', 'error');
+    return;
+  }
+  const selectEl = document.getElementById('sup-manual-type');
+  const selectedType = selectEl.value;
+  if (!selectedType) {
+    showToast("الرجاء تحديد نوع المهمة من القائمة أولاً لحذفها", "error");
+    return;
+  }
+  
+  const ok = confirm(`هل تريد حذف نوع المهمة "${selectedType}" نهائياً من النظام؟`);
+  if (!ok) return;
+  
+  showToast("جاري حذف نوع المهمة...", "info");
+  
+  try {
+    const r = await apiPost('deleteTaskType', { name: selectedType });
+    if (r.ok) {
+      showToast(r.message || "تم الحذف بنجاح!", "success");
+      if (r.taskTypes) {
+        TASK_TYPES = r.taskTypes;
+        populateTaskTypes();
+        document.getElementById('sup-manual-type').value = '';
+      }
+      quietRefreshEmployeeTasks();
+    } else {
+      showToast(r.error || "خطأ أثناء الحذف", "error");
+    }
+  } catch(e) {
+    showToast("فشل الاتصال بالخادم", "error");
+  }
 }
 
 function openSupManualTaskModal() {
   document.getElementById('sup-manual-client').value = '';
   document.getElementById('sup-manual-desc').value = '';
   
-  const typeSel = document.getElementById('sup-manual-type');
-  typeSel.innerHTML = '<option value="">اختر نوع المهمة</option>';
-  TASK_TYPES.forEach(t => {
-    typeSel.innerHTML += `<option value="${t}">${t}</option>`;
-  });
+  populateTaskTypes();
   
   const dl = document.getElementById('sup-manual-clients-dl');
   dl.innerHTML = clients.map(c => `<option value="${c}">`).join('');
