@@ -1235,6 +1235,7 @@ tr.row-has-note td:first-child {
                 <th>التاريخ</th>
                 <th>العميل</th>
                 <th>نوع المهمة</th>
+                <th>نوع التكرار</th>
                 <th>من</th>
                 <th>إلى</th>
                 <th>المدة</th>
@@ -1244,7 +1245,7 @@ tr.row-has-note td:first-child {
               </tr>
             </thead>
             <tbody id="rep-tbody">
-              <tr><td colspan="9"><div class="empty"><div class="empty-text">اضغط بحث لعرض التقارير</div></div></td></tr>
+              <tr><td colspan="12"><div class="empty"><div class="empty-text">اضغط بحث لعرض التقارير</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -1324,10 +1325,17 @@ tr.row-has-note td:first-child {
                   <label style="font-size:11px; color:var(--text3); font-weight:600;">العميل</label>
                   <input type="text" id="task-assign-client" placeholder="اكتب أو ابحث..." list="task-assign-clients-dl">
                   <datalist id="task-assign-clients-dl"></datalist>
+                  <datalist id="global-task-types-dl"></datalist>
                 </div>
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
-                  <label style="font-size:11px; color:var(--text3); font-weight:600;">نوع المهمة</label>
-                  <select id="task-assign-type" style="width:100%;"><option value="">اختر نوع المهمة</option></select>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <label style="font-size:11px; color:var(--text3); font-weight:600;">نوع المهمة</label>
+                    <div style="display:flex; gap:4px; align-items:center;">
+                      <button type="button" class="btn btn-sm btn-primary" style="height:18px; width:18px; padding:0; font-size:10px; display:flex; align-items:center; justify-content:center; border-radius:3px; background:var(--accent);" onclick="promptAddTaskType()">+</button>
+                      <button type="button" class="btn btn-sm btn-danger" style="height:18px; width:18px; padding:0; font-size:10px; display:flex; align-items:center; justify-content:center; border-radius:3px; background:var(--danger-s); color:var(--danger); border:1px solid rgba(248,113,113,0.2);" onclick="promptDeleteTaskType('task-assign-type')">✕</button>
+                    </div>
+                  </div>
+                  <input type="text" id="task-assign-type" placeholder="اختر أو ابحث..." list="global-task-types-dl" style="width:100%;">
                 </div>
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
                   <label style="font-size:11px; color:var(--text3); font-weight:600;">وصف التكليف</label>
@@ -1393,31 +1401,31 @@ tr.row-has-note td:first-child {
                 </div>
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
                   <label style="font-size:11px; color:var(--text3); font-weight:600;">التكرار</label>
-                  <select id="rec-task-recurrence" style="width:100%;" onchange="toggleRecWeekDropdown()">
+                  <select id="rec-task-recurrence" style="width:100%;">
                     <option value="يومي">يومي</option>
                     <option value="أسبوعي">أسبوعي</option>
                     <option value="شهري">شهري</option>
-                  </select>
-                </div>
-                <div class="field-group" id="rec-task-week-group" style="display:none; flex-direction:column; gap:4px;">
-                  <label style="font-size:11px; color:var(--text3); font-weight:600;">الأسبوع</label>
-                  <select id="rec-task-week" style="width:100%;">
-                    <option value="الأسبوع الأول">الأسبوع الأول</option>
-                    <option value="الأسبوع الثاني">الأسبوع الثاني</option>
-                    <option value="الأسبوع الثالث">الأسبوع الثالث</option>
-                    <option value="الأسبوع الرابع">الأسبوع الرابع</option>
+                    <option value="ربع سنوي">ربع سنوي</option>
+                    <option value="سنوي">سنوي</option>
                   </select>
                 </div>
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
-                  <label style="font-size:11px; color:var(--text3); font-weight:600;">نوع المهمة</label>
-                  <select id="rec-task-type" style="width:100%;"><option value="">اختر نوع المهمة</option></select>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <label style="font-size:11px; color:var(--text3); font-weight:600;">نوع المهمة</label>
+                    <div style="display:flex; gap:4px; align-items:center;">
+                      <button type="button" class="btn btn-sm btn-primary" style="height:18px; width:18px; padding:0; font-size:10px; display:flex; align-items:center; justify-content:center; border-radius:3px; background:var(--accent);" onclick="promptAddTaskType()">+</button>
+                      <button type="button" class="btn btn-sm btn-danger" style="height:18px; width:18px; padding:0; font-size:10px; display:flex; align-items:center; justify-content:center; border-radius:3px; background:var(--danger-s); color:var(--danger); border:1px solid rgba(248,113,113,0.2);" onclick="promptDeleteTaskType('rec-task-type')">✕</button>
+                    </div>
+                  </div>
+                  <input type="text" id="rec-task-type" placeholder="اختر أو ابحث..." list="global-task-types-dl" style="width:100%;">
                 </div>
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px; grid-column: span 2;">
                   <label style="font-size:11px; color:var(--text3); font-weight:600;">وصف المهمة الدورية</label>
                   <input type="text" id="rec-task-desc" placeholder="أدخل التفاصيل المطلوبة كقالب ثابت...">
                 </div>
-                <div style="display:flex; align-items:flex-end;">
-                  <button class="btn btn-primary" style="height:36px; width:100%; justify-content:center;" onclick="submitSaveRecurringTask()">إضافة مهمة</button>
+                <div style="display:flex; align-items:flex-end; gap:8px;">
+                  <button id="cancel-edit-rec-btn" class="btn btn-secondary" style="height:36px; display:none; justify-content:center;" onclick="cancelEditRecurringTask()">إلغاء</button>
+                  <button id="submit-rec-btn" class="btn btn-primary" style="height:36px; width:100%; justify-content:center;" onclick="submitSaveRecurringTask()">إضافة مهمة</button>
                 </div>
               </div>
             </div>
@@ -1425,8 +1433,9 @@ tr.row-has-note td:first-child {
         </div>
 
         <div class="card">
-          <div class="card-header">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
             <span class="card-title" id="rec-tasks-count">المهام الدورية النشطة</span>
+            <input type="text" id="rec-tasks-search" placeholder="بحث في المهام..." oninput="loadRecurringTasksList()" style="max-width:240px; padding:6px 12px; font-size:12px; height:32px; border-radius:6px; background:var(--bg4); border:1px solid var(--border); color:var(--text); outline:none;">
           </div>
           <div class="table-wrap">
             <table>
@@ -1436,7 +1445,6 @@ tr.row-has-note td:first-child {
                   <th>التيم</th>
                   <th>العميل</th>
                   <th>التكرار</th>
-                  <th>الأسبوع</th>
                   <th>نوع المهمة</th>
                   <th>الوصف التوضيحي للثبات</th>
                   <th>تاريخ الإنشاء</th>
@@ -1444,7 +1452,7 @@ tr.row-has-note td:first-child {
                 </tr>
               </thead>
               <tbody id="rec-tasks-tbody">
-                <tr><td colspan="9"><div class="empty"><div class="empty-text">لا توجد مهام دورية حالياً</div></div></td></tr>
+                <tr><td colspan="8"><div class="empty"><div class="empty-text">لا توجد مهام دورية حالياً</div></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -2179,7 +2187,7 @@ const API = 'https://script.google.com/macros/s/AKfycbzgYKZQiepr-XJwn928zSTpUnWF
 const getLocalDateString = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const getLocalMonthString = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 const EMPLOYEE_URL = 'employee.html'; // هيتغير لو Netlify URL مختلف
-const TASK_TYPES = ['مبيعات','مشتريات','بنوك','تسجيلات','إقفالات شهرية','إقفالات سنوية','تقارير','إقرارات شهرية','إقرارات ربع سنوية','تفريغ','قوائم مالية','متابعة عملاء يومية','اجتماع','اجتماع العمل الأسبوعي','أمور تقنية','إضافي'];
+let TASK_TYPES = ['مبيعات','مشتريات','بنوك','تسجيلات','إقفالات شهرية','إقفالات سنوية','تقارير','إقرارات شهرية','إقرارات ربع سنوية','تفريغ','قوائم مالية','متابعة عملاء يومية','اجتماع','اجتماع العمل الأسبوعي','أمور تقنية','إضافي'];
 
 const DEFAULT_CLIENTS = [
   'مطعم جبنة حلوم لتقديم الوجبات',
@@ -2221,6 +2229,7 @@ let STATE = {
   teams: [],
   employees: [],
   clients: [],
+  editingRecurringTaskId: null,
 };
 let charts = {};
 let editingAtt = null;
@@ -2614,20 +2623,9 @@ function populateFilters() {
   }
 
   // Populate task types for assignment
-  const taskAssignTypeSel = document.getElementById('task-assign-type');
-  const recTaskTypeSel = document.getElementById('rec-task-type');
-  if (taskAssignTypeSel) {
-    taskAssignTypeSel.innerHTML = '<option value="">اختر نوع المهمة</option>';
-    TASK_TYPES.forEach(t => {
-      taskAssignTypeSel.innerHTML += `<option value="${t}">${t}</option>`;
-    });
-  }
-
-  if (recTaskTypeSel) {
-    recTaskTypeSel.innerHTML = '<option value="">اختر نوع المهمة</option>';
-    TASK_TYPES.forEach(t => {
-      recTaskTypeSel.innerHTML += `<option value="${t}">${t}</option>`;
-    });
+  const globalDl = document.getElementById('global-task-types-dl');
+  if (globalDl) {
+    globalDl.innerHTML = TASK_TYPES.map(t => `<option value="${t}">${t}</option>`).join('');
   }
 
   // Populate clients datalist for assignment
@@ -2946,7 +2944,7 @@ function loadReports() {
   const to     = document.getElementById('rep-to').value;
 
   const tbody = document.getElementById('rep-tbody');
-  tbody.innerHTML = `<tr><td colspan="11"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="12"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
 
   let rows = STATE.reports || [];
   if (team)  rows = rows.filter(r => String(r.team_id) === String(team));
@@ -2957,7 +2955,7 @@ function loadReports() {
   document.getElementById('rep-count').textContent = `التقارير (${rows.length})`;
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="11"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">لا توجد تقارير</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">لا توجد تقارير</div></div></td></tr>`;
     return;
   }
   const teamMap = {};
@@ -2973,6 +2971,9 @@ function loadReports() {
       ? `<button class="btn btn-secondary btn-sm" onclick="openEditNoteModal('${r.id}')" style="padding:2px 6px; font-size:10px; flex-shrink: 0;" title="إضافة/تعديل ملاحظة وتقييم">📝</button>`
       : '';
 
+    const recType = r['نوع التكرار'] || 'ذاتي';
+    const recBadge = recType === 'ذاتي' ? `<span style="color:var(--text3); font-size:11px;">ذاتي</span>` : `<span class="badge ${recType === 'يومي' ? 'badge-present' : (recType === 'أسبوعي' ? 'badge-leave' : (recType === 'شهري' ? 'badge-absent' : 'badge-holiday'))}" style="font-weight:600; font-size:10px;">${recType}</span>`;
+
     return `
       <tr class="${hasNoteClass}">
         <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}')" title="اضغط لعرض الأداء الشهري">${r['اسم الموظف']||''}</strong></td>
@@ -2980,6 +2981,7 @@ function loadReports() {
         <td>${r['التاريخ']||''}</td>
         <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(r['العميل'])}')" title="عرض تفاصيل العميل">${r['العميل']||''}</span></td>
         <td>${r['نوع المهمة']||''}</td>
+        <td>${recBadge}</td>
         <td>${r['من']||''}</td>
         <td>${r['إلى']||''}</td>
         <td><span style="color:var(--success);font-weight:600">${r['المدة']||''}</span></td>
@@ -3005,8 +3007,8 @@ function exportReports() {
   STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
 
   const wb = XLSX.utils.book_new();
-  const headers = ['اسم الموظف','التاريخ','العميل','نوع المهمة','مصدر المهمة','من','إلى','المدة','وصف المهمة','التقييم','ملاحظات المشرف'];
-  const colWidths = [20, 14, 28, 18, 14, 10, 10, 10, 35, 12, 25];
+  const headers = ['اسم الموظف','التاريخ','العميل','نوع المهمة','نوع التكرار','مصدر المهمة','من','إلى','المدة','وصف المهمة','التقييم','ملاحظات المشرف'];
+  const colWidths = [20, 14, 28, 18, 14, 14, 10, 10, 10, 35, 12, 25];
 
   // جمع التيمات الموجودة في البيانات
   const teamIds = [...new Set(data.map(r => r.team_id))];
@@ -3023,7 +3025,7 @@ function exportReports() {
     const wsData = [];
 
     // سطر العنوان
-    wsData.push([`التيم: ${teamName}`, '', '', `الفترة: ${period}`, '', '', '', '', '', '', '']);
+    wsData.push([`التيم: ${teamName}`, '', '', `الفترة: ${period}`, '', '', '', '', '', '', '', '']);
     wsData.push([]); // فراغ
     wsData.push(headers);
 
@@ -3055,6 +3057,7 @@ function exportReports() {
           '',
           '',
           '',
+          '',
           'إجمالي ساعات الموظف:',
           `${empH}:${String(empM).padStart(2, '0')}`,
           '',
@@ -3070,6 +3073,7 @@ function exportReports() {
         r['التاريخ']||'',
         r['العميل']||'',
         r['نوع المهمة']||'',
+        r['نوع التكرار']||'ذاتي',
         r['مصدر المهمة']||'ذاتي',
         r['من']||'',
         r['إلى']||'',
@@ -3088,6 +3092,7 @@ function exportReports() {
       const empM = empMins % 60;
       wsData.push([
         `إجمالي ${lastEmp}`,
+        '',
         '',
         '',
         '',
@@ -3113,7 +3118,7 @@ function exportReports() {
     const totalH = Math.floor(totalMins/60);
     const totalM = totalMins % 60;
     wsData.push([]);
-    wsData.push(['', '', '', '', '', '', 'إجمالي التيم الكلي:', `${totalH}:${String(totalM).padStart(2,'0')}`]);
+    wsData.push(['', '', '', '', '', '', '', 'إجمالي التيم الكلي:', `${totalH}:${String(totalM).padStart(2,'0')}`]);
 
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
@@ -3970,7 +3975,7 @@ function updateInfoPanel() {
 // REFRESH
 // ══════════════════════════════════════════════════════
 async function refreshData() {
-  const [teamsR, empsR, clientsR, reportsR, attendanceR, tasksR, visitsR, recurringR] = await Promise.all([
+  const [teamsR, empsR, clientsR, reportsR, attendanceR, tasksR, visitsR, recurringR, taskTypesR] = await Promise.all([
     apiFetch({ action: 'getTeams' }),
     apiFetch({ action: 'getEmployees' }),
     apiFetch(STATE.role === 'supervisor' ? { action: 'getClients', teamId: STATE.teamId } : { action: 'getClients' }),
@@ -3978,7 +3983,8 @@ async function refreshData() {
     apiFetch(STATE.role === 'supervisor' ? { action: 'getAttendance', teamId: STATE.teamId } : { action: 'getAttendance' }),
     apiFetch(STATE.role === 'supervisor' ? { action: 'getAssignedTasks', teamId: STATE.teamId } : { action: 'getAssignedTasks' }),
     apiFetch(STATE.role === 'supervisor' ? { action: 'getVisits', teamId: STATE.teamId } : { action: 'getVisits' }),
-    apiFetch(STATE.role === 'supervisor' ? { action: 'getRecurringTasks', teamId: STATE.teamId } : { action: 'getRecurringTasks' })
+    apiFetch(STATE.role === 'supervisor' ? { action: 'getRecurringTasks', teamId: STATE.teamId } : { action: 'getRecurringTasks' }),
+    apiFetch({ action: 'getTaskTypes' })
   ]);
   if (teamsR.ok)   STATE.teams     = teamsR.teams || [];
   if (empsR.ok)    STATE.employees = empsR.employees || [];
@@ -3988,6 +3994,9 @@ async function refreshData() {
   STATE.tasks = tasksR.ok ? (tasksR.tasks || []) : [];
   STATE.visits = visitsR.ok ? (visitsR.visits || []) : [];
   STATE.recurringTasks = recurringR.ok ? (recurringR.recurringTasks || []) : [];
+  if (taskTypesR && taskTypesR.ok) {
+    TASK_TYPES = taskTypesR.taskTypes || [];
+  }
   STATE.visits.forEach(v => {
     if (!v['الحالة'] && v['ملاحظات'] && v['ملاحظات'].includes('ما تم إنجازه في الزيارة:')) {
       v['الحالة'] = 'تمت';
@@ -4341,10 +4350,116 @@ function switchTasksSubTab(sub) {
 }
 
 function toggleRecWeekDropdown() {
-  const recurrence = document.getElementById('rec-task-recurrence').value;
-  const weekGroup = document.getElementById('rec-task-week-group');
-  if (weekGroup) {
-    weekGroup.style.display = (recurrence === 'أسبوعي') ? 'flex' : 'none';
+  // Empty since we removed week selection dropdown
+}
+
+function editRecurringTask(id) {
+  const task = (STATE.recurringTasks || []).find(t => t.id === id);
+  if (!task) return;
+
+  STATE.editingRecurringTaskId = id;
+
+  // Populate fields
+  document.getElementById('rec-task-emp').value = task.emp_id || '';
+  document.getElementById('rec-task-client').value = task['العميل'] || '';
+  document.getElementById('rec-task-recurrence').value = task['التكرار'] || 'يومي';
+  document.getElementById('rec-task-type').value = task['نوع المهمة'] || '';
+  document.getElementById('rec-task-desc').value = task['وصف المهمة'] || '';
+
+  // Update button texts and show cancel button
+  const submitBtn = document.getElementById('submit-rec-btn');
+  if (submitBtn) {
+    submitBtn.textContent = 'حفظ التعديلات';
+    submitBtn.className = 'btn btn-success';
+  }
+  const cancelBtn = document.getElementById('cancel-edit-rec-btn');
+  if (cancelBtn) {
+    cancelBtn.style.display = 'flex';
+  }
+  
+  // Scroll to form card
+  const formCard = document.querySelector('#panel-recurring .mgmt-card');
+  if (formCard) {
+    formCard.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+function cancelEditRecurringTask() {
+  STATE.editingRecurringTaskId = null;
+
+  // Clear fields
+  document.getElementById('rec-task-emp').value = '';
+  document.getElementById('rec-task-client').value = '';
+  document.getElementById('rec-task-recurrence').value = 'يومي';
+  document.getElementById('rec-task-type').value = '';
+  document.getElementById('rec-task-desc').value = '';
+
+  // Reset buttons
+  const submitBtn = document.getElementById('submit-rec-btn');
+  if (submitBtn) {
+    submitBtn.textContent = 'إضافة مهمة';
+    submitBtn.className = 'btn btn-primary';
+  }
+  const cancelBtn = document.getElementById('cancel-edit-rec-btn');
+  if (cancelBtn) {
+    cancelBtn.style.display = 'none';
+  }
+}
+
+async function promptAddTaskType() {
+  const name = prompt("أدخل اسم نوع المهمة الجديد الذي ترغب في إضافته:");
+  if (!name || !name.trim()) return;
+  
+  showToast("جاري إضافة نوع المهمة...", "info");
+  
+  try {
+    const r = await apiPost('addTaskType', { name: name.trim() });
+    if (r.ok) {
+      showToast(r.message || "تمت الإضافة بنجاح!", "success");
+      if (r.taskTypes) {
+        TASK_TYPES = r.taskTypes;
+        populateFilters();
+      }
+      refreshData();
+    } else {
+      showToast(r.error || "خطأ أثناء الإضافة", "error");
+    }
+  } catch(e) {
+    showToast("فشل الاتصال بالخادم", "error");
+  }
+}
+
+async function promptDeleteTaskType(selectId = 'rec-task-type') {
+  const selectEl = document.getElementById(selectId);
+  const selectedType = selectEl.value;
+  if (!selectedType) {
+    showToast("الرجاء تحديد نوع المهمة من القائمة أولاً لحذفها", "error");
+    return;
+  }
+  
+  const ok = confirm(`هل تريد حذف نوع المهمة "${selectedType}" نهائياً من النظام؟`);
+  if (!ok) return;
+  
+  showToast("جاري حذف نوع المهمة...", "info");
+  
+  try {
+    const r = await apiPost('deleteTaskType', { name: selectedType });
+    if (r.ok) {
+      showToast(r.message || "تم الحذف بنجاح!", "success");
+      if (r.taskTypes) {
+        TASK_TYPES = r.taskTypes;
+        populateFilters();
+        const t1 = document.getElementById('task-assign-type');
+        if (t1) t1.value = '';
+        const t2 = document.getElementById('rec-task-type');
+        if (t2) t2.value = '';
+      }
+      refreshData();
+    } else {
+      showToast(r.error || "خطأ أثناء الحذف", "error");
+    }
+  } catch(e) {
+    showToast("فشل الاتصال بالخادم", "error");
   }
 }
 
@@ -4354,7 +4469,6 @@ async function submitSaveRecurringTask() {
   const clientInput = document.getElementById('rec-task-client');
   const client = clientInput.value.trim();
   const recurrence = document.getElementById('rec-task-recurrence').value;
-  const weekNum = (recurrence === 'أسبوعي') ? document.getElementById('rec-task-week').value : '';
   const typeSelect = document.getElementById('rec-task-type');
   const tasktype = typeSelect.value;
   const descInput = document.getElementById('rec-task-desc');
@@ -4368,16 +4482,17 @@ async function submitSaveRecurringTask() {
   const empName = selectedOpt.getAttribute('data-name');
   const teamId = selectedOpt.getAttribute('data-team');
 
-  // إضافة محلية فورية
-  const tempId = 'rec_' + Date.now();
+  const isEditing = !!STATE.editingRecurringTaskId;
+  const targetId = isEditing ? STATE.editingRecurringTaskId : ('rec_' + Date.now());
+
   const newRec = {
-    id: tempId,
+    id: targetId,
     emp_id: empId,
     'اسم الموظف': empName,
     team_id: teamId,
     'العميل': client,
     'التكرار': recurrence,
-    'الأسبوع': weekNum,
+    'الأسبوع': '',
     'نوع المهمة': tasktype,
     'وصف المهمة': desc,
     'تاريخ الإنشاء': getLocalDateString(),
@@ -4385,44 +4500,54 @@ async function submitSaveRecurringTask() {
   };
 
   if (!STATE.recurringTasks) STATE.recurringTasks = [];
-  STATE.recurringTasks.push(newRec);
 
-  // رسم الجدول فوراً
+  if (isEditing) {
+    const idx = STATE.recurringTasks.findIndex(x => x.id === targetId);
+    if (idx !== -1) {
+      newRec['تاريخ الإنشاء'] = STATE.recurringTasks[idx]['تاريخ الإنشاء'] || getLocalDateString();
+      STATE.recurringTasks[idx] = newRec;
+    }
+  } else {
+    STATE.recurringTasks.push(newRec);
+  }
+
+  // Draw table immediately (0ms local rendering)
   loadRecurringTasksList();
 
-  // تفريغ المدخلات
-  clientInput.value = '';
-  descInput.value = '';
-  typeSelect.value = '';
-  empSelect.value = '';
-  document.getElementById('rec-task-recurrence').value = 'يومي';
-  toggleRecWeekDropdown();
+  // Reset inputs & editing state
+  cancelEditRecurringTask();
 
   try {
-    const r = await apiPost('saveRecurringTask', {
+    const payload = {
       empId,
       empName,
       teamId,
       client,
       recurrence,
-      weekNum,
+      weekNum: '',
       tasktype,
       desc
-    });
+    };
+    if (isEditing) {
+      payload.id = targetId;
+    }
+    const r = await apiPost('saveRecurringTask', payload);
     if (r.ok) {
-      showToast('تم إضافة المهمة الدورية بنجاح وتوارثها!', 'success');
-      const tIndex = STATE.recurringTasks.findIndex(x => x.id === tempId);
-      if (tIndex !== -1 && r.id) {
-        STATE.recurringTasks[tIndex].id = r.id;
+      showToast(isEditing ? 'تم تعديل المهمة الدورية بنجاح!' : 'تم إضافة المهمة الدورية بنجاح وتوارثها!', 'success');
+      if (!isEditing) {
+        const tIndex = STATE.recurringTasks.findIndex(x => x.id === targetId);
+        if (tIndex !== -1 && r.id) {
+          STATE.recurringTasks[tIndex].id = r.id;
+        }
       }
       refreshData();
     } else {
       showToast(r.error || 'حدث خطأ أثناء حفظ المهمة الدورية', 'error');
-      STATE.recurringTasks = STATE.recurringTasks.filter(x => x.id !== tempId);
-      loadRecurringTasksList();
+      refreshData();
     }
-  } catch (e) {
-    showToast('تم الحفظ محلياً بنجاح وسيتم الرفع عند الاتصال بالشبكة', 'success');
+  } catch (err) {
+    showToast('خطأ في الاتصال بالخادم', 'error');
+    refreshData();
   }
 }
 
@@ -4452,18 +4577,29 @@ async function deleteRecurringTask(id) {
 function loadRecurringTasksList() {
   const tbody = document.getElementById('rec-tasks-tbody');
   if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
 
   let recs = STATE.recurringTasks || [];
   if (STATE.role === 'supervisor') {
     recs = recs.filter(t => t.team_id === STATE.teamId);
   }
 
+  // تطبيق البحث التصفوي
+  const searchVal = (document.getElementById('rec-tasks-search')?.value || '').trim().toLowerCase();
+  if (searchVal) {
+    recs = recs.filter(t => 
+      String(t['العميل'] || '').toLowerCase().includes(searchVal) ||
+      String(t['نوع المهمة'] || '').toLowerCase().includes(searchVal) ||
+      String(t['وصف المهمة'] || '').toLowerCase().includes(searchVal) ||
+      String(t['اسم الموظف'] || '').toLowerCase().includes(searchVal)
+    );
+  }
+
   const recCountEl = document.getElementById('rec-tasks-count');
   if (recCountEl) recCountEl.textContent = `المهام الدورية النشطة (${recs.length})`;
 
   if (recs.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-text">لا توجد مهام دورية بعد</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="empty-text">لا توجد مهام دورية بعد</div></div></td></tr>`;
     return;
   }
 
@@ -4471,18 +4607,22 @@ function loadRecurringTasksList() {
   STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
 
   tbody.innerHTML = recs.map(t => {
+    const recType = t['التكرار'] || '';
+    const badgeClass = recType === 'يومي' ? 'badge-present' : (recType === 'أسبوعي' ? 'badge-leave' : (recType === 'شهري' ? 'badge-absent' : 'badge-holiday'));
     return `
       <tr>
         <td><strong>${t['اسم الموظف'] || ''}</strong></td>
         <td><span style="font-size:11px;color:var(--text3)">${teamMap[t.team_id] || t.team_id || ''}</span></td>
         <td><strong>${t['العميل'] || ''}</strong></td>
-        <td><span class="badge ${t['التكرار'] === 'يومي' ? 'badge-present' : (t['التكرار'] === 'أسبوعي' ? 'badge-leave' : 'badge-absent')}" style="font-weight:600;">${t['التكرار'] || ''}</span></td>
-        <td><span style="font-size:11px;color:var(--warning);font-weight:600;">${t['الأسبوع'] || '—'}</span></td>
+        <td><span class="badge ${badgeClass}" style="font-weight:600;">${recType}</span></td>
         <td>${t['نوع المهمة'] || ''}</td>
         <td class="td-trunc" title="${(t['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${t['وصف المهمة'] || ''}</td>
         <td>${t['تاريخ الإنشاء'] || ''}</td>
         <td>
-          <button class="btn btn-danger btn-sm" style="background:var(--danger-s); color:var(--danger); border:1px solid rgba(248,113,113,0.2);" onclick="deleteRecurringTask('${t.id}')">حذف</button>
+          <div style="display:flex; gap:4px;">
+            <button class="btn btn-sm btn-primary" style="height:24px; padding:0 8px; font-size:11px; justify-content:center;" onclick="editRecurringTask('${t.id}')">تعديل</button>
+            <button class="btn btn-danger btn-sm" style="background:var(--danger-s); color:var(--danger); border:1px solid rgba(248,113,113,0.2); height:24px; padding:0 8px; font-size:11px; justify-content:center;" onclick="deleteRecurringTask('${t.id}')">حذف</button>
+          </div>
         </td>
       </tr>
     `;
