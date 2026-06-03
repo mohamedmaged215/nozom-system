@@ -1561,7 +1561,7 @@ function renderEmployeeRecurringTasks() {
     return `
       <div class="task-card" style="margin-bottom:0; padding:12px; border:1px solid rgba(255,255,255,0.05); background:var(--bg2);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <span style="font-size:10px; background:var(--accent-s); color:var(--accent-l); padding:2px 8px; border-radius:10px; font-weight:600;">${t['نوع المهمة']}</span>
+          <span style="font-size:10px; background:var(--accent-s); color:var(--accent-l); padding:2px 8px; border-radius:10px; font-weight:600;">${escapeHtml(t['نوع المهمة'])}</span>
         </div>
         <div style="font-size:12px; color:var(--text); margin-bottom:10px; line-height:1.4; font-weight:500;">
           ${escapeHtml(t['وصف المهمة']) || 'مهمة دورية ثابتة'}
