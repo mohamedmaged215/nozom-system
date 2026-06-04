@@ -908,14 +908,14 @@ function removeTask(id){
   document.getElementById(`task-${id}`)?.remove();
   taskIds=taskIds.filter(i=>i!==id);
   // لو كان الكارت تابعاً لتكليف مسند، نعيد إظهار التكليف في القائمة العلوية
-  if (completedTasksMap[id]) {
-    const taskId = completedTasksMap[id];
+  if (completedTasksMap[String(id)]) {
+    const taskId = completedTasksMap[String(id)];
     const el = document.getElementById(`assigned-task-card-${taskId}`);
     if (el) el.style.display = 'block';
-    delete completedTasksMap[id];
+    delete completedTasksMap[String(id)];
   }
-  if (completedRecTasksMap[id]) {
-    delete completedRecTasksMap[id];
+  if (completedRecTasksMap[String(id)]) {
+    delete completedRecTasksMap[String(id)];
     initEmployeeRecurringTasks();
   }
   calcTotal(); updateStats();
@@ -1027,13 +1027,13 @@ function collectData(){
     let sourceVal = 'ذاتي';
     let taskIdVal = '';
     let recurrenceVal = '';
-    if (completedTasksMap[id]) {
+    if (completedTasksMap[String(id)]) {
       sourceVal = 'إسناد';
-      taskIdVal = completedTasksMap[id];
-    } else if (completedRecTasksMap[id]) {
+      taskIdVal = completedTasksMap[String(id)];
+    } else if (completedRecTasksMap[String(id)]) {
       sourceVal = 'دوري';
-      taskIdVal = completedRecTasksMap[id].taskId;
-      recurrenceVal = completedRecTasksMap[id].recurrence;
+      taskIdVal = completedRecTasksMap[String(id)].taskId;
+      recurrenceVal = completedRecTasksMap[String(id)].recurrence;
     }
     
     rows.push({
@@ -1049,8 +1049,8 @@ function collectData(){
     });
     
     // لو كانت المهمة تابعة لتكليف مسند، نضيف معرف التكليف المكتمل
-    if (completedTasksMap[id]) {
-      completedTaskIds.push(completedTasksMap[id]);
+    if (completedTasksMap[String(id)]) {
+      completedTaskIds.push(completedTasksMap[String(id)]);
     }
   });
   return{empId:EMP_ID,empName:EMP_NAME,teamId:TEAM_ID,date,rows,completedTaskIds};
@@ -1135,83 +1135,56 @@ async function submitReport(appendOverride){
     if (supDl) supDl.innerHTML = clients.map(c => `<option value="${c}">`).join('');
   }
 
-  // 0ms instant local UI update!
-  const originalReports = JSON.parse(JSON.stringify(STATE.reports));
-  const originalTasks = JSON.parse(JSON.stringify(STATE.tasks));
-
-  // Remove previous reports if not appending
-  if (!appendOverride) {
-    STATE.reports = STATE.reports.filter(r => !(String(r.emp_id) === String(EMP_ID) && r['التاريخ'] === data.date));
-  }
-
-  // Push new reports locally
-  data.rows.forEach(r => {
-    STATE.reports.push({
-      id: 'rep_' + Date.now() + '_' + Math.random(),
-      emp_id: EMP_ID,
-      'اسم الموظف': EMP_NAME,
-      team_id: TEAM_ID,
-      'التاريخ': data.date,
-      'العميل': r.client,
-      'نوع المهمة': r.tasktype,
-      'من': r.from,
-      'إلى': r.to,
-      'المدة': r.dur,
-      'وصف المهمة': r.desc,
-      'مصدر المهمة': r.source || 'ذاتي',
-      'وقت الإرسال': new Date().toISOString()
-    });
-  });
-
-  // Mark tasks completed locally
-  if (data.completedTaskIds && data.completedTaskIds.length > 0) {
-    STATE.tasks.forEach((t, i) => {
-      if (data.completedTaskIds.includes(String(t.id))) {
-        STATE.tasks[i]['الحالة'] = 'مكتملة';
-        STATE.tasks[i]['تاريخ الاكتمال'] = data.date;
-      }
-    });
-  }
-
-  // Show success banner instantly in 0ms!
-  showToast(`✓ تم إرسال تقرير ${EMP_NAME} بنجاح`,'success');
-  const b=document.getElementById('period-banner');
-  document.getElementById('period-text').textContent=`✓ تم الإرسال بنجاح — ${data.rows.length} مهام ليوم ${data.date}`;
-  b.style.cssText='display:flex;background:var(--success-s);border-color:rgba(52,211,153,0.2);color:var(--success)';
-  
-  // Reset report inputs instantly
-  document.getElementById('tasks-container').innerHTML = '';
-  taskIds = [];
-  taskCounter = 0;
-  completedTasksMap = {};
-  completedRecTasksMap = {};
-  document.getElementById('assigned-tasks-section').style.display = 'none';
-  addTask();
-  initEmployeeRecurringTasks();
-
-  btn.disabled=false;
-  btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg> إرسال التقرير';
-
-  // Quiet background POST
   try {
     data.append = appendOverride;
     const r = await apiPost('submitReport', data);
     if (r.ok) {
+      // Fetch updated reports and tasks from server to ensure perfect sync
       try {
         const [repR, tskR] = await Promise.all([
-          apiFetch({action:'getReports', empName: EMP_NAME}),
-          apiFetch({action:'getAssignedTasks'})
+          apiFetch({action:'getReports', empId: EMP_ID}),
+          apiFetch({action:'getAssignedTasks', empId: EMP_ID, status: 'معلقة'})
         ]);
         if (repR.ok) STATE.reports = repR.rows || [];
         if (tskR.ok) STATE.tasks = tskR.tasks || [];
-      } catch(e) {}
+      } catch(e) {
+        console.error("Muted fetch errors:", e);
+      }
+
+      // Show success banner
+      showToast(`✓ تم إرسال تقرير ${EMP_NAME} بنجاح`,'success');
+      const b=document.getElementById('period-banner');
+      document.getElementById('period-text').textContent=`✓ تم الإرسال بنجاح — ${data.rows.length} مهام ليوم ${data.date}`;
+      b.style.cssText='display:flex;background:var(--success-s);border-color:rgba(52,211,153,0.2);color:var(--success)';
+      
+      // Reset report inputs
+      document.getElementById('tasks-container').innerHTML = '';
+      taskIds = [];
+      taskCounter = 0;
+      completedTasksMap = {};
+      completedRecTasksMap = {};
+      
+      // Re-render assigned tasks if any
+      const trTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'معلقة');
+      if (trTasks.length > 0) {
+        renderAssignedTasks(trTasks);
+      } else {
+        document.getElementById('assigned-tasks-section').style.display = 'none';
+      }
+
+      // Add one default empty task card
+      addTask();
+      
+      // Refresh recurring tasks list
+      initEmployeeRecurringTasks();
     } else {
       showToast('فشل المزامنة بالسيرفر: ' + (r.error || ''), 'error');
-      STATE.reports = originalReports;
-      STATE.tasks = originalTasks;
     }
   } catch(e) {
-    showToast('تم التسجيل محلياً، جاري المزامنة بالخلفية', 'success');
+    showToast('فشل الاتصال بالسيرفر، يرجى التحقق من الإنترنت وإعادة المحاولة', 'error');
+  } finally {
+    btn.disabled=false;
+    btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg> إرسال التقرير';
   }
 }
 
@@ -1319,7 +1292,7 @@ function importAssignedTask(taskId, client, tasktype, desc) {
   document.getElementById(`desc-${id}`).value = desc;
   
   // ربط بطاقة التقرير مع التكليف المستورد
-  completedTasksMap[id] = taskId;
+  completedTasksMap[String(id)] = taskId;
   
   // إخفاء بطاقة التكليف من القسم العلوي لتفادي التكرار
   const el = document.getElementById(`assigned-task-card-${taskId}`);
@@ -1616,7 +1589,7 @@ function importRecurringTask(taskId, recurrence, client, tasktype, desc) {
   document.getElementById(`desc-${id}`).value = desc;
   
   // ربط بطاقة التقرير مع المهمة الدورية المستوردة
-  completedRecTasksMap[id] = { taskId, recurrence };
+  completedRecTasksMap[String(id)] = { taskId, recurrence };
   
   // إخفاء بطاقة المهمة الدورية مؤقتاً وتقليل العدادات
   initEmployeeRecurringTasks();
