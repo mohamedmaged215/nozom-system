@@ -1405,7 +1405,7 @@ tr.row-has-note td:first-child {
               <div class="add-row" style="flex-wrap:wrap; display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) 100px; gap:10px; margin-top:0;">
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
                   <label style="font-size:11px; color:var(--text3); font-weight:600;">الموظف</label>
-                  <select id="rec-task-emp" style="width:100%;"><option value="">اختر الموظف</option></select>
+                  <select id="rec-task-emp" onchange="checkRecTaskEmpRole()" style="width:100%;"><option value="">اختر الموظف</option></select>
                 </div>
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
                   <label style="font-size:11px; color:var(--text3); font-weight:600;">العميل</label>
@@ -1421,6 +1421,17 @@ tr.row-has-note td:first-child {
                     <option value="ربع سنوي">ربع سنوي</option>
                     <option value="سنوي">سنوي</option>
                   </select>
+                </div>
+                <div class="field-group" id="rec-task-workplan-group" style="display:none; flex-direction:column; gap:4px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <label style="font-size:11px; color:var(--text3); font-weight:600;">بند خطة العمل</label>
+                    <div style="display:flex; gap:4px; align-items:center;">
+                      <button type="button" class="btn btn-sm btn-primary" style="height:18px; width:18px; padding:0; font-size:10px; display:flex; align-items:center; justify-content:center; border-radius:3px; background:var(--accent);" onclick="promptAddWorkPlanItem()">+</button>
+                      <button type="button" class="btn btn-sm btn-danger" style="height:18px; width:18px; padding:0; font-size:10px; display:flex; align-items:center; justify-content:center; border-radius:3px; background:var(--danger-s); color:var(--danger); border:1px solid rgba(248,113,113,0.2);" onclick="promptDeleteWorkPlanItem('rec-task-workplan')">✕</button>
+                    </div>
+                  </div>
+                  <input type="text" id="rec-task-workplan" placeholder="اختر أو ابحث..." list="global-workplan-items-dl" style="width:100%;">
+                  <datalist id="global-workplan-items-dl"></datalist>
                 </div>
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
                   <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -1459,6 +1470,7 @@ tr.row-has-note td:first-child {
                   <th>العميل</th>
                   <th>التكرار</th>
                   <th>نوع المهمة</th>
+                  <th>بند خطة العمل</th>
                   <th>الوصف التوضيحي للثبات</th>
                   <th>تاريخ الإنشاء</th>
                   <th></th>
@@ -1960,6 +1972,7 @@ tr.row-has-note td:first-child {
     <div style="display:flex; gap:6px; margin-bottom:1.25rem; background:rgba(255,255,255,0.03); border:1px solid var(--border); padding:3px; border-radius:8px;">
       <button class="btn btn-secondary btn-sm" id="btn-cli-tab-reports" onclick="switchCliDetailsTab('reports')" style="flex:1; border:none; background:var(--accent-s2); color:var(--accent-l); padding:8px 12px; font-size:12px; border-radius:6px; font-weight:600; cursor:pointer; transition:all 0.2s;">سجلات التقارير وساعات العمل</button>
       <button class="btn btn-secondary btn-sm" id="btn-cli-tab-visits" onclick="switchCliDetailsTab('visits')" style="flex:1; border:none; background:none; color:var(--text2); padding:8px 12px; font-size:12px; border-radius:6px; font-weight:600; cursor:pointer; transition:all 0.2s;">سجل الزيارات الميدانية (CRM)</button>
+      <button class="btn btn-secondary btn-sm" id="btn-cli-tab-plan" onclick="switchCliDetailsTab('plan')" style="flex:1; border:none; background:none; color:var(--text2); padding:8px 12px; font-size:12px; border-radius:6px; font-weight:600; cursor:pointer; transition:all 0.2s;">خطة عمل العميل</button>
     </div>
     
     <!-- PANEL 1: REPORTS AND HOURS -->
@@ -2018,6 +2031,30 @@ tr.row-has-note td:first-child {
           </thead>
           <tbody id="cli-details-visits-tbody">
             <tr><td colspan="5" style="text-align:center; color:var(--text3);">لا توجد زيارات مسجلة لهذا العميل بعد</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- PANEL 3: CLIENT WORK PLAN -->
+    <div id="cli-details-panel-plan" style="display:none;">
+      <div style="margin-bottom:0.75rem; border-bottom:1px solid var(--border); padding-bottom:4px;">
+        <span style="font-size:12.5px; font-weight:600; color:var(--text2);">خطة العمل والمهام المسندة للعميل</span>
+      </div>
+      
+      <div class="table-wrap" style="max-height: 250px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
+        <table style="font-size:11px;">
+          <thead>
+            <tr style="background:var(--bg4);">
+              <th>نوع المهمة</th>
+              <th>المسؤول</th>
+              <th>بند خطة العمل</th>
+              <th>نوع التكرار / الحالة</th>
+              <th>الوصف / التفاصيل</th>
+            </tr>
+          </thead>
+          <tbody id="cli-details-plan-tbody">
+            <tr><td colspan="5" style="text-align:center; color:var(--text3);">لا توجد مهام أو تكليفات دورية مرتبطة</td></tr>
           </tbody>
         </table>
       </div>
@@ -2201,6 +2238,38 @@ const getLocalDateString = (d = new Date()) => `${d.getFullYear()}-${String(d.ge
 const getLocalMonthString = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 const EMPLOYEE_URL = 'employee.html'; // هيتغير لو Netlify URL مختلف
 let TASK_TYPES = ['مبيعات','مشتريات','بنوك','تسجيلات','إقفالات شهرية','إقفالات سنوية','تقارير','إقرارات شهرية','إقرارات ربع سنوية','تفريغ','قوائم مالية','متابعة عملاء يومية','اجتماع','اجتماع العمل الأسبوعي','أمور تقنية','إضافي'];
+let WORK_PLAN_ITEMS = [
+  'مراجعة داخلية',
+  'فحص ضريبي',
+  'تقديم اقرارات ضريبية',
+  'تقديم إقرارات ذكوية',
+  'استشارات مالية',
+  'امساك دفاتر',
+  'قوائم ماليه داخلية',
+  'فحص ذكوي',
+  'تاسيس نظام محاسبي',
+  'مشاريع'
+];
+
+function checkRecTaskEmpRole() {
+  const empSelect = document.getElementById('rec-task-emp');
+  if (!empSelect) return;
+  const val = empSelect.value;
+  const empObj = (STATE.employees || []).find(e => String(e.id) === String(val));
+  const isSupervisor = empObj && empObj['الدور'] === 'مشرف';
+  const isAdmin = STATE.role === 'admin';
+  
+  const wpGroup = document.getElementById('rec-task-workplan-group');
+  if (wpGroup) {
+    if (isSupervisor && isAdmin) {
+      wpGroup.style.display = 'flex';
+    } else {
+      wpGroup.style.display = 'none';
+      const wpInput = document.getElementById('rec-task-workplan');
+      if (wpInput) wpInput.value = '';
+    }
+  }
+}
 
 const DEFAULT_CLIENTS = [
   'مطعم جبنة حلوم لتقديم الوجبات',
@@ -2657,6 +2726,7 @@ function populateFilters() {
       if (el) el.style.display = 'none';
     });
   }
+  populateWorkPlanItems();
 }
 
 function populateEmpFilter(empSelId, teamSelId, savedVal) {
@@ -4260,6 +4330,7 @@ async function refreshData() {
       STATE.visits         = res.visits || [];
       STATE.recurringTasks = res.recurringTasks || [];
       TASK_TYPES           = res.taskTypes || [];
+      WORK_PLAN_ITEMS      = res.workPlanItems || [];
       
       STATE.visits.forEach(v => {
         if (!v['الحالة'] && v['ملاحظات'] && v['ملاحظات'].includes('ما تم إنجازه في الزيارة:')) {
@@ -4270,6 +4341,7 @@ async function refreshData() {
         STATE.employees = STATE.employees.filter(e => e.team_id === STATE.teamId);
       }
       populateFilters();
+      populateWorkPlanItems();
       return;
     }
   } catch (err) {
@@ -4297,6 +4369,12 @@ async function refreshData() {
   if (taskTypesR && taskTypesR.ok) {
     TASK_TYPES = taskTypesR.taskTypes || [];
   }
+  try {
+    const wpR = await apiFetch({ action: 'getWorkPlanItems' });
+    if (wpR.ok) {
+      WORK_PLAN_ITEMS = wpR.workPlanItems || [];
+    }
+  } catch(e) {}
   STATE.visits.forEach(v => {
     if (!v['الحالة'] && v['ملاحظات'] && v['ملاحظات'].includes('ما تم إنجازه في الزيارة:')) {
       v['الحالة'] = 'تمت';
@@ -4307,6 +4385,7 @@ async function refreshData() {
     STATE.employees = STATE.employees.filter(e => e.team_id === STATE.teamId);
   }
   populateFilters();
+  populateWorkPlanItems();
   renderTeams();
   renderEmployeesList();
   renderClientsList();
@@ -4669,6 +4748,11 @@ function editRecurringTask(id) {
   document.getElementById('rec-task-recurrence').value = task['التكرار'] || 'يومي';
   document.getElementById('rec-task-type').value = task['نوع المهمة'] || '';
   document.getElementById('rec-task-desc').value = task['وصف المهمة'] || '';
+  
+  const wpItem = task['بند خطة العمل'] || '';
+  const wpInput = document.getElementById('rec-task-workplan');
+  if (wpInput) wpInput.value = wpItem;
+  checkRecTaskEmpRole();
 
   // Update button texts and show cancel button
   const submitBtn = document.getElementById('submit-rec-btn');
@@ -4697,6 +4781,10 @@ function cancelEditRecurringTask() {
   document.getElementById('rec-task-recurrence').value = 'يومي';
   document.getElementById('rec-task-type').value = '';
   document.getElementById('rec-task-desc').value = '';
+  
+  const wpInput = document.getElementById('rec-task-workplan');
+  if (wpInput) wpInput.value = '';
+  checkRecTaskEmpRole();
 
   // Reset buttons
   const submitBtn = document.getElementById('submit-rec-btn');
@@ -4767,6 +4855,68 @@ async function promptDeleteTaskType(selectId = 'rec-task-type') {
   }
 }
 
+async function promptAddWorkPlanItem() {
+  const name = prompt("أدخل اسم بند خطة العمل الجديد الذي ترغب في إضافته:");
+  if (!name || !name.trim()) return;
+  
+  showToast("جاري إضافة بند خطة العمل...", "info");
+  
+  try {
+    const r = await apiPost('addWorkPlanItem', { name: name.trim() });
+    if (r.ok) {
+      showToast(r.message || "تمت الإضافة بنجاح!", "success");
+      if (r.workPlanItems) {
+        WORK_PLAN_ITEMS = r.workPlanItems;
+        populateWorkPlanItems();
+      }
+      refreshData();
+    } else {
+      showToast(r.error || "خطأ أثناء الإضافة", "error");
+    }
+  } catch(e) {
+    showToast("فشل الاتصال بالخادم", "error");
+  }
+}
+
+async function promptDeleteWorkPlanItem(selectId = 'rec-task-workplan') {
+  const selectEl = document.getElementById(selectId);
+  const selectedWp = selectEl.value;
+  if (!selectedWp) {
+    showToast("الرجاء تحديد بند خطة العمل من القائمة أولاً لحذفه", "error");
+    return;
+  }
+  
+  const ok = confirm(`هل تريد حذف بند خطة العمل "${selectedWp}" نهائياً من النظام؟`);
+  if (!ok) return;
+  
+  showToast("جاري حذف بند خطة العمل...", "info");
+  
+  try {
+    const r = await apiPost('deleteWorkPlanItem', { name: selectedWp });
+    if (r.ok) {
+      showToast(r.message || "تم الحذف بنجاح!", "success");
+      if (r.workPlanItems) {
+        WORK_PLAN_ITEMS = r.workPlanItems;
+        populateWorkPlanItems();
+        const t1 = document.getElementById('rec-task-workplan');
+        if (t1) t1.value = '';
+      }
+      refreshData();
+    } else {
+      showToast(r.error || "خطأ أثناء الحذف", "error");
+    }
+  } catch(e) {
+    showToast("فشل الاتصال بالخادم", "error");
+  }
+}
+
+function populateWorkPlanItems() {
+  const dl = document.getElementById('global-workplan-items-dl');
+  if (dl) {
+    dl.innerHTML = WORK_PLAN_ITEMS.map(item => `<option value="${item}">${item}</option>`).join('');
+  }
+}
+
 async function submitSaveRecurringTask() {
   const empSelect = document.getElementById('rec-task-emp');
   const empId = empSelect.value;
@@ -4777,6 +4927,7 @@ async function submitSaveRecurringTask() {
   const tasktype = typeSelect.value;
   const descInput = document.getElementById('rec-task-desc');
   const desc = descInput.value.trim();
+  const workPlanItem = document.getElementById('rec-task-workplan')?.value || '';
 
   if (!empId) { showToast('الرجاء اختيار الموظف', 'error'); return; }
   if (!client) { showToast('الرجاء تحديد العميل', 'error'); return; }
@@ -4797,6 +4948,7 @@ async function submitSaveRecurringTask() {
     'العميل': client,
     'التكرار': recurrence,
     'الأسبوع': '',
+    'بند خطة العمل': workPlanItem,
     'نوع المهمة': tasktype,
     'وصف المهمة': desc,
     'تاريخ الإنشاء': getLocalDateString(),
@@ -4829,6 +4981,7 @@ async function submitSaveRecurringTask() {
       client,
       recurrence,
       weekNum: '',
+      workPlanItem,
       tasktype,
       desc
     };
@@ -4881,7 +5034,7 @@ async function deleteRecurringTask(id) {
 function loadRecurringTasksList() {
   const tbody = document.getElementById('rec-tasks-tbody');
   if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
 
   let recs = STATE.recurringTasks || [];
   if (STATE.role === 'supervisor') {
@@ -4903,7 +5056,7 @@ function loadRecurringTasksList() {
   if (recCountEl) recCountEl.textContent = `المهام الدورية النشطة (${recs.length})`;
 
   if (recs.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="empty-text">لا توجد مهام دورية بعد</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-text">لا توجد مهام دورية بعد</div></div></td></tr>`;
     return;
   }
 
@@ -4920,6 +5073,7 @@ function loadRecurringTasksList() {
         <td><strong>${t['العميل'] || ''}</strong></td>
         <td><span class="badge ${badgeClass}" style="font-weight:600;">${recType}</span></td>
         <td>${t['نوع المهمة'] || ''}</td>
+        <td><span style="color:var(--accent-l); font-weight:600;">${t['بند خطة العمل'] || '<span style="color:var(--text3)">—</span>'}</span></td>
         <td class="td-trunc" title="${(t['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${t['وصف المهمة'] || ''}</td>
         <td>${t['تاريخ الإنشاء'] || ''}</td>
         <td>
@@ -5417,25 +5571,40 @@ function parseClientsResponse(clientsR) {
 function switchCliDetailsTab(tab) {
   const btnRep = document.getElementById('btn-cli-tab-reports');
   const btnVis = document.getElementById('btn-cli-tab-visits');
+  const btnPlan = document.getElementById('btn-cli-tab-plan');
+  
   const panelRep = document.getElementById('cli-details-panel-reports');
   const panelVis = document.getElementById('cli-details-panel-visits');
+  const panelPlan = document.getElementById('cli-details-panel-plan');
+  
+  [btnRep, btnVis, btnPlan].forEach(b => {
+    if (b) {
+      b.style.background = 'none';
+      b.style.color = 'var(--text2)';
+    }
+  });
+  [panelRep, panelVis, panelPlan].forEach(p => {
+    if (p) p.style.display = 'none';
+  });
   
   if (tab === 'reports') {
-    btnRep.style.background = 'var(--accent-s2)';
-    btnRep.style.color = 'var(--accent-l)';
-    btnVis.style.background = 'none';
-    btnVis.style.color = 'var(--text2)';
-    
-    panelRep.style.display = 'block';
-    panelVis.style.display = 'none';
-  } else {
-    btnVis.style.background = 'var(--accent-s2)';
-    btnVis.style.color = 'var(--accent-l)';
-    btnRep.style.background = 'none';
-    btnRep.style.color = 'var(--text2)';
-    
-    panelRep.style.display = 'none';
-    panelVis.style.display = 'block';
+    if (btnRep) {
+      btnRep.style.background = 'var(--accent-s2)';
+      btnRep.style.color = 'var(--accent-l)';
+    }
+    if (panelRep) panelRep.style.display = 'block';
+  } else if (tab === 'visits') {
+    if (btnVis) {
+      btnVis.style.background = 'var(--accent-s2)';
+      btnVis.style.color = 'var(--accent-l)';
+    }
+    if (panelVis) panelVis.style.display = 'block';
+  } else if (tab === 'plan') {
+    if (btnPlan) {
+      btnPlan.style.background = 'var(--accent-s2)';
+      btnPlan.style.color = 'var(--accent-l)';
+    }
+    if (panelPlan) panelPlan.style.display = 'block';
   }
 }
 
@@ -5771,6 +5940,49 @@ async function openClientDetailsModal(clientName) {
         </tr>
       `;
     }).join('');
+  }
+
+  // 3. Process Customer Work Plan (خطة عمل العميل - المهام الدورية والمسندة)
+  const planTbody = document.getElementById('cli-details-plan-tbody');
+  if (planTbody) {
+    const clientRecs = (STATE.recurringTasks || []).filter(t => String(t['العميل']) === String(clientName));
+    const clientTasks = (STATE.tasks || []).filter(t => String(t['العميل']) === String(clientName));
+    
+    if (clientRecs.length === 0 && clientTasks.length === 0) {
+      planTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text3);">لا توجد مهام أو تكليفات دورية مرتبطة بهذا العميل بعد</td></tr>`;
+    } else {
+      let planHtml = '';
+      
+      clientRecs.forEach(t => {
+        const recType = t['التكرار'] || '';
+        const badgeClass = recType === 'يومي' ? 'badge-present' : (recType === 'أسبوعي' ? 'badge-leave' : (recType === 'شهري' ? 'badge-absent' : 'badge-holiday'));
+        planHtml += `
+          <tr style="border-right: 3px solid var(--accent);">
+            <td><strong>${escapeHtml(t['نوع المهمة'] || '')}</strong></td>
+            <td><strong>${escapeHtml(t['اسم الموظف'] || '')}</strong> <span style="font-size:9.5px; color:var(--text3);">${escapeHtml(t['بند خطة العمل'] ? 'مشرف' : 'موظف')}</span></td>
+            <td><span style="color:var(--accent-l); font-weight:600;">${escapeHtml(t['بند خطة العمل'] || '—')}</span></td>
+            <td><span class="badge ${badgeClass}" style="font-weight:600;">مهمة دورية (${recType})</span></td>
+            <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(t['وصف المهمة'] || '')}">${escapeHtml(t['وصف المهمة'] || '')}</td>
+          </tr>
+        `;
+      });
+      
+      clientTasks.forEach(t => {
+        const status = t['الحالة'] || 'معلقة';
+        const badgeClass = status === 'مكتملة' ? 'badge-present' : 'badge-holiday';
+        planHtml += `
+          <tr style="border-right: 3px solid var(--success);">
+            <td><strong>${escapeHtml(t['نوع المهمة'] || '')}</strong></td>
+            <td><strong>${escapeHtml(t['اسم الموظف'] || '')}</strong></td>
+            <td><span style="color:var(--text3);">—</span></td>
+            <td><span class="badge ${badgeClass}" style="font-weight:600;">تكليف طارئ (${status})</span></td>
+            <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(t['وصف المهمة'] || '')}">${escapeHtml(t['وصف المهمة'] || '')}</td>
+          </tr>
+        `;
+      });
+      
+      planTbody.innerHTML = planHtml;
+    }
   }
 
   openModal('modal-client-details');
