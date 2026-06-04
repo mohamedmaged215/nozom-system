@@ -521,7 +521,7 @@ let EMP_ID='', EMP_NAME='', TEAM_ID='';
 let clients=[], taskIds=[], taskCounter=0, activeClientTaskId=null;
 let completedTasksMap={};
 let completedRecTasksMap={};
-let activeSupTaskId=null;
+let activeSupTaskId=null, activeSupRecTaskId=null, activeSupRecType='', activeSupRecDescription='';
 let currentSupRole='موظف';
 let globalTeamsList = [];
 let employeeRecords = [];
@@ -750,7 +750,7 @@ async function onTeamSwitch() {
       const assignedSection = document.getElementById('assigned-tasks-section');
       if (assignedSection) assignedSection.style.display = 'none';
       const recurringSection = document.getElementById('recurring-tasks-section');
-      if (recurringSection) recurringSection.style.display = 'none';
+      if (recurringSection) recurringSection.style.display = 'block';
 
       // إظهار لوحة المشرفين
       document.getElementById('supervisor-board').style.display = 'block';
@@ -1547,6 +1547,12 @@ function renderEmployeeRecurringTasks() {
   }
 
   container.innerHTML = filtered.map(t => {
+    const isSupervisor = currentSupRole === 'مشرف';
+    const btnOnClick = isSupervisor
+      ? `openSupRecurringTaskCompletionModal(\`${escapeHtml(t.id)}\`, \`${escapeHtml(t['التكرار'])}\`, \`${escapeHtml(t['العميل'])}\`, \`${escapeHtml(t['نوع المهمة'])}\`, \`${escapeHtml(t['وصف المهمة'])}\`)`
+      : `importRecurringTask(\`${escapeHtml(t.id)}\`, \`${escapeHtml(t['التكرار'])}\`, \`${escapeHtml(t['العميل'])}\`, \`${escapeHtml(t['نوع المهمة'])}\`, \`${escapeHtml(t['وصف المهمة'])}\`)`;
+    const btnText = isSupervisor ? 'تأكيد إتمام المهمة' : 'إضافة لتقريري اليومي';
+
     return `
       <div class="task-card" style="margin-bottom:0; padding:12px; border:1px solid rgba(255,255,255,0.05); background:var(--bg2);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -1555,8 +1561,8 @@ function renderEmployeeRecurringTasks() {
         <div style="font-size:12px; color:var(--text); margin-bottom:10px; line-height:1.4; font-weight:500;">
           ${escapeHtml(t['وصف المهمة']) || 'مهمة دورية ثابتة'}
         </div>
-        <button class="btn btn-primary btn-sm" style="width:100%; justify-content:center; padding:6px; font-size:11.5px; background:var(--accent-s); color:var(--accent-l); border:1px solid rgba(212,112,59,0.15);" onclick="importRecurringTask(\`${escapeHtml(t.id)}\`, \`${escapeHtml(t['التكرار'])}\`, \`${escapeHtml(t['العميل'])}\`, \`${escapeHtml(t['نوع المهمة'])}\`, \`${escapeHtml(t['وصف المهمة'])}\`)">
-          إضافة لتقريري اليومي
+        <button class="btn btn-primary btn-sm" style="width:100%; justify-content:center; padding:6px; font-size:11.5px; background:var(--accent-s); color:var(--accent-l); border:1px solid rgba(212,112,59,0.15);" onclick="${btnOnClick}">
+          ${btnText}
         </button>
       </div>
     `;
@@ -1793,6 +1799,7 @@ function loadSupervisorBoard() {
   document.getElementById('stat-sup-done').textContent = completedTasks.length;
   
   renderSupervisorTasks(pendingTasks);
+  initEmployeeRecurringTasks();
 
   // Quiet refresh in background to ensure sync correctness
   quietRefreshSupervisorData();
@@ -1800,9 +1807,10 @@ function loadSupervisorBoard() {
 
 async function quietRefreshSupervisorData() {
   try {
-    const [assignedR, reportsR] = await Promise.all([
+    const [assignedR, reportsR, recR] = await Promise.all([
       apiFetch({ action: 'getAssignedTasks', empId: EMP_ID }),
-      apiFetch({ action: 'getReports', empId: EMP_ID })
+      apiFetch({ action: 'getReports', empId: EMP_ID }),
+      apiFetch({ action: 'getRecurringTasks' })
     ]);
     
     if (assignedR.ok && assignedR.tasks) {
@@ -1818,6 +1826,10 @@ async function quietRefreshSupervisorData() {
     }
     if (reportsR.ok && reportsR.rows) {
       STATE.reports = STATE.reports.filter(r => String(r.emp_id) !== String(EMP_ID)).concat(reportsR.rows);
+    }
+    if (recR.ok && recR.recurringTasks) {
+      STATE.recurringTasks = recR.recurringTasks;
+      initEmployeeRecurringTasks();
     }
   } catch(e) {}
 }
@@ -1878,14 +1890,36 @@ function renderSupervisorTasks(tasks) {
 
 function openSupTaskCompletionModal(taskId, client, tasktype) {
   activeSupTaskId = taskId;
+  activeSupRecTaskId = null;
+  
   document.getElementById('sup-comp-client').textContent = client;
   document.getElementById('sup-comp-type').textContent = tasktype;
   document.getElementById('sup-comp-desc').value = '';
+  
+  const modalTitle = document.querySelector('#modal-sup-complete .modal-title');
+  if (modalTitle) modalTitle.textContent = 'تأكيد إتمام التكليف';
+  
+  openModal('modal-sup-complete');
+}
+
+function openSupRecurringTaskCompletionModal(taskId, recurrence, client, tasktype, desc) {
+  activeSupTaskId = null;
+  activeSupRecTaskId = taskId;
+  activeSupRecType = recurrence;
+  activeSupRecDescription = desc;
+
+  document.getElementById('sup-comp-client').textContent = client;
+  document.getElementById('sup-comp-type').textContent = tasktype;
+  document.getElementById('sup-comp-desc').value = '';
+  
+  const modalTitle = document.querySelector('#modal-sup-complete .modal-title');
+  if (modalTitle) modalTitle.textContent = 'تأكيد إتمام المهمة الدورية';
+  
   openModal('modal-sup-complete');
 }
 
 async function submitSupTaskCompletion() {
-  if (!activeSupTaskId) return;
+  if (!activeSupTaskId && !activeSupRecTaskId) return;
   const desc = document.getElementById('sup-comp-desc').value.trim();
   const client = document.getElementById('sup-comp-client').textContent;
   const tasktype = document.getElementById('sup-comp-type').textContent;
@@ -1899,37 +1933,59 @@ async function submitSupTaskCompletion() {
   const originalTasks = JSON.parse(JSON.stringify(STATE.tasks));
   const originalReports = JSON.parse(JSON.stringify(STATE.reports));
 
-  // Set task status to completed in cache
-  const tIdx = STATE.tasks.findIndex(t => String(t.id) === String(activeSupTaskId));
-  if (tIdx !== -1) {
-    STATE.tasks[tIdx]['الحالة'] = 'مكتملة';
-    STATE.tasks[tIdx]['تاريخ الاكتمال'] = date;
+  if (activeSupTaskId) {
+    // Set task status to completed in cache
+    const tIdx = STATE.tasks.findIndex(t => String(t.id) === String(activeSupTaskId));
+    if (tIdx !== -1) {
+      STATE.tasks[tIdx]['الحالة'] = 'مكتملة';
+      STATE.tasks[tIdx]['تاريخ الاكتمال'] = date;
+    }
+
+    // Add local report
+    STATE.reports.push({
+      id: 'rep_' + Date.now(),
+      emp_id: EMP_ID,
+      'اسم الموظف': EMP_NAME,
+      team_id: TEAM_ID,
+      'التاريخ': date,
+      'العميل': client,
+      'نوع المهمة': tasktype,
+      'من': '',
+      'إلى': '',
+      'المدة': '0:00',
+      'وصف المهمة': desc || "تم إتمام التكليف المسند بنجاح.",
+      'مصدر المهمة': 'إسناد',
+      'task_id': activeSupTaskId,
+      'وقت الإرسال': new Date().toISOString()
+    });
+  } else if (activeSupRecTaskId) {
+    // Add local report for completed recurring task
+    STATE.reports.push({
+      id: 'rep_' + Date.now(),
+      emp_id: EMP_ID,
+      'اسم الموظف': EMP_NAME,
+      team_id: TEAM_ID,
+      'التاريخ': date,
+      'العميل': client,
+      'نوع المهمة': tasktype,
+      'من': '',
+      'إلى': '',
+      'المدة': '0:00',
+      'وصف المهمة': desc || activeSupRecDescription || "تم إتمام المهمة الدورية بنجاح.",
+      'مصدر المهمة': 'دوري',
+      'task_id': activeSupRecTaskId,
+      'نوع التكرار': activeSupRecType,
+      'وقت الإرسال': new Date().toISOString()
+    });
   }
 
-  // Add local report
-  const tempRepId = 'rep_' + Date.now();
-  STATE.reports.push({
-    id: tempRepId,
-    emp_id: EMP_ID,
-    'اسم الموظف': EMP_NAME,
-    team_id: TEAM_ID,
-    'التاريخ': date,
-    'العميل': client,
-    'نوع المهمة': tasktype,
-    'من': '',
-    'إلى': '',
-    'المدة': '0:00',
-    'وصف المهمة': desc || "تم إتمام التكليف المسند بنجاح.",
-    'مصدر المهمة': 'إسناد',
-    'وقت الإرسال': new Date().toISOString()
-  });
-
-  // Redraw supervisor board instantly in 0ms
+  // Redraw supervisor board and recurring tasks instantly in 0ms
   const pendingTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'معلقة');
   const completedTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'مكتملة');
   document.getElementById('stat-sup-pending').textContent = pendingTasks.length;
   document.getElementById('stat-sup-done').textContent = completedTasks.length;
   renderSupervisorTasks(pendingTasks);
+  initEmployeeRecurringTasks();
 
   closeModal('modal-sup-complete');
 
@@ -1947,14 +2003,16 @@ async function submitSupTaskCompletion() {
         from: "",
         to: "",
         dur: "0:00",
-        desc: desc || "تم إتمام التكليف المسند بنجاح.",
-        source: "إسناد"
+        desc: desc || (activeSupTaskId ? "تم إتمام التكليف المسند بنجاح." : (activeSupRecDescription || "تم إتمام المهمة الدورية بنجاح.")),
+        source: activeSupTaskId ? "إسناد" : "دوري",
+        task_id: activeSupTaskId || activeSupRecTaskId || "",
+        recurrence: activeSupRecTaskId ? activeSupRecType : ""
       }],
-      completedTaskIds: [activeSupTaskId]
+      completedTaskIds: activeSupTaskId ? [activeSupTaskId] : []
     };
     const r = await apiPost('submitReport', payload);
     if (r.ok) {
-      showToast('تم حفظ التقرير وإتمام التكليف بنجاح', 'success');
+      showToast('تم حفظ التقرير وإتمام المهمة بنجاح', 'success');
       quietRefreshSupervisorData();
     } else {
       showToast(r.error || 'خطأ أثناء المزامنة بالسيرفر', 'error');
