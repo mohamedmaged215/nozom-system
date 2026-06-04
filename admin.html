@@ -4118,6 +4118,57 @@ async function exportClientsDetailsExcel() {
   
   XLSX.utils.book_append_sheet(wb, ws, 'تقرير العملاء النشطين');
   
+  // إضافة صفحة خطة العمل للعملاء
+  const wsPlanData = [];
+  wsPlanData.push([`📋 تقرير خطة العمل للمهام الدورية للعملاء`]);
+  wsPlanData.push([`تاريخ الاستخراج: ${new Date().toLocaleDateString('ar-EG')}`]);
+  wsPlanData.push([]);
+  
+  const planHeaders = [
+    'اسم العميل',
+    'الموظف/المشرف المسؤول',
+    'التيم',
+    'التكرار',
+    'نوع المهمة',
+    'بند خطة العمل',
+    'الوصف التوضيحي للثبات',
+    'تاريخ الإنشاء'
+  ];
+  wsPlanData.push(planHeaders);
+
+  const teamMap = {};
+  STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+
+  const activeClientNames = new Set(exportData.map(d => d.name));
+  const clientRecurring = (STATE.recurringTasks || []).filter(t => activeClientNames.has(t['العميل']));
+  
+  clientRecurring.forEach(t => {
+    wsPlanData.push([
+      t['العميل'] || '',
+      t['اسم الموظف'] || '',
+      teamMap[t.team_id] || t.team_id || '',
+      t['التكرار'] || '',
+      t['نوع المهمة'] || '',
+      t['بند خطة العمل'] || '',
+      t['وصف المهمة'] || '',
+      t['تاريخ الإنشاء'] || ''
+    ]);
+  });
+  
+  const wsPlan = XLSX.utils.aoa_to_sheet(wsPlanData);
+  wsPlan['!cols'] = [
+    { wch: 30 },
+    { wch: 25 },
+    { wch: 15 },
+    { wch: 12 },
+    { wch: 15 },
+    { wch: 20 },
+    { wch: 35 },
+    { wch: 15 }
+  ];
+  
+  XLSX.utils.book_append_sheet(wb, wsPlan, 'خطة العمل');
+  
   let fileSuffix = 'كل_الاوقات';
   if (dateFrom && dateTo) {
     fileSuffix = `من_${dateFrom}_إلى_${dateTo}`;
@@ -5076,7 +5127,7 @@ function loadRecurringTasksList() {
       <tr>
         <td><strong>${t['اسم الموظف'] || ''}</strong></td>
         <td><span style="font-size:11px;color:var(--text3)">${teamMap[t.team_id] || t.team_id || ''}</span></td>
-        <td><strong>${t['العميل'] || ''}</strong></td>
+        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openClientDetailsModal('${escapeHtml(t['العميل'])}')" title="عرض تفاصيل العميل">${t['العميل'] || ''}</strong></td>
         <td><span class="badge ${badgeClass}" style="font-weight:600;">${recType}</span></td>
         <td>${t['نوع المهمة'] || ''}</td>
         <td><span style="color:var(--accent-l); font-weight:600;">${t['بند خطة العمل'] || '<span style="color:var(--text3)">—</span>'}</span></td>
