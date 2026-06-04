@@ -1332,7 +1332,8 @@ tr.row-has-note td:first-child {
               <div class="add-row" style="flex-wrap:wrap; display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) 100px; gap:10px; margin-top:0;">
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
                   <label style="font-size:11px; color:var(--text3); font-weight:600;">الموظف</label>
-                  <select id="task-assign-emp" style="width:100%;"><option value="">اختر الموظف</option></select>
+                  <input type="text" id="task-assign-emp" placeholder="اختر أو ابحث..." list="global-assign-emps-dl" style="width:100%;">
+                  <datalist id="global-assign-emps-dl"></datalist>
                 </div>
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
                   <label style="font-size:11px; color:var(--text3); font-weight:600;">العميل</label>
@@ -1405,7 +1406,8 @@ tr.row-has-note td:first-child {
               <div class="add-row" style="flex-wrap:wrap; display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) 100px; gap:10px; margin-top:0;">
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
                   <label style="font-size:11px; color:var(--text3); font-weight:600;">الموظف</label>
-                  <select id="rec-task-emp" onchange="checkRecTaskEmpRole()" style="width:100%;"><option value="">اختر الموظف</option></select>
+                  <input type="text" id="rec-task-emp" oninput="checkRecTaskEmpRole()" placeholder="اختر أو ابحث..." list="global-rec-emps-dl" style="width:100%;">
+                  <datalist id="global-rec-emps-dl"></datalist>
                 </div>
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
                   <label style="font-size:11px; color:var(--text3); font-weight:600;">العميل</label>
@@ -2252,16 +2254,9 @@ let WORK_PLAN_ITEMS = [
 ];
 
 function checkRecTaskEmpRole() {
-  const empSelect = document.getElementById('rec-task-emp');
-  if (!empSelect) return;
-  const val = empSelect.value;
-  const empObj = (STATE.employees || []).find(e => String(e.id) === String(val));
-  const isSupervisor = empObj && empObj['الدور'] === 'مشرف';
-  const isAdmin = STATE.role === 'admin';
-  
   const wpGroup = document.getElementById('rec-task-workplan-group');
   if (wpGroup) {
-    if (isSupervisor && isAdmin) {
+    if (STATE.role === 'admin') {
       wpGroup.style.display = 'flex';
     } else {
       wpGroup.style.display = 'none';
@@ -2682,25 +2677,19 @@ function populateFilters() {
     clientExplorerDl.innerHTML = STATE.clients.map(c => `<option value="${c.name || c}">`).join('');
   }
 
-  // Populate task assign employee select
-  const taskAssignEmpSel = document.getElementById('task-assign-emp');
-  const recTaskEmpSel = document.getElementById('rec-task-emp');
+  const assignDl = document.getElementById('global-assign-emps-dl');
+  const recDl = document.getElementById('global-rec-emps-dl');
   let emps = STATE.employees.filter(e => e['نشط'] === 'نعم');
-  if (STATE.role === 'supervisor') emps = emps.filter(e => e.team_id === STATE.teamId);
-
-  if (taskAssignEmpSel) {
-    taskAssignEmpSel.innerHTML = '<option value="">اختر الموظف</option>';
-    emps.forEach(e => {
-      taskAssignEmpSel.innerHTML += `<option value="${e.id}" data-name="${e['الاسم']}" data-team="${e.team_id}">${e['الاسم']}</option>`;
-    });
+  
+  if (STATE.role === 'admin') {
+    emps = emps.filter(e => e['الدور'] === 'مشرف');
+  } else if (STATE.role === 'supervisor') {
+    emps = emps.filter(e => e.team_id === STATE.teamId);
   }
 
-  if (recTaskEmpSel) {
-    recTaskEmpSel.innerHTML = '<option value="">اختر الموظف</option>';
-    emps.forEach(e => {
-      recTaskEmpSel.innerHTML += `<option value="${e.id}" data-name="${e['الاسم']}" data-team="${e.team_id}">${e['الاسم']}</option>`;
-    });
-  }
+  const optionsHtml = emps.map(e => `<option value="${e['الاسم']}">`).join('');
+  if (assignDl) assignDl.innerHTML = optionsHtml;
+  if (recDl) recDl.innerHTML = optionsHtml;
 
   // Populate task types for assignment
   const globalDl = document.getElementById('global-task-types-dl');
@@ -2727,6 +2716,7 @@ function populateFilters() {
     });
   }
   populateWorkPlanItems();
+  checkRecTaskEmpRole();
 }
 
 function populateEmpFilter(empSelId, teamSelId, savedVal) {
@@ -4453,6 +4443,7 @@ function switchPanel(name) {
   }
   if (name === 'tasks') {
     loadAssignedTasksList();
+    checkRecTaskEmpRole();
   } else if (name === 'visits') {
     renderVisits();
   } else if (name === 'attendance') {
@@ -4600,8 +4591,8 @@ function loadAssignedTasksList() {
 }
 
 async function submitAssignTask() {
-  const empSelect = document.getElementById('task-assign-emp');
-  const empId = empSelect.value;
+  const empInput = document.getElementById('task-assign-emp');
+  const empName = empInput.value.trim();
   const clientInput = document.getElementById('task-assign-client');
   const client = clientInput.value.trim();
   const typeSelect = document.getElementById('task-assign-type');
@@ -4609,13 +4600,20 @@ async function submitAssignTask() {
   const descInput = document.getElementById('task-assign-desc');
   const desc = descInput.value.trim();
 
-  if (!empId) { showToast('الرجاء اختيار الموظف', 'error'); return; }
+  if (!empName) { showToast('الرجاء اختيار الموظف', 'error'); return; }
   if (!client) { showToast('الرجاء تحديد العميل', 'error'); return; }
   if (!tasktype) { showToast('الرجاء تحديد نوع المهمة', 'error'); return; }
 
-  const selectedOpt = empSelect.options[empSelect.selectedIndex];
-  const empName = selectedOpt.getAttribute('data-name');
-  const teamId = selectedOpt.getAttribute('data-team');
+  let empObj;
+  if (STATE.role === 'admin') {
+    empObj = STATE.employees.find(e => e['الاسم'] === empName && e['الدور'] === 'مشرف' && e['نشط'] === 'نعم');
+  } else {
+    empObj = STATE.employees.find(e => e['الاسم'] === empName && e['نشط'] === 'نعم');
+  }
+
+  if (!empObj) { showToast('الموظف المختار غير صالح أو غير موجود', 'error'); return; }
+  const empId = empObj.id;
+  const teamId = empObj.team_id;
 
   // إضافة محلية فورية فائقة السرعة
   const tempId = 'tsk_' + Date.now();
@@ -4729,6 +4727,7 @@ function switchTasksSubTab(sub) {
     normalCont.style.display = 'none';
     recCont.style.display = 'block';
     loadRecurringTasksList();
+    checkRecTaskEmpRole();
   }
 }
 
@@ -4918,8 +4917,8 @@ function populateWorkPlanItems() {
 }
 
 async function submitSaveRecurringTask() {
-  const empSelect = document.getElementById('rec-task-emp');
-  const empId = empSelect.value;
+  const empInput = document.getElementById('rec-task-emp');
+  const empName = empInput.value.trim();
   const clientInput = document.getElementById('rec-task-client');
   const client = clientInput.value.trim();
   const recurrence = document.getElementById('rec-task-recurrence').value;
@@ -4929,13 +4928,20 @@ async function submitSaveRecurringTask() {
   const desc = descInput.value.trim();
   const workPlanItem = document.getElementById('rec-task-workplan')?.value || '';
 
-  if (!empId) { showToast('الرجاء اختيار الموظف', 'error'); return; }
+  if (!empName) { showToast('الرجاء اختيار الموظف', 'error'); return; }
   if (!client) { showToast('الرجاء تحديد العميل', 'error'); return; }
   if (!tasktype) { showToast('الرجاء تحديد نوع المهمة', 'error'); return; }
 
-  const selectedOpt = empSelect.options[empSelect.selectedIndex];
-  const empName = selectedOpt.getAttribute('data-name');
-  const teamId = selectedOpt.getAttribute('data-team');
+  let empObj;
+  if (STATE.role === 'admin') {
+    empObj = STATE.employees.find(e => e['الاسم'] === empName && e['الدور'] === 'مشرف' && e['نشط'] === 'نعم');
+  } else {
+    empObj = STATE.employees.find(e => e['الاسم'] === empName && e['نشط'] === 'نعم');
+  }
+
+  if (!empObj) { showToast('الموظف المختار غير صالح أو غير موجود', 'error'); return; }
+  const empId = empObj.id;
+  const teamId = empObj.team_id;
 
   const isEditing = !!STATE.editingRecurringTaskId;
   const targetId = isEditing ? STATE.editingRecurringTaskId : ('rec_' + Date.now());
