@@ -1023,6 +1023,19 @@ function collectData(){
     const tm=document.getElementById(`tp-to-m-${id}`).value;
     const tp=document.getElementById(`tp-to-p-${id}`).value;
     const pill=document.getElementById(`pill-${id}`);
+    
+    let sourceVal = 'ذاتي';
+    let taskIdVal = '';
+    let recurrenceVal = '';
+    if (completedTasksMap[id]) {
+      sourceVal = 'إسناد';
+      taskIdVal = completedTasksMap[id];
+    } else if (completedRecTasksMap[id]) {
+      sourceVal = 'دوري';
+      taskIdVal = completedRecTasksMap[id].taskId;
+      recurrenceVal = completedRecTasksMap[id].recurrence;
+    }
+    
     rows.push({
       client:document.getElementById(`client-${id}`)?.value.trim()||'',
       tasktype:document.getElementById(`tasktype-${id}`)?.value||'',
@@ -1030,8 +1043,11 @@ function collectData(){
       to:`${th}:${tm} ${tp==='AM'?'ص':'م'}`,
       dur:pill&&!pill.classList.contains('empty')?pill.textContent:'0:00',
       desc:document.getElementById(`desc-${id}`)?.value.trim()||'',
-      source: completedTasksMap[id] ? 'إسناد' : 'ذاتي'
+      source: sourceVal,
+      task_id: taskIdVal,
+      recurrence: recurrenceVal
     });
+    
     // لو كانت المهمة تابعة لتكليف مسند، نضيف معرف التكليف المكتمل
     if (completedTasksMap[id]) {
       completedTaskIds.push(completedTasksMap[id]);
