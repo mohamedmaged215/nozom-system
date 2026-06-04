@@ -1217,10 +1217,10 @@ tr.row-has-note td:first-child {
           <label>إلى تاريخ</label>
           <input type="date" id="rep-to" onchange="loadReports()">
         </div>
-        <div class="filter-group">
+        <div class="filter-group" style="display: none;">
           <label>العدد في الصفحة</label>
           <select id="rep-limit" onchange="loadReports(1)">
-            <option value="40">40</option>
+            <option value="40" selected>40</option>
             <option value="100">100</option>
             <option value="250">250</option>
             <option value="500">500</option>
@@ -2960,6 +2960,16 @@ function chartOpts(yLabel) {
 // REPORTS
 // ══════════════════════════════════════════════════════
 let currentReportsPage = 1;
+let currentReportsLimit = 20;
+
+function changeReportsLimit(newLimit) {
+  if (newLimit === 'all') {
+    currentReportsLimit = 'all';
+  } else {
+    currentReportsLimit = parseInt(newLimit, 10) || 20;
+  }
+  loadReports(1);
+}
 
 async function loadReports(page = 1) {
   currentReportsPage = page;
@@ -2967,8 +2977,6 @@ async function loadReports(page = 1) {
   const empId  = document.getElementById('rep-emp').value;
   const from   = document.getElementById('rep-from').value;
   const to     = document.getElementById('rep-to').value;
-  const limitVal = document.getElementById('rep-limit')?.value || '40';
-  const limit  = parseInt(limitVal, 10) || 40;
 
   const tbody = document.getElementById('rep-tbody');
   const paginationContainer = document.getElementById('rep-pagination');
@@ -2977,10 +2985,12 @@ async function loadReports(page = 1) {
   paginationContainer.innerHTML = '';
 
   const params = {
-    action: 'getReports',
-    page: page,
-    limit: limit
+    action: 'getReports'
   };
+  if (currentReportsLimit !== 'all') {
+    params.page = 1;
+    params.limit = currentReportsLimit;
+  }
   if (team) params.teamId = team;
   if (empId) params.empId = empId;
   if (from) params.dateFrom = from;
@@ -2999,8 +3009,10 @@ async function loadReports(page = 1) {
     // Fallback: If Apps Script hasn't been deployed/updated with pagination support yet
     if (totalCount === undefined) {
       totalCount = rows.length;
-      const startIndex = (page - 1) * limit;
-      rows = rows.slice(startIndex, startIndex + limit);
+      if (currentReportsLimit !== 'all') {
+        const lim = parseInt(currentReportsLimit, 10) || 20;
+        rows = rows.slice(0, lim);
+      }
     }
 
     document.getElementById('rep-count').textContent = `التقارير (${totalCount})`;
@@ -3059,44 +3071,26 @@ function renderReportsPagination(totalCount, currentPage) {
   const paginationContainer = document.getElementById('rep-pagination');
   if (!paginationContainer) return;
 
-  const limitVal = document.getElementById('rep-limit')?.value || '40';
-  const limit  = parseInt(limitVal, 10) || 40;
-
-  const totalPages = Math.ceil(totalCount / limit);
-  if (totalPages <= 1) {
-    paginationContainer.innerHTML = '';
-    return;
-  }
-
-  let html = '';
+  const limits = [20, 100, 200, 500, 2500, 'all'];
+  let html = `<span style="color:var(--text3); font-size:12px; margin-left:8px;">عرض عدد:</span>`;
   
-  html += `<button class="btn btn-secondary btn-sm" style="padding:4px 10px; font-size:11px; min-width:50px;" onclick="loadReports(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>السابق</button>`;
+  limits.forEach(lim => {
+    const isActive = currentReportsLimit === lim;
+    const label = lim === 'all' ? 'الكل' : lim;
+    const activeStyle = isActive 
+      ? 'style="background:var(--accent); color:#fff; border-color:var(--accent); padding:4px 12px; font-size:11px; margin: 0 3px; font-weight: 600;"' 
+      : 'style="padding:4px 12px; font-size:11px; margin: 0 3px;"';
+    
+    html += `<button class="btn btn-secondary btn-sm" ${activeStyle} onclick="changeReportsLimit('${lim}')">${label}</button>`;
+  });
 
-  const startPage = Math.max(1, currentPage - 2);
-  const endPage = Math.min(totalPages, currentPage + 2);
-
-  if (startPage > 1) {
-    html += `<button class="btn btn-secondary btn-sm" style="padding:4px 10px; font-size:11px;" onclick="loadReports(1)">1</button>`;
-    if (startPage > 2) {
-      html += `<span style="color:var(--text3); padding:0 4px;">...</span>`;
-    }
+  let infoText = '';
+  if (currentReportsLimit === 'all' || totalCount <= currentReportsLimit) {
+    infoText = `عرض الكل (${totalCount} تقرير)`;
+  } else {
+    infoText = `عرض 1 إلى ${currentReportsLimit} من أصل ${totalCount} تقرير`;
   }
-
-  for (let i = startPage; i <= endPage; i++) {
-    const activeStyle = i === currentPage ? 'style="background:var(--accent); color:#fff; border-color:var(--accent); padding:4px 10px; font-size:11px;"' : 'style="padding:4px 10px; font-size:11px;"';
-    html += `<button class="btn btn-secondary btn-sm" ${activeStyle} onclick="loadReports(${i})">${i}</button>`;
-  }
-
-  if (endPage < totalPages) {
-    if (endPage < totalPages - 1) {
-      html += `<span style="color:var(--text3); padding:0 4px;">...</span>`;
-    }
-    html += `<button class="btn btn-secondary btn-sm" style="padding:4px 10px; font-size:11px;" onclick="loadReports(${totalPages})">${totalPages}</button>`;
-  }
-
-  html += `<button class="btn btn-secondary btn-sm" style="padding:4px 10px; font-size:11px; min-width:50px;" onclick="loadReports(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>التالي</button>`;
-
-  html += `<span style="color:var(--text3); font-size:12px; margin-right:12px;">صفحة ${currentPage} من ${totalPages}</span>`;
+  html += `<span style="color:var(--text3); font-size:12px; margin-right:16px;">(${infoText})</span>`;
 
   paginationContainer.innerHTML = html;
 }
