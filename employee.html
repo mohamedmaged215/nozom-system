@@ -1087,6 +1087,12 @@ async function submitReport(appendOverride){
       return;
     }
     
+    // التأكد من إدخال وصف المهمة
+    if (!r.desc || !r.desc.trim()) {
+      showToast(`برجاء كتابة وصف للمهمة رقم ${i + 1}`, 'error');
+      return;
+    }
+    
     // فحص وقت المهمة (يجب أن يكون 5 دقائق على الأقل)
     let taskMinutes = 0;
     if (r.dur && r.dur.includes(':')) {
@@ -1270,14 +1276,16 @@ function importAssignedTask(taskId, client, tasktype, desc) {
   let id = taskCounter;
   let reused = false;
   
-  if (taskIds.length === 1) {
-    const firstId = taskIds[0];
-    const cVal = document.getElementById(`client-${firstId}`)?.value || '';
-    const tVal = document.getElementById(`tasktype-${firstId}`)?.value || '';
-    const dVal = document.getElementById(`desc-${firstId}`)?.value || '';
+  // البحث عن أول كارت مهمة فارغ لإعادة استخدامه
+  for (let i = 0; i < taskIds.length; i++) {
+    const tid = taskIds[i];
+    const cVal = document.getElementById(`client-${tid}`)?.value || '';
+    const tVal = document.getElementById(`tasktype-${tid}`)?.value || '';
+    const dVal = document.getElementById(`desc-${tid}`)?.value || '';
     if (!cVal.trim() && !tVal.trim() && !dVal.trim()) {
-      id = firstId;
+      id = tid;
       reused = true;
+      break;
     }
   }
 
@@ -1290,6 +1298,23 @@ function importAssignedTask(taskId, client, tasktype, desc) {
   document.getElementById(`client-${id}`).value = client;
   document.getElementById(`tasktype-${id}`).value = tasktype;
   document.getElementById(`desc-${id}`).value = desc;
+  
+  // ضبط التوقيت تلقائياً ليأخذ نهاية وقت المهمة السابقة
+  const currentIdx = taskIds.indexOf(id);
+  if (currentIdx > 0) {
+    const prevId = taskIds[currentIdx - 1];
+    const prevToH = document.getElementById(`tp-to-h-${prevId}`)?.value || '09';
+    const prevToM = document.getElementById(`tp-to-m-${prevId}`)?.value || '00';
+    const prevToP = document.getElementById(`tp-to-p-${prevId}`)?.value || 'AM';
+    
+    document.getElementById(`tp-from-h-${id}`).value = prevToH;
+    document.getElementById(`tp-from-m-${id}`).value = prevToM;
+    document.getElementById(`tp-from-p-${id}`).value = prevToP;
+    document.getElementById(`tp-to-h-${id}`).value   = prevToH;
+    document.getElementById(`tp-to-m-${id}`).value   = prevToM;
+    document.getElementById(`tp-to-p-${id}`).value   = prevToP;
+    calcDur(id);
+  }
   
   // ربط بطاقة التقرير مع التكليف المستورد
   completedTasksMap[String(id)] = taskId;
@@ -1573,14 +1598,16 @@ function importRecurringTask(taskId, recurrence, client, tasktype, desc) {
   let id = taskCounter;
   let reused = false;
   
-  if (taskIds.length === 1) {
-    const firstId = taskIds[0];
-    const cVal = document.getElementById(`client-${firstId}`)?.value || '';
-    const tVal = document.getElementById(`tasktype-${firstId}`)?.value || '';
-    const dVal = document.getElementById(`desc-${firstId}`)?.value || '';
+  // البحث عن أول كارت مهمة فارغ لإعادة استخدامه
+  for (let i = 0; i < taskIds.length; i++) {
+    const tid = taskIds[i];
+    const cVal = document.getElementById(`client-${tid}`)?.value || '';
+    const tVal = document.getElementById(`tasktype-${tid}`)?.value || '';
+    const dVal = document.getElementById(`desc-${tid}`)?.value || '';
     if (!cVal.trim() && !tVal.trim() && !dVal.trim()) {
-      id = firstId;
+      id = tid;
       reused = true;
+      break;
     }
   }
 
@@ -1593,6 +1620,23 @@ function importRecurringTask(taskId, recurrence, client, tasktype, desc) {
   document.getElementById(`client-${id}`).value = client;
   document.getElementById(`tasktype-${id}`).value = tasktype;
   document.getElementById(`desc-${id}`).value = desc;
+  
+  // ضبط التوقيت تلقائياً ليأخذ نهاية وقت المهمة السابقة
+  const currentIdx = taskIds.indexOf(id);
+  if (currentIdx > 0) {
+    const prevId = taskIds[currentIdx - 1];
+    const prevToH = document.getElementById(`tp-to-h-${prevId}`)?.value || '09';
+    const prevToM = document.getElementById(`tp-to-m-${prevId}`)?.value || '00';
+    const prevToP = document.getElementById(`tp-to-p-${prevId}`)?.value || 'AM';
+    
+    document.getElementById(`tp-from-h-${id}`).value = prevToH;
+    document.getElementById(`tp-from-m-${id}`).value = prevToM;
+    document.getElementById(`tp-from-p-${id}`).value = prevToP;
+    document.getElementById(`tp-to-h-${id}`).value   = prevToH;
+    document.getElementById(`tp-to-m-${id}`).value   = prevToM;
+    document.getElementById(`tp-to-p-${id}`).value   = prevToP;
+    calcDur(id);
+  }
   
   // ربط بطاقة التقرير مع المهمة الدورية المستوردة
   completedRecTasksMap[String(id)] = { taskId, recurrence };
@@ -1921,6 +1965,9 @@ function openSupRecurringTaskCompletionModal(taskId, recurrence, client, tasktyp
 async function submitSupTaskCompletion() {
   if (!activeSupTaskId && !activeSupRecTaskId) return;
   const desc = document.getElementById('sup-comp-desc').value.trim();
+  
+  if (!desc) { showToast('برجاء كتابة وصف العمل أو ملاحظات الإتمام', 'error'); return; }
+  
   const client = document.getElementById('sup-comp-client').textContent;
   const tasktype = document.getElementById('sup-comp-type').textContent;
   const date = document.getElementById('report-date').value;
@@ -2108,6 +2155,7 @@ async function submitSupManualTask() {
   
   if (!client) { showToast('يرجى تحديد العميل', 'error'); return; }
   if (!tasktype) { showToast('يرجى تحديد نوع المهمة', 'error'); return; }
+  if (!desc) { showToast('برجاء كتابة وصف للمهمة', 'error'); return; }
   
   const btn = document.getElementById('btn-sup-manual-submit');
   btn.disabled = true;
