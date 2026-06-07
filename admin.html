@@ -2382,10 +2382,32 @@ async function initLogin() {
   // Initialize Canvas Particles & 3D Tilt
   initLoginVisuals();
 
-  // جلب التيمات لـ supervisor login
-  try {
-    const r = await apiFetch({ action: 'getTeams' });
-    if (r.ok) {
+  // فحص تسجيل الدخول التلقائي (تذكرني) مبكراً
+  let isAutoLogin = false;
+  if (localStorage.getItem('nuzum_remember') === 'true') {
+    const role = localStorage.getItem('nuzum_role');
+    const pass = localStorage.getItem('nuzum_password');
+    const teamId = localStorage.getItem('nuzum_team_id');
+    if (role && pass) {
+      isAutoLogin = true;
+      const card = document.querySelector(`.role-card[data-role="${role}"]`);
+      if (card) card.click();
+      document.getElementById('login-pass').value = pass;
+      if (role === 'supervisor' && teamId) {
+        document.getElementById('login-team').value = teamId;
+      }
+      document.getElementById('login-remember').checked = true;
+      
+      // دخول تلقائي سريع
+      setTimeout(() => {
+        doLogin();
+      }, 200);
+    }
+  }
+
+  // جلب التيمات في الخلفية دون تعطيل ظهور الصفحة أو الدخول التلقائي للأدمن
+  apiFetch({ action: 'getTeams' }).then(r => {
+    if (r && r.ok) {
       STATE.teams = r.teams || [];
       const grid = document.getElementById('teamGrid');
       if (grid) {
@@ -2402,35 +2424,21 @@ async function initLogin() {
           chip.classList.add('active');
           document.getElementById('login-team').value = chip.dataset.team;
         });
+
+        // تفعيل الشيب النشط إذا كان مسجلاً مسبقاً
+        const savedTeamId = localStorage.getItem('nuzum_team_id');
+        if (savedTeamId) {
+          const chip = document.querySelector(`.team-chip[data-team="${savedTeamId}"]`);
+          if (chip) chip.classList.add('active');
+        }
       }
     }
-  } catch(e) {}
+  }).catch(e => console.error("Error fetching teams in background:", e));
   
-  // فحص تسجيل الدخول التلقائي (تذكرني)
-  if (localStorage.getItem('nuzum_remember') === 'true') {
-    const role = localStorage.getItem('nuzum_role');
-    const pass = localStorage.getItem('nuzum_password');
-    const teamId = localStorage.getItem('nuzum_team_id');
-    if (role && pass) {
-      const card = document.querySelector(`.role-card[data-role="${role}"]`);
-      if (card) card.click();
-      document.getElementById('login-pass').value = pass;
-      if (role === 'supervisor' && teamId) {
-        document.getElementById('login-team').value = teamId;
-        const chip = document.querySelector(`.team-chip[data-team="${teamId}"]`);
-        if (chip) chip.classList.add('active');
-      }
-      document.getElementById('login-remember').checked = true;
-      
-      // دخول تلقائي سريع
-      setTimeout(() => {
-        doLogin();
-      }, 200);
-      return;
-    }
+  // إذا لم يكن هناك دخول تلقائي، نخفي غطاء التحميل فوراً لتصبح الصفحة تفاعلية
+  if (!isAutoLogin) {
+    document.getElementById('loading-overlay').style.display = 'none';
   }
-  
-  document.getElementById('loading-overlay').style.display = 'none';
 }
 
 function initLoginVisuals() {
@@ -2586,35 +2594,9 @@ function doLogout() {
 async function initDashboard() {
   document.getElementById('loading-overlay').style.display = 'flex';
   try {
-    const [teamsR, empsR, clientsR, tasksR, visitsR, recurringR] = await Promise.all([
-      apiFetch({ action: 'getTeams' }),
-      apiFetch({ action: 'getEmployees' }),
-      apiFetch(STATE.role === 'supervisor' ? { action: 'getClients', teamId: STATE.teamId } : { action: 'getClients' }),
-      apiFetch(STATE.role === 'supervisor' ? { action: 'getAssignedTasks', teamId: STATE.teamId } : { action: 'getAssignedTasks' }),
-      apiFetch(STATE.role === 'supervisor' ? { action: 'getVisits', teamId: STATE.teamId } : { action: 'getVisits' }),
-      apiFetch(STATE.role === 'supervisor' ? { action: 'getRecurringTasks', teamId: STATE.teamId } : { action: 'getRecurringTasks' })
-    ]);
+    // استدعاء دالة جلب البيانات المجمعة في طلب واحد لتسريع التحميل
+    await refreshData();
     
-    if (teamsR.ok)   STATE.teams     = teamsR.teams || [];
-    if (empsR.ok)    STATE.employees = empsR.employees || [];
-    STATE.clients = parseClientsResponse(clientsR);
-    STATE.reports = [];
-    STATE.attendance = [];
-    STATE.tasks = tasksR.ok ? (tasksR.tasks || []) : [];
-    STATE.visits = visitsR.ok ? (visitsR.visits || []) : [];
-    STATE.recurringTasks = recurringR.ok ? (recurringR.recurringTasks || []) : [];
-    STATE.visits.forEach(v => {
-      if (!v['الحالة'] && v['ملاحظات'] && v['ملاحظات'].includes('ما تم إنجازه في الزيارة:')) {
-        v['الحالة'] = 'تمت';
-      }
-    });
-
-    // للمشرف: فلتر بالتيم
-    if (STATE.role === 'supervisor') {
-      STATE.employees = STATE.employees.filter(e => e.team_id === STATE.teamId);
-    }
-
-    populateFilters();
     await loadDashboard();
     renderTeams();
     renderEmployeesList();
