@@ -1748,6 +1748,32 @@ tr.row-has-note td:first-child {
             </div>
           </div>
         </div>
+        <!-- بطاقة استرجاع كلمات السر (تظهر للأدمن فقط) -->
+        <div class="settings-card" id="admin-credentials-card" style="display: none;">
+          <div class="settings-title">🔑 استرجاع كلمات سر النظام</div>
+          <p style="font-size:12px; color:var(--text3); margin-bottom: 12px;">لأغراض أمنية، يجب تأكيد كلمة مرور الأدمن لعرض كلمات سر المشرفين والأدمن.</p>
+          <div class="modal-field">
+            <label>كلمة مرور الأدمن للتأكيد</label>
+            <div style="position: relative;">
+              <input type="password" id="cred-confirm-pass" placeholder="••••••••" style="padding-left: 40px; width: 100%;">
+              <button type="button" onclick="togglePasswordVisibility('cred-confirm-pass', this)" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; outline: none; padding: 0;">👁️</button>
+            </div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:12px; width: 100%;" onclick="fetchSystemCredentials()">عرض كلمات السر</button>
+          
+          <div id="credentials-table-wrap" style="margin-top: 16px; display: none; max-height: 250px; overflow-y: auto;">
+            <table class="table" style="font-size: 12px; width: 100%;">
+              <thead>
+                <tr>
+                  <th>الحساب / التيم</th>
+                  <th>كلمة المرور</th>
+                </tr>
+              </thead>
+              <tbody id="credentials-tbody">
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2322,9 +2348,16 @@ async function apiFetch(params) {
 }
 
 async function apiPost(action, data) {
+  const password = STATE.password || localStorage.getItem('nuzum_password') || '';
   const r = await fetch(API, {
     method: 'POST',
-    body: JSON.stringify({ action, ...data })
+    body: JSON.stringify({
+      action,
+      authPassword: password,
+      authRole: STATE.role || '',
+      authTeamId: STATE.teamId || '',
+      ...data
+    })
   });
   return r.json();
 }
@@ -2495,33 +2528,15 @@ async function doLogin() {
   // نعمل post للتحقق
   try {
     const r = await apiPost('verifyLogin', { role, password: pass, teamId });
-    // لو Apps Script مش عنده verifyLogin كـ doPost action، نتحقق يدوي
-    if (!r.ok || r.error === 'unknown action: verifyLogin') {
-      // fallback: مؤقتاً نقبل admin2025 للـ admin
-      if (role === 'admin' && pass === 'admin2025') {
-        enterDashboard(role, null, null, pass);
-        return;
-      }
-      if (role === 'supervisor') {
-        const team = STATE.teams.find(t => t.id === teamId);
-        if (team && pass === team['كلمة مرور المشرف']) {
-          enterDashboard(role, teamId, team['اسم التيم'], pass);
-          return;
-        }
-      }
-      errEl.textContent = 'كلمة المرور غلط';
-      if (loginBtn) loginBtn.classList.remove('loading');
-      return;
-    }
-    if (r.valid) {
+    if (r.ok && r.valid) {
       const team = STATE.teams.find(t => t.id === teamId);
       enterDashboard(role, role === 'supervisor' ? teamId : null, team ? team['اسم التيم'] : null, pass);
     } else {
-      errEl.textContent = 'كلمة المرور غلط';
+      errEl.textContent = r.error || 'كلمة المرور غلط';
       if (loginBtn) loginBtn.classList.remove('loading');
     }
   } catch(e) {
-    errEl.textContent = 'تعذر الاتصال';
+    errEl.textContent = 'تعذر الاتصال بالخادم';
     if (loginBtn) loginBtn.classList.remove('loading');
   }
 }
@@ -2530,6 +2545,7 @@ function enterDashboard(role, teamId, teamName, password) {
   STATE.role = role;
   STATE.teamId = teamId;
   STATE.teamName = teamName;
+  STATE.password = password;
 
   // Save "Remember Me"
   const remember = document.getElementById('login-remember').checked;
@@ -2576,6 +2592,11 @@ function enterDashboard(role, teamId, teamName, password) {
 
   // Date
   document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('ar-SA', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  const credCard = document.getElementById('admin-credentials-card');
+  if (credCard) {
+    credCard.style.display = role === 'admin' ? 'block' : 'none';
+  }
 
   initDashboard();
 }
@@ -4329,6 +4350,38 @@ async function changePassword() {
   } catch(e) { showToast('تعذر الاتصال', 'error'); }
 }
 
+async function fetchSystemCredentials() {
+  const adminPass = document.getElementById('cred-confirm-pass').value;
+  const tbody = document.getElementById('credentials-tbody');
+  const tableWrap = document.getElementById('credentials-table-wrap');
+  
+  if (!adminPass) {
+    showToast('يرجى إدخال كلمة مرور الأدمن أولاً', 'error');
+    return;
+  }
+  
+  try {
+    const res = await apiPost('getCredentials', { adminPassword: adminPass });
+    if (res.ok && res.credentials) {
+      tbody.innerHTML = '';
+      res.credentials.forEach(c => {
+        tbody.innerHTML += `
+          <tr>
+            <td><strong>${c.name}</strong> (${c.role === 'admin' ? 'مدير عام' : 'مشرف تيم'})</td>
+            <td style="font-family: monospace; font-size: 13px; color: var(--warning); letter-spacing: 1px;">${c.password}</td>
+          </tr>
+        `;
+      });
+      tableWrap.style.display = 'block';
+      showToast('تم استرجاع كلمات السر بنجاح', 'success');
+    } else {
+      showToast(res.error || 'تعذر استرجاع كلمات السر', 'error');
+    }
+  } catch(e) {
+    showToast('تعذر الاتصال بالخادم', 'error');
+  }
+}
+
 function updateInfoPanel() {
   document.getElementById('info-teams').textContent   = `التيمات: ${STATE.teams.length}`;
   document.getElementById('info-emps').textContent    = `الموظفين: ${STATE.employees.filter(e=>e['نشط']==='نعم').length}`;
@@ -4346,7 +4399,11 @@ async function refreshData() {
     if (res.ok && res.teams) {
       STATE.teams          = res.teams || [];
       STATE.employees      = res.employees || [];
-      STATE.clients        = res.clients || [];
+      STATE.clients        = parseClientsResponse({
+        ok: true,
+        clients: res.clients || [],
+        deletedDefaultClients: res.deletedDefaultClients || []
+      });
       STATE.reports        = [];
       STATE.attendance     = [];
       STATE.tasks          = res.tasks || [];
