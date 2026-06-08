@@ -564,7 +564,7 @@ async function init(){
       if (initRes.ok && initRes.teams) {
         tr = { ok: true, teams: initRes.teams };
         er = { ok: true, employees: initRes.employees };
-        clR = { ok: true, clients: initRes.clients };
+        clR = { ok: true, clients: initRes.clients, deletedDefaultClients: initRes.deletedDefaultClients || [] };
         repR = { ok: true, rows: initRes.reports };
         tskR = { ok: true, tasks: initRes.tasks };
         recR = { ok: true, recurringTasks: initRes.recurringTasks };
@@ -1084,6 +1084,12 @@ async function submitReport(appendOverride){
     const r = data.rows[i];
     if (!r.client || !r.client.trim()) {
       showToast(`يرجى تحديد العميل للمهمة رقم ${i + 1}`, 'error');
+      return;
+    }
+    
+    // التأكد من إدخال نوع المهمة
+    if (!r.tasktype || !r.tasktype.trim()) {
+      showToast(`يرجى تحديد نوع المهمة للمهمة رقم ${i + 1}`, 'error');
       return;
     }
     
