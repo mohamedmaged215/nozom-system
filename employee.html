@@ -682,7 +682,7 @@ function onLoginTeamChange() {
   if (!teamId) return;
 
   const filtered = _bootEmployees.filter(e =>
-    String(e.team_id) === String(teamId) && e.is_active
+    String(e.team_id) === String(teamId) && e.is_active !== false
   );
   filtered.forEach(e => {
     empSel.innerHTML += `<option value="${e.id}">${e.name}</option>`;
@@ -749,7 +749,7 @@ async function init(){
     const linkedEmp = _bootEmployees.find(e =>
       String(e.id) === String(linkedEmpId) &&
       (!linkedTeamId || String(e.team_id) === String(linkedTeamId)) &&
-      e.is_active
+      e.is_active !== false
     );
 
     if (linkedEmp) {
@@ -783,7 +783,7 @@ async function _initAfterLogin(empRecord) {
 
   // بناء employeeRecords للمبدّل
   employeeRecords = _bootEmployees
-    .filter(e => e.name === EMP_NAME && e.is_active)
+    .filter(e => e.name === EMP_NAME && e.is_active !== false)
     .map(e => ({
       id: e.id,
       'الاسم': e.name,
