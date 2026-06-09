@@ -566,7 +566,7 @@ function mapTeam(dbTeam) {
   return {
     id: dbTeam.id,
     'اسم التيم': dbTeam.name,
-    'مشرف': dbTeam.supervisor,
+    'مشرف': dbTeam.supervisor_name,
     'تاريخ الإنشاء': dbTeam.created_at ? dbTeam.created_at.slice(0, 10) : '',
     'نشط': dbTeam.is_active ? 'نعم' : 'لا'
   };
@@ -587,16 +587,16 @@ const fmtDate = d => d ? String(d).substring(0, 10) : '';
 function mapReport(dbRep) {
   return {
     id: dbRep.id,
-    emp_id: dbRep.emp_id,
-    'اسم الموظف': dbRep.emp_name,
+    emp_id: dbRep.employee_id,
+    'اسم الموظف': dbRep.employee_name,
     team_id: dbRep.team_id,
     'التاريخ': fmtDate(dbRep.report_date),
-    'العميل': dbRep.client_name,
+    'العميل': dbRep.client,
     'نوع المهمة': dbRep.task_type,
-    'نوع التكرار': dbRep.recurrence || 'ذاتي',
-    'مصدر المهمة': dbRep.source || 'ذاتي',
-    'من': dbRep.start_time || '',
-    'إلى': dbRep.end_time || '',
+    'نوع التكرار': dbRep.recurrence_type || 'ذاتي',
+    'مصدر المهمة': dbRep.task_source || 'ذاتي',
+    'من': dbRep.time_from || '',
+    'إلى': dbRep.time_to || '',
     'المدة': dbRep.duration || '0:00',
     'وصف المهمة': dbRep.description || '',
     'التقييم': dbRep.rating || '',
@@ -628,7 +628,7 @@ function mapRecurringTask(dbRec) {
     team_id: dbRec.team_id,
     'العميل': dbRec.client,
     'التكرار': dbRec.recurrence,
-    'الأسبوع': dbRec.week_num || '',
+    'الأسبوع': dbRec.week || '',
     'بند خطة العمل': dbRec.work_plan_item || '',
     'نوع المهمة': dbRec.task_type,
     'وصف المهمة': dbRec.description || '',
@@ -640,10 +640,10 @@ function mapRecurringTask(dbRec) {
 function mapVisit(dbVis) {
   return {
     id: dbVis.id,
-    emp_id: dbVis.emp_id,
-    'اسم الموظف': dbVis.emp_name,
+    emp_id: dbVis.employee_id,
+    'اسم الموظف': dbVis.employee_name,
     team_id: dbVis.team_id,
-    'العميل': dbVis.client_name,
+    'العميل': dbVis.client,
     'واتساب العميل': dbVis.client_whatsapp || '',
     'تاريخ الزيارة': fmtDate(dbVis.visit_date),
     'وقت الزيارة': dbVis.visit_time || '',
