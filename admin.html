@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=El+Messiri:wght@600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   /* Nuzum Design System v2.0 Tokens */
@@ -2261,7 +2262,150 @@ tr.row-has-note td:first-child {
 // ══════════════════════════════════════════════════════
 // CONFIG
 // ══════════════════════════════════════════════════════
-const API = 'https://script.google.com/macros/s/AKfycbzgYKZQiepr-XJwn928zSTpUnWFznF8SLi4ENwNOCmql6280H2zr3mPh3QumHErifWUWQ/exec';
+const { createClient } = supabase;
+const sb = createClient(
+  'https://gzkjladvhhntmzigyorv.supabase.co',
+  'sb_publishable_0x-wR8lObcOtpswFQHhlbw_ok0YYm-D'
+);
+
+async function rpc(name, params = {}) {
+  const { data, error } = await sb.rpc(name, params);
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+function auth() {
+  return { p_role: SESSION.role, p_team_id: SESSION.teamId, p_password: SESSION.password };
+}
+
+let SESSION = {
+  get role() { return STATE.role; },
+  set role(val) { STATE.role = val; },
+  get teamId() { return STATE.teamId; },
+  set teamId(val) { STATE.teamId = val; },
+  get password() { return STATE.password; },
+  set password(val) { STATE.password = val; },
+  employeeId: null,
+  employeeName: null
+};
+
+// Data Mapper Functions for Compatibility
+function mapTeam(t) {
+  return {
+    id: t.id,
+    'اسم التيم': t.name,
+    'مشرف': t.supervisor_name,
+    'تاريخ الإنشاء': t.created_at,
+    'نشط': t.is_active ? 'نعم' : 'لا'
+  };
+}
+
+function mapEmployee(e) {
+  return {
+    id: e.id,
+    'الاسم': e.name,
+    team_id: e.team_id,
+    'الدور': e.role,
+    'تاريخ الإضافة': e.created_at,
+    'نشط': e.is_active ? 'نعم' : 'لا',
+    role: e.role
+  };
+}
+
+function mapClient(c) {
+  return {
+    id: c.id,
+    name: c.name,
+    'الاسم': c.name,
+    team_id: c.team_id,
+    'تاريخ الإضافة': c.created_at
+  };
+}
+
+function mapAttendance(a) {
+  return {
+    id: a.id,
+    emp_id: a.employee_id,
+    'اسم الموظف': a.employee_name,
+    team_id: a.team_id,
+    'التاريخ': a.att_date,
+    'الحالة': a.status,
+    'ملاحظة': a.note
+  };
+}
+
+function mapTask(t) {
+  return {
+    id: t.id,
+    emp_id: t.employee_id,
+    'اسم الموظف': t.employee_name,
+    team_id: t.team_id,
+    'العميل': t.client,
+    'بند خطة العمل': t.work_plan_item,
+    'نوع المهمة': t.task_type,
+    'وصف المهمة': t.description,
+    'تاريخ الإسناد': t.assigned_date,
+    'الحالة': t.status,
+    'تاريخ الاكتمال': t.completed_date
+  };
+}
+
+function mapRecurringTask(r) {
+  return {
+    id: r.id,
+    emp_id: r.employee_id,
+    'اسم الموظف': r.employee_name,
+    team_id: r.team_id,
+    'العميل': r.client,
+    'التكرار': r.recurrence,
+    'الأسبوع': r.week,
+    'بند خطة العمل': r.work_plan_item,
+    'نوع المهمة': r.task_type,
+    'وصف المهمة': r.description,
+    'تاريخ الإنشاء': r.created_at,
+    'نشط': r.is_active ? 'نعم' : 'لا'
+  };
+}
+
+function mapVisit(v) {
+  return {
+    id: v.id,
+    emp_id: v.employee_id,
+    'اسم الموظف': v.employee_name,
+    team_id: v.team_id,
+    'العميل': v.client,
+    'واتساب العميل': v.client_whatsapp,
+    'تاريخ الزيارة': v.visit_date,
+    'وقت الزيارة': v.visit_time,
+    'التكرار': v.recurrence,
+    'الحالة': v.status,
+    'ملاحظات': v.notes,
+    'تاريخ الإنشاء': v.created_at
+  };
+}
+
+function mapReport(r) {
+  return {
+    id: r.id,
+    emp_id: r.employee_id,
+    'اسم الموظف': r.employee_name,
+    team_id: r.team_id,
+    'التاريخ': r.report_date,
+    'العميل': r.client,
+    'نوع المهمة': r.task_type,
+    'من': r.time_from,
+    'إلى': r.time_to,
+    'المدة': r.duration,
+    'وصف المهمة': r.description,
+    'وقت الإرسال': r.submitted_at,
+    'ملاحظات المشرف': r.supervisor_note,
+    'التقييم': r.rating,
+    'مصدر المهمة': r.task_source,
+    task_id: r.task_id,
+    'نوع التكرار': r.recurrence_type
+  };
+}
+
 const getLocalDateString = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const getLocalMonthString = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 const EMPLOYEE_URL = 'employee.html'; // هيتغير لو Netlify URL مختلف
@@ -2292,35 +2436,6 @@ function checkRecTaskEmpRole() {
   }
 }
 
-const DEFAULT_CLIENTS = [
-  'مطعم جبنة حلوم لتقديم الوجبات',
-  'شركة الطريق الصحي (أورورا)',
-  'شركة الجلسة',
-  'شركة مراس المحدودة',
-  'شركة الفأس التجارية',
-  'صالون كوكب الريان للحلاقة',
-  'شركة تنفس الطبية',
-  'مؤسسة أناقة بالعربي',
-  'مؤسسة أعمار لأمير',
-  'شركة عبدالملك عبدالله سليمان',
-  'شركة تكتيك',
-  'شركة توصيل الخليجية',
-  'مؤسسة مركز طيف الطبية',
-  'شركة مراسم المستقبل',
-  'مؤسسة شيماء للتجارة',
-  'مؤسسة عالية السعودية',
-  'مؤسسة وفاء للمقاولات',
-  'مؤسسة ماجد أنعام للمقاولات',
-  'شركة السور الوطني لخدمات النفط والغاز',
-  'شركة أرض الحصاد للتجارة',
-  'شركة جياد التطوير',
-  'مؤسسة واحة الأسرار',
-  'مغاسل KH',
-  'رنك للأقمشة',
-  'مؤسسة بلوك آند فوليوم',
-  'شركة أنماط البيانات',
-  'عام'
-];
 
 // ══════════════════════════════════════════════════════
 // STATE
@@ -2439,9 +2554,10 @@ async function initLogin() {
   }
 
   // جلب التيمات في الخلفية دون تعطيل ظهور الصفحة أو الدخول التلقائي للأدمن
-  apiFetch({ action: 'getTeams' }).then(r => {
-    if (r && r.ok) {
-      STATE.teams = r.teams || [];
+  rpc('get_login_bootstrap').then(r => {
+    if (r) {
+      STATE.teams = (r.teams || []).map(mapTeam);
+      STATE.employees = (r.employees || []).map(mapEmployee);
       const grid = document.getElementById('teamGrid');
       if (grid) {
         grid.innerHTML = '';
@@ -2520,23 +2636,21 @@ async function doLogin() {
     loginBtn.classList.add('loading');
   }
 
-  // Verify بالـ Script Properties
-  const body = { action: 'verifyLogin', role, password: pass };
-  if (role === 'supervisor') body.teamId = teamId;
-
-  // Hardcode verify locally for admin (password checked server-side via post)
-  // نعمل post للتحقق
   try {
-    const r = await apiPost('verifyLogin', { role, password: pass, teamId });
-    if (r.ok && r.valid) {
+    const r = await rpc('verify_login', {
+      p_role: role,
+      p_team_id: role === 'supervisor' ? teamId : null,
+      p_password: pass
+    });
+    if (r && r.valid) {
       const team = STATE.teams.find(t => t.id === teamId);
       enterDashboard(role, role === 'supervisor' ? teamId : null, team ? team['اسم التيم'] : null, pass);
     } else {
-      errEl.textContent = r.error || 'كلمة المرور غلط';
+      errEl.textContent = 'كلمة المرور غير صحيحة';
       if (loginBtn) loginBtn.classList.remove('loading');
     }
   } catch(e) {
-    errEl.textContent = 'تعذر الاتصال بالخادم';
+    errEl.textContent = 'تعذر الاتصال بالخادم: ' + e.message;
     if (loginBtn) loginBtn.classList.remove('loading');
   }
 }
@@ -3060,24 +3174,41 @@ async function loadReports(page = 1) {
   if (to) params.dateTo = to;
 
   try {
-    const res = await apiFetch(params);
-    if (!res.ok) {
-      tbody.innerHTML = `<tr><td colspan="12"><div class="empty"><div class="empty-text">خطأ في جلب البيانات: ${res.error || ''}</div></div></td></tr>`;
-      return;
-    }
-
-    let rows = res.rows || [];
-    let totalCount = res.totalCount;
-
-    // Fallback: If Apps Script hasn't been deployed/updated with pagination support yet
-    if (totalCount === undefined) {
-      totalCount = rows.length;
+    let rows = [];
+    let totalCount = 0;
+    
+    if (STATE.role === 'admin' && team && !empId) {
+      let query = sb.from('reports').select('*', { count: 'exact' });
+      query = query.eq('team_id', team);
+      if (from) query = query.gte('report_date', from);
+      if (to) query = query.lte('report_date', to);
+      
+      // Pagination
       if (currentReportsLimit !== 'all') {
-        const lim = parseInt(currentReportsLimit, 10) || 20;
-        rows = rows.slice(0, lim);
+        const limit = parseInt(currentReportsLimit, 10) || 20;
+        const fromIdx = (page - 1) * limit;
+        const toIdx = fromIdx + limit - 1;
+        query = query.range(fromIdx, toIdx);
       }
+      
+      const { data, count, error } = await query;
+      if (error) throw new Error(error.message);
+      rows = (data || []).map(mapReport);
+      totalCount = count || 0;
+    } else {
+      const res = await rpc('get_reports', {
+        ...auth(),
+        p_employee_id: empId || null,
+        p_date_from: from || null,
+        p_date_to: to || null,
+        p_page: currentReportsLimit !== 'all' ? page : null,
+        p_limit: currentReportsLimit !== 'all' ? parseInt(currentReportsLimit, 10) : null
+      });
+      rows = (res.rows || []).map(mapReport);
+      totalCount = res.totalCount || 0;
     }
 
+    window._reportData = rows;
     document.getElementById('rep-count').textContent = `التقارير (${totalCount})`;
 
     if (!rows.length) {
@@ -3693,23 +3824,25 @@ async function confirmAttEdit() {
   closeModal('modal-att');
 
   try {
-    const r = await apiPost('updateAttendance', { ...editingAtt, status, note });
-    if (r.ok) {
-      showToast('تم تحديث الحضور بنجاح', 'success');
-      // مزامنة الخلفية بصمت
-      refreshData();
-    } else {
-      showToast('حدث خطأ في التحديث بالسيرفر', 'error');
-      // تراجع في حالة الفشل
-      if (existingIndex !== -1 && originalRecord) {
-        STATE.attendance[existingIndex] = originalRecord;
-      } else {
-        STATE.attendance = STATE.attendance.filter(x => !(String(x.emp_id) === String(editingAtt.empId) && String(x['التاريخ']) === String(editingAtt.date)));
-      }
-      loadAttendance();
-    }
+    await rpc('mark_attendance', {
+      ...auth(),
+      p_employee_id: editingAtt.empId,
+      p_employee_name: editingAtt.empName,
+      p_att_date: editingAtt.date,
+      p_status: status,
+      p_note: note
+    });
+    showToast('تم تحديث الحضور بنجاح', 'success');
+    refreshData();
   } catch(e) { 
-    showToast('تعذر الاتصال، جاري المزامنة لاحقاً', 'error'); 
+    showToast('حدث خطأ في التحديث بالسيرفر: ' + e.message, 'error'); 
+    // تراجع في حالة الفشل
+    if (existingIndex !== -1 && originalRecord) {
+      STATE.attendance[existingIndex] = originalRecord;
+    } else {
+      STATE.attendance = STATE.attendance.filter(x => !(String(x.emp_id) === String(editingAtt.empId) && String(x['التاريخ']) === String(editingAtt.date)));
+    }
+    loadAttendance();
   }
 }
 
@@ -3798,25 +3931,34 @@ async function confirmTeam() {
   try {
     let r;
     if (id) {
-      r = await apiPost('updateTeam', { id, name, supervisor: sup, password: pw || undefined });
+      await rpc('update_team', {
+        ...auth(),
+        p_id: id,
+        p_name: name,
+        p_supervisor: sup,
+        p_new_password: pw || null
+      });
     } else {
-      r = await apiPost('addTeam', { name, supervisor: sup, password: pw });
+      r = await rpc('add_team', {
+        ...auth(),
+        p_name: name,
+        p_supervisor: sup,
+        p_supervisor_password: pw
+      });
     }
-    if (r.ok) {
-      showToast(id ? 'تم التحديث بنجاح' : 'تمت إضافة التيم بنجاح', 'success');
-      // update temp ID on success
-      if (!id && r.id) {
+    showToast(id ? 'تم التحديث بنجاح' : 'تمت إضافة التيم بنجاح', 'success');
+    if (!id && r) {
+      const newId = r.id || r;
+      if (newId) {
         const idx = STATE.teams.findIndex(t => t.id === tempId);
-        if (idx !== -1) STATE.teams[idx].id = r.id;
+        if (idx !== -1) STATE.teams[idx].id = newId;
       }
-      refreshData(); // silent background sync
-    } else {
-      showToast(r.error || 'حدث خطأ أثناء المزامنة', 'error');
-      STATE.teams = originalTeams;
-      renderTeams();
     }
+    refreshData();
   } catch(e) {
-    showToast('تم التسجيل محلياً، جاري المزامنة في الخلفية', 'success');
+    showToast('حدث خطأ أثناء المزامنة: ' + e.message, 'error');
+    STATE.teams = originalTeams;
+    renderTeams();
   }
 }
 
@@ -3828,17 +3970,13 @@ async function deleteTeam(id, name) {
   renderTeams();
 
   try {
-    const r = await apiPost('deleteTeam', { id });
-    if (r.ok) {
-      showToast('تم حذف التيم بنجاح', 'success');
-      refreshData();
-    } else {
-      showToast(r.error || 'فشل الحذف بالسيرفر', 'error');
-      STATE.teams = originalTeams;
-      renderTeams();
-    }
+    await rpc('delete_team', { ...auth(), p_id: id });
+    showToast('تم حذف التيم بنجاح', 'success');
+    refreshData();
   } catch(e) {
-    showToast('تم الحذف محلياً، جاري المزامنة بالخلفية', 'success');
+    showToast('حدث خطأ أثناء المزامنة: ' + e.message, 'error');
+    STATE.teams = originalTeams;
+    renderTeams();
   }
 }
 
@@ -3923,21 +4061,25 @@ async function addEmployee() {
   document.getElementById('new-emp-name').value = '';
 
   try {
-    const r = await apiPost('addEmployee', { name, teamId, role });
-    if (r.ok) {
-      showToast('تمت إضافة الموظف بنجاح', 'success');
-      if (r.id) {
+    const r = await rpc('add_employee', {
+      ...auth(),
+      p_name: name,
+      p_emp_team_id: teamId,
+      p_emp_role: role
+    });
+    showToast('تمت إضافة الموظف بنجاح', 'success');
+    if (r) {
+      const newId = r.id || r;
+      if (newId) {
         const idx = STATE.employees.findIndex(e => e.id === tempId);
-        if (idx !== -1) STATE.employees[idx].id = r.id;
+        if (idx !== -1) STATE.employees[idx].id = newId;
       }
-      refreshData();
-    } else {
-      showToast(r.error || 'فشل المزامنة بالسيرفر', 'error');
-      STATE.employees = originalEmployees;
-      renderEmployeesList();
     }
+    refreshData();
   } catch(e) {
-    showToast('تم التسجيل محلياً، جاري المزامنة بالخلفية', 'success');
+    showToast('حدث خطأ أثناء المزامنة: ' + e.message, 'error');
+    STATE.employees = originalEmployees;
+    renderEmployeesList();
   }
 }
 
@@ -3949,17 +4091,13 @@ async function removeEmployee(id, name) {
   renderEmployeesList();
 
   try {
-    const r = await apiPost('removeEmployee', { id });
-    if (r.ok) {
-      showToast('تم حذف الموظف بنجاح', 'success');
-      refreshData();
-    } else {
-      showToast(r.error || 'فشل الحذف بالسيرفر', 'error');
-      STATE.employees = originalEmployees;
-      renderEmployeesList();
-    }
+    await rpc('remove_employee', { ...auth(), p_id: id });
+    showToast('تم حذف الموظف بنجاح', 'success');
+    refreshData();
   } catch(e) {
-    showToast('تم الحذف محلياً، جاري المزامنة بالخلفية', 'success');
+    showToast('حدث خطأ أثناء المزامنة: ' + e.message, 'error');
+    STATE.employees = originalEmployees;
+    renderEmployeesList();
   }
 }
 
@@ -4003,18 +4141,14 @@ async function exportClientsDetailsExcel() {
   
   showToast('جاري جلب تقارير العملاء للتصدير...', 'info');
   
-  const res = await apiFetch({
-    action: 'getReports',
-    dateFrom: dateFrom,
-    dateTo: dateTo
-  });
-  
-  if (!res.ok) {
-    showToast('فشل جلب البيانات للتصدير', 'error');
-    return;
-  }
-  
-  let reports = res.rows || [];
+  try {
+    const res = await rpc('get_reports', {
+      ...auth(),
+      p_date_from: dateFrom || null,
+      p_date_to: dateTo || null
+    });
+    
+    let reports = (res.rows || []).map(mapReport);
   let tasks = STATE.tasks || [];
   let visits = STATE.visits || [];
   
@@ -4183,6 +4317,9 @@ async function exportClientsDetailsExcel() {
   const fileName = `تقرير_تفاصيل_العملاء_${fileSuffix}.xlsx`;
   XLSX.writeFile(wb, fileName);
   showToast('تم تصدير ملف تفاصيل العملاء بنجاح!', 'success');
+  } catch (err) {
+    showToast('فشل جلب البيانات للتصدير: ' + err.message, 'error');
+  }
 }
 
 async function addClient() {
@@ -4205,21 +4342,24 @@ async function addClient() {
   document.getElementById('new-client-name').value = '';
 
   try {
-    const r = await apiPost('addClient', { name, teamId: teamId || '' });
-    if (r.ok) {
-      showToast('تمت إضافة العميل بنجاح', 'success');
-      if (r.id) {
+    const r = await rpc('add_client', {
+      ...auth(),
+      p_name: name,
+      p_target_team_id: teamId || null
+    });
+    showToast('تمت إضافة العميل بنجاح', 'success');
+    if (r) {
+      const newId = r.id || r;
+      if (newId) {
         const idx = STATE.clients.findIndex(c => c.id === tempId);
-        if (idx !== -1) STATE.clients[idx].id = r.id;
+        if (idx !== -1) STATE.clients[idx].id = newId;
       }
-      refreshData();
-    } else {
-      showToast(r.error || 'فشل المزامنة بالسيرفر', 'error');
-      STATE.clients = originalClients;
-      renderClientsList();
     }
+    refreshData();
   } catch(e) {
-    showToast('تم التسجيل محلياً، جاري المزامنة بالخلفية', 'success');
+    showToast('حدث خطأ أثناء المزامنة: ' + e.message, 'error');
+    STATE.clients = originalClients;
+    renderClientsList();
   }
 }
 
@@ -4231,17 +4371,13 @@ async function removeClient(id, name) {
   renderClientsList();
 
   try {
-    const r = await apiPost('removeClient', { id, name });
-    if (r.ok) {
-      showToast('تم حذف العميل بنجاح', 'success');
-      refreshData();
-    } else {
-      showToast(r.error || 'فشل حذف العميل بالسيرفر', 'error');
-      STATE.clients = originalClients;
-      renderClientsList();
-    }
+    await rpc('delete_client', { ...auth(), p_id: id });
+    showToast('تم حذف العميل بنجاح', 'success');
+    refreshData();
   } catch(e) {
-    showToast('تم الحذف محلياً، جاري المزامنة بالخلفية', 'success');
+    showToast('حدث خطأ أثناء المزامنة: ' + e.message, 'error');
+    STATE.clients = originalClients;
+    renderClientsList();
   }
 }
 
@@ -4392,85 +4528,49 @@ function updateInfoPanel() {
 // REFRESH
 // ══════════════════════════════════════════════════════
 async function refreshData() {
-  const team = STATE.role === 'supervisor' ? STATE.teamId : (document.getElementById('db-team')?.value || '');
-  
   try {
-    const res = await apiFetch({ action: 'getAdminInitData', teamId: team });
-    if (res.ok && res.teams) {
-      STATE.teams          = res.teams || [];
-      STATE.employees      = res.employees || [];
-      STATE.clients        = parseClientsResponse({
-        ok: true,
-        clients: res.clients || [],
-        deletedDefaultClients: res.deletedDefaultClients || []
-      });
-      STATE.reports        = [];
-      STATE.attendance     = [];
-      STATE.tasks          = res.tasks || [];
-      STATE.visits         = res.visits || [];
-      STATE.recurringTasks = res.recurringTasks || [];
-      TASK_TYPES           = res.taskTypes || [];
-      WORK_PLAN_ITEMS      = res.workPlanItems || [];
-      
-      STATE.visits.forEach(v => {
-        if (!v['الحالة'] && v['ملاحظات'] && v['ملاحظات'].includes('ما تم إنجازه في الزيارة:')) {
-          v['الحالة'] = 'تمت';
-        }
-      });
-      if (STATE.role === 'supervisor') {
-        STATE.employees = STATE.employees.filter(e => e.team_id === STATE.teamId);
-      }
-      populateFilters();
-      populateWorkPlanItems();
-      return;
-    }
-  } catch (err) {
-    console.warn("getAdminInitData failed, trying fallback...", err);
-  }
+    const [teams, employees, clients, tasks, visits, recTasks, taskTypes, workPlanItems] = await Promise.all([
+      rpc('get_teams',          { ...auth() }),
+      rpc('get_employees',      { ...auth() }),
+      rpc('get_clients',        { ...auth() }),
+      rpc('get_tasks',          { ...auth() }),
+      rpc('get_visits',         { ...auth() }),
+      rpc('get_recurring_tasks',{ ...auth() }),
+      rpc('get_task_types',     { ...auth() }),
+      rpc('get_work_plan_items',{ ...auth() })
+    ]);
 
-  // Fallback
-  const [teamsR, empsR, clientsR, tasksR, visitsR, recurringR, taskTypesR] = await Promise.all([
-    apiFetch({ action: 'getTeams' }),
-    apiFetch({ action: 'getEmployees' }),
-    apiFetch(STATE.role === 'supervisor' ? { action: 'getClients', teamId: STATE.teamId } : { action: 'getClients' }),
-    apiFetch(STATE.role === 'supervisor' ? { action: 'getAssignedTasks', teamId: STATE.teamId } : { action: 'getAssignedTasks' }),
-    apiFetch(STATE.role === 'supervisor' ? { action: 'getVisits', teamId: STATE.teamId } : { action: 'getVisits' }),
-    apiFetch(STATE.role === 'supervisor' ? { action: 'getRecurringTasks', teamId: STATE.teamId } : { action: 'getRecurringTasks' }),
-    apiFetch({ action: 'getTaskTypes' })
-  ]);
-  if (teamsR.ok)   STATE.teams     = teamsR.teams || [];
-  if (empsR.ok)    STATE.employees = empsR.employees || [];
-  STATE.clients = parseClientsResponse(clientsR);
-  STATE.reports = [];
-  STATE.attendance = [];
-  STATE.tasks = tasksR.ok ? (tasksR.tasks || []) : [];
-  STATE.visits = visitsR.ok ? (visitsR.visits || []) : [];
-  STATE.recurringTasks = recurringR.ok ? (recurringR.recurringTasks || []) : [];
-  if (taskTypesR && taskTypesR.ok) {
-    TASK_TYPES = taskTypesR.taskTypes || [];
-  }
-  try {
-    const wpR = await apiFetch({ action: 'getWorkPlanItems' });
-    if (wpR.ok) {
-      WORK_PLAN_ITEMS = wpR.workPlanItems || [];
+    STATE.teams          = (teams || []).map(mapTeam);
+    STATE.employees      = (employees || []).map(mapEmployee);
+    STATE.clients        = (clients || []).map(mapClient);
+    STATE.reports        = [];
+    STATE.attendance     = [];
+    STATE.tasks          = (tasks || []).map(mapTask);
+    STATE.visits         = (visits || []).map(mapVisit);
+    STATE.recurringTasks = (recTasks || []).map(mapRecurringTask);
+    TASK_TYPES           = (taskTypes || []).map(t => t.name || t);
+    WORK_PLAN_ITEMS      = (workPlanItems || []).map(w => w.name || w);
+    
+    STATE.visits.forEach(v => {
+      if (!v['الحالة'] && v['ملاحظات'] && v['ملاحظات'].includes('ما تم إنجازه في الزيارة:')) {
+        v['الحالة'] = 'تمت';
+      }
+    });
+
+    if (STATE.role === 'supervisor') {
+      STATE.employees = STATE.employees.filter(e => e.team_id === STATE.teamId);
     }
-  } catch(e) {}
-  STATE.visits.forEach(v => {
-    if (!v['الحالة'] && v['ملاحظات'] && v['ملاحظات'].includes('ما تم إنجازه في الزيارة:')) {
-      v['الحالة'] = 'تمت';
-    }
-  });
-  
-  if (STATE.role === 'supervisor') {
-    STATE.employees = STATE.employees.filter(e => e.team_id === STATE.teamId);
+    populateFilters();
+    populateWorkPlanItems();
+    renderTeams();
+    renderEmployeesList();
+    renderClientsList();
+    renderLinks();
+    updateInfoPanel();
+  } catch (err) {
+    console.warn("refreshData failed", err);
+    showToast('خطأ في جلب البيانات: ' + err.message, 'error');
   }
-  populateFilters();
-  populateWorkPlanItems();
-  renderTeams();
-  renderEmployeesList();
-  renderClientsList();
-  renderLinks();
-  updateInfoPanel();
 }
 
 async function refreshAll() {
@@ -4733,54 +4833,47 @@ async function submitAssignTask() {
   empSelect.value = '';
 
   try {
-    const r = await apiPost('assignTask', {
-      empId,
-      empName,
-      teamId,
-      client,
-      tasktype,
-      desc
+    const r = await rpc('assign_task', {
+      ...auth(),
+      p_employee_id: empId,
+      p_employee_name: empName,
+      p_team_id: teamId,
+      p_client: client,
+      p_task_type: tasktype,
+      p_description: desc
     });
-    if (r.ok) {
-      showToast('تم إسناد التكليف بنجاح للموظف!', 'success');
-      // تحديث المعرف المؤقت بالمعرف الحقيقي من السيرفر
+    showToast('تم إسناد التكليف بنجاح للموظف!', 'success');
+    if (r) {
+      const newId = r.id || r;
       const tIndex = STATE.tasks.findIndex(x => x.id === tempId);
-      if (tIndex !== -1 && r.id) {
-        STATE.tasks[tIndex].id = r.id;
+      if (tIndex !== -1 && newId) {
+        STATE.tasks[tIndex].id = newId;
       }
-      refreshData(); // تحديث صامت
-    } else {
-      showToast(r.error || 'حدث خطأ أثناء الإسناد', 'error');
-      STATE.tasks = STATE.tasks.filter(x => x.id !== tempId);
-      loadAssignedTasksList();
     }
+    refreshData();
   } catch (e) {
-    showToast('تم التسجيل محلياً، جاري المزامنة في الخلفية', 'success');
+    showToast('حدث خطأ أثناء الإسناد: ' + e.message, 'error');
+    STATE.tasks = STATE.tasks.filter(x => x.id !== tempId);
+    loadAssignedTasksList();
   }
 }
 
 async function deleteAssignedTask(id) {
   if (!confirm('هل أنت متأكد من رغبتك في حذف هذا التكليف؟')) return;
 
-  // حذف محلي فوري
   const originalTasks = [...(STATE.tasks || [])];
   STATE.tasks = (STATE.tasks || []).filter(t => String(t.id) !== String(id));
   
-  // رسم الجدول فوراً
   loadAssignedTasksList();
 
   try {
-    const r = await apiPost('deleteAssignedTask', { id });
-    if (r.ok) {
-      showToast('تم حذف التكليف بنجاح', 'success');
-      refreshData(); // تحديث صامت بالخلفية
-    } else {
-      showToast(r.error || 'فشل حذف التكليف بالسيرفر', 'error');
-      STATE.tasks = originalTasks;
-      loadAssignedTasksList();
-    }
+    await rpc('delete_assigned_task', { ...auth(), p_id: id });
+    showToast('تم حذف التكليف بنجاح', 'success');
+    refreshData();
   } catch (e) {
-    showToast('تعذر الاتصال بالخادم للحذف', 'error');
+    showToast('حدث خطأ أثناء المزامنة: ' + e.message, 'error');
+    STATE.tasks = originalTasks;
+    loadAssignedTasksList();
   }
 }
 
@@ -4894,19 +4987,11 @@ async function promptAddTaskType() {
   showToast("جاري إضافة نوع المهمة...", "info");
   
   try {
-    const r = await apiPost('addTaskType', { name: name.trim() });
-    if (r.ok) {
-      showToast(r.message || "تمت الإضافة بنجاح!", "success");
-      if (r.taskTypes) {
-        TASK_TYPES = r.taskTypes;
-        populateFilters();
-      }
-      refreshData();
-    } else {
-      showToast(r.error || "خطأ أثناء الإضافة", "error");
-    }
+    await rpc('add_task_type', { ...auth(), p_name: name.trim() });
+    showToast("تمت الإضافة بنجاح!", "success");
+    refreshData();
   } catch(e) {
-    showToast("فشل الاتصال بالخادم", "error");
+    showToast("فشل الاتصال بالخادم: " + e.message, "error");
   }
 }
 
@@ -4924,23 +5009,15 @@ async function promptDeleteTaskType(selectId = 'rec-task-type') {
   showToast("جاري حذف نوع المهمة...", "info");
   
   try {
-    const r = await apiPost('deleteTaskType', { name: selectedType });
-    if (r.ok) {
-      showToast(r.message || "تم الحذف بنجاح!", "success");
-      if (r.taskTypes) {
-        TASK_TYPES = r.taskTypes;
-        populateFilters();
-        const t1 = document.getElementById('task-assign-type');
-        if (t1) t1.value = '';
-        const t2 = document.getElementById('rec-task-type');
-        if (t2) t2.value = '';
-      }
-      refreshData();
-    } else {
-      showToast(r.error || "خطأ أثناء الحذف", "error");
-    }
+    await rpc('delete_task_type', { ...auth(), p_name: selectedType });
+    showToast("تم الحذف بنجاح!", "success");
+    const t1 = document.getElementById('task-assign-type');
+    if (t1) t1.value = '';
+    const t2 = document.getElementById('rec-task-type');
+    if (t2) t2.value = '';
+    refreshData();
   } catch(e) {
-    showToast("فشل الاتصال بالخادم", "error");
+    showToast("فشل الاتصال بالخادم: " + e.message, "error");
   }
 }
 
@@ -4951,19 +5028,11 @@ async function promptAddWorkPlanItem() {
   showToast("جاري إضافة بند خطة العمل...", "info");
   
   try {
-    const r = await apiPost('addWorkPlanItem', { name: name.trim() });
-    if (r.ok) {
-      showToast(r.message || "تمت الإضافة بنجاح!", "success");
-      if (r.workPlanItems) {
-        WORK_PLAN_ITEMS = r.workPlanItems;
-        populateWorkPlanItems();
-      }
-      refreshData();
-    } else {
-      showToast(r.error || "خطأ أثناء الإضافة", "error");
-    }
+    await rpc('add_work_plan_item', { ...auth(), p_name: name.trim() });
+    showToast("تمت الإضافة بنجاح!", "success");
+    refreshData();
   } catch(e) {
-    showToast("فشل الاتصال بالخادم", "error");
+    showToast("فشل الاتصال بالخادم: " + e.message, "error");
   }
 }
 
@@ -4981,21 +5050,13 @@ async function promptDeleteWorkPlanItem(selectId = 'rec-task-workplan') {
   showToast("جاري حذف بند خطة العمل...", "info");
   
   try {
-    const r = await apiPost('deleteWorkPlanItem', { name: selectedWp });
-    if (r.ok) {
-      showToast(r.message || "تم الحذف بنجاح!", "success");
-      if (r.workPlanItems) {
-        WORK_PLAN_ITEMS = r.workPlanItems;
-        populateWorkPlanItems();
-        const t1 = document.getElementById('rec-task-workplan');
-        if (t1) t1.value = '';
-      }
-      refreshData();
-    } else {
-      showToast(r.error || "خطأ أثناء الحذف", "error");
-    }
+    await rpc('delete_work_plan_item', { ...auth(), p_name: selectedWp });
+    showToast("تم الحذف بنجاح!", "success");
+    const t1 = document.getElementById('rec-task-workplan');
+    if (t1) t1.value = '';
+    refreshData();
   } catch(e) {
-    showToast("فشل الاتصال بالخادم", "error");
+    showToast("فشل الاتصال بالخادم: " + e.message, "error");
   }
 }
 
@@ -5070,36 +5131,30 @@ async function submitSaveRecurringTask() {
   cancelEditRecurringTask();
 
   try {
-    const payload = {
-      empId,
-      empName,
-      teamId,
-      client,
-      recurrence,
-      weekNum: '',
-      workPlanItem,
-      tasktype,
-      desc
-    };
-    if (isEditing) {
-      payload.id = targetId;
-    }
-    const r = await apiPost('saveRecurringTask', payload);
-    if (r.ok) {
-      showToast(isEditing ? 'تم تعديل المهمة الدورية بنجاح!' : 'تم إضافة المهمة الدورية بنجاح وتوارثها!', 'success');
-      if (!isEditing) {
-        const tIndex = STATE.recurringTasks.findIndex(x => x.id === targetId);
-        if (tIndex !== -1 && r.id) {
-          STATE.recurringTasks[tIndex].id = r.id;
-        }
+    const r = await rpc('save_recurring_task', {
+      ...auth(),
+      p_id: isEditing ? targetId : null,
+      p_employee_id: empId,
+      p_employee_name: empName,
+      p_team_id: teamId,
+      p_client: client,
+      p_recurrence: recurrence,
+      p_week_num: '',
+      p_work_plan_item: workPlanItem,
+      p_task_type: tasktype,
+      p_description: desc
+    });
+    showToast(isEditing ? 'تم تعديل المهمة الدورية بنجاح!' : 'تم إضافة المهمة الدورية بنجاح وتوارثها!', 'success');
+    if (!isEditing && r) {
+      const newId = r.id || r;
+      const tIndex = STATE.recurringTasks.findIndex(x => x.id === targetId);
+      if (tIndex !== -1 && newId) {
+        STATE.recurringTasks[tIndex].id = newId;
       }
-      refreshData();
-    } else {
-      showToast(r.error || 'حدث خطأ أثناء حفظ المهمة الدورية', 'error');
-      refreshData();
     }
+    refreshData();
   } catch (err) {
-    showToast('خطأ في الاتصال بالخادم', 'error');
+    showToast('حدث خطأ أثناء حفظ المهمة الدورية: ' + err.message, 'error');
     refreshData();
   }
 }
@@ -5113,17 +5168,13 @@ async function deleteRecurringTask(id) {
   loadRecurringTasksList();
 
   try {
-    const r = await apiPost('deleteRecurringTask', { id });
-    if (r.ok) {
-      showToast('تم حذف المهمة الدورية وإيقاف توارثها بنجاح', 'success');
-      refreshData();
-    } else {
-      showToast(r.error || 'فشل حذف المهمة الدورية بالسيرفر', 'error');
-      STATE.recurringTasks = originalRecs;
-      loadRecurringTasksList();
-    }
+    await rpc('delete_recurring_task', { ...auth(), p_id: id });
+    showToast('تم حذف المهمة الدورية وإيقاف توارثها بنجاح', 'success');
+    refreshData();
   } catch (e) {
-    showToast('تعذر الاتصال بالخادم للحذف', 'error');
+    showToast('حدث خطأ أثناء المزامنة: ' + e.message, 'error');
+    STATE.recurringTasks = originalRecs;
+    loadRecurringTasksList();
   }
 }
 
@@ -5604,65 +5655,7 @@ function escapeHtml(str) {
 // ══════════════════════════════════════════════════════
 // CLIENT RESOLVER & DETAILS MODAL HELPERS (التفاعلية الفائقة للعملاء)
 // ══════════════════════════════════════════════════════
-function parseClientsResponse(clientsR) {
-  const delList = clientsR.deletedDefaultClients || [];
-  
-  let isTeam1 = STATE.role === 'admin';
-  if (!isTeam1 && STATE.teamId) {
-    if (STATE.teamId.toLowerCase() === 'team-1' || STATE.teamId.toLowerCase() === 'team_1') {
-      isTeam1 = true;
-    } else {
-      const tName = STATE.teamName || '';
-      if (tName.includes('تيم 1') || tName.toLowerCase().includes('team 1') || tName.toLowerCase().includes('team-1')) {
-        isTeam1 = true;
-      } else if (STATE.teams) {
-        const t = STATE.teams.find(team => team.id === STATE.teamId);
-        if (t) {
-          const name = t['اسم التيم'] || '';
-          if (name.includes('تيم 1') || name.toLowerCase().includes('team 1') || name.toLowerCase().includes('team-1')) {
-            isTeam1 = true;
-          }
-        }
-      }
-    }
-  }
 
-  // dynamically resolve actual Team 1 ID from dynamic STATE.teams
-  let actualTeam1Id = 'team_1';
-  if (STATE.teams && STATE.teams.length > 0) {
-    const t1 = STATE.teams.find(team => {
-      const name = team['اسم التيم'] || '';
-      return name.includes('تيم 1') || name.toLowerCase().includes('team 1') || name.toLowerCase().includes('team-1') || team.id.toLowerCase() === 'team_1' || team.id.toLowerCase() === 'team-1';
-    });
-    if (t1) {
-      actualTeam1Id = t1.id;
-    }
-  } else if (STATE.teamId && isTeam1) {
-    actualTeam1Id = STATE.teamId;
-  }
-
-  const baseDefaults = DEFAULT_CLIENTS.filter(name => !delList.includes(name));
-  
-  if (clientsR.ok && clientsR.clients) {
-    const fromDb = clientsR.clients.map(c => c.name || c);
-    const mergedNames = isTeam1 
-      ? [...new Set([...baseDefaults, ...fromDb])] 
-      : fromDb;
-    return mergedNames.map((name, index) => {
-      const dbCli = clientsR.clients.find(c => (c.name || c) === name);
-      return {
-        id: dbCli ? (dbCli.id || dbCli) : `def_${index}`,
-        name: name,
-        isDefault: !dbCli,
-        team_id: dbCli ? (dbCli.team_id || '') : actualTeam1Id
-      };
-    });
-  } else {
-    return isTeam1 
-      ? baseDefaults.map((name, index) => ({ id: `def_${index}`, name: name, isDefault: true, team_id: actualTeam1Id }))
-      : [];
-  }
-}
 
 function switchCliDetailsTab(tab) {
   const btnRep = document.getElementById('btn-cli-tab-reports');
@@ -6111,40 +6104,41 @@ function openEditNoteModal(id) {
 async function saveReportNote() {
   const id = document.getElementById('note-report-id').value;
   const note = document.getElementById('note-text-input').value.trim();
-  const rating = document.getElementById('note-rating-input').value;
+  const ratingVal = document.getElementById('note-rating-input').value;
+  const rating = ratingVal ? parseInt(ratingVal, 10) : null;
   
   document.getElementById('loading-overlay').style.display = 'flex';
   try {
-    const r = await apiPost('updateReportNote', { id, note, rating });
-    document.getElementById('loading-overlay').style.display = 'none'; // إخفاء شاشة التحميل فوراً عند استلام الاستجابة
+    await rpc('set_report_review', {
+      ...auth(),
+      p_id: id,
+      p_supervisor_note: note,
+      p_rating: rating
+    });
+    document.getElementById('loading-overlay').style.display = 'none';
     
-    if (r.ok) {
-      showToast('تم حفظ ملاحظة وتقييم المشرف بنجاح!', 'success');
-      closeModal('modal-report-note');
-      
-      // تحديث البيانات محلياً في الجدول فوراً لتفادي الانتظار وتحديث الواجهة بلحظتها
-      if (window._reportData) {
-        const found = window._reportData.find(x => String(x.id) === String(id));
-        if (found) {
-          found['ملاحظات المشرف'] = note;
-          found['التقييم'] = rating;
-          
-          loadReports();
-        }
+    showToast('تم حفظ ملاحظة وتقييم المشرف بنجاح!', 'success');
+    closeModal('modal-report-note');
+    
+    // تحديث البيانات محلياً في الجدول فوراً لتفادي الانتظار وتحديث الواجهة بلحظتها
+    if (window._reportData) {
+      const found = window._reportData.find(x => String(x.id) === String(id));
+      if (found) {
+        found['ملاحظات المشرف'] = note;
+        found['التقييم'] = rating;
       }
-      
-      if (STATE.reports) {
-        const foundState = STATE.reports.find(x => String(x.id) === String(id));
-        if (foundState) {
-          foundState['ملاحظات المشرف'] = note;
-          foundState['التقييم'] = rating;
-        }
-      }
-    } else {
-      showToast(r.error || 'فشل حفظ الملاحظة والتقييم', 'error');
     }
+    
+    if (STATE.reports) {
+      const foundState = STATE.reports.find(x => String(x.id) === String(id));
+      if (foundState) {
+        foundState['ملاحظات المشرف'] = note;
+        foundState['التقييم'] = rating;
+      }
+    }
+    loadReports(currentReportsPage);
   } catch (e) {
-    showToast('تعذر الاتصال بقاعدة البيانات', 'error');
+    showToast('حدث خطأ أثناء حفظ التقييم: ' + e.message, 'error');
     document.getElementById('loading-overlay').style.display = 'none';
   }
 }
