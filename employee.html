@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   /* Nuzum Design System v2.0 Tokens */
@@ -486,35 +487,6 @@ const HOURS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 const MINS  = ['00','05','10','15','20','25','30','35','40','45','50','55'];
 let TASK_TYPES = ['مبيعات','مشتريات','بنوك','تسجيلات','إقفالات شهرية','إقفالات سنوية','تقارير','إقرارات شهرية','إقرارات ربع سنوية','تفريغ','قوائم مالية','متابعة عملاء يومية','اجتماع','اجتماع العمل الأسبوعي','أمور تقنية','إضافي'];
 
-const DEFAULT_CLIENTS = [
-  'مطعم جبنة حلوم لتقديم الوجبات',
-  'شركة الطريق الصحي (أورورا)',
-  'شركة الجلسة',
-  'شركة مراس المحدودة',
-  'شركة الفأس التجارية',
-  'صالون كوكب الريان للحلاقة',
-  'شركة تنفس الطبية',
-  'مؤسسة أناقة بالعربي',
-  'مؤسسة أعمار لأمير',
-  'شركة عبدالملك عبدالله سليمان',
-  'شركة تكتيك',
-  'شركة توصيل الخليجية',
-  'مؤسسة مركز طيف الطبية',
-  'شركة مراسم المستقبل',
-  'مؤسسة شيماء للتجارة',
-  'مؤسسة عالية السعودية',
-  'مؤسسة وفاء للمقاولات',
-  'مؤسسة ماجد أنعام للمقاولات',
-  'شركة السور الوطني لخدمات النفط والغاز',
-  'شركة أرض الحصاد للتجارة',
-  'شركة جياد التطوير',
-  'مؤسسة واحة الأسرار',
-  'مغاسل KH',
-  'رنك للأقمشة',
-  'مؤسسة بلوك آند فوليوم',
-  'شركة أنماط البيانات',
-  'عام'
-];
 
 let STATE = { reports: [], tasks: [], clients: [], visits: [] };
 let EMP_ID='', EMP_NAME='', TEAM_ID='';
@@ -529,8 +501,135 @@ let employeeRecords = [];
 const getLocalDateString = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const getLocalMonthString = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 
-async function apiFetch(p){const r=await fetch(API+'?'+new URLSearchParams(p));return r.json();}
-async function apiPost(a,d){const r=await fetch(API,{method:'POST',body:JSON.stringify({action:a,...d})});return r.json();}
+// ══════════════════════════════════════════════════════
+// CONFIG & SUPABASE CLIENT
+// ══════════════════════════════════════════════════════
+const { createClient } = supabase;
+const sb = createClient(
+  'https://gzkjladvhhntmzigyorv.supabase.co',
+  'sb_publishable_0x-wR8lObcOtpswFQHhlbw_ok0YYm-D'
+);
+
+async function rpc(name, params = {}) {
+  const { data, error } = await sb.rpc(name, params);
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+function auth() {
+  return { p_role: SESSION.role, p_team_id: SESSION.teamId, p_password: SESSION.password };
+}
+
+let SESSION = {
+  role: 'employee',
+  teamId: '',
+  password: null,
+  employeeId: '',
+  employeeName: ''
+};
+
+// ══════════════════════════════════════════════════════
+// DATA MAPPING HELPERS
+// ══════════════════════════════════════════════════════
+function mapEmployee(dbEmp) {
+  return {
+    id: dbEmp.id,
+    'الاسم': dbEmp.name,
+    team_id: dbEmp.team_id,
+    'الدور': dbEmp.role,
+    'تاريخ الإضافة': dbEmp.created_at ? dbEmp.created_at.slice(0, 10) : '',
+    'نشط': dbEmp.is_active ? 'نعم' : 'لا'
+  };
+}
+
+function mapTeam(dbTeam) {
+  return {
+    id: dbTeam.id,
+    'اسم التيم': dbTeam.name,
+    'مشرف': dbTeam.supervisor,
+    'تاريخ الإنشاء': dbTeam.created_at ? dbTeam.created_at.slice(0, 10) : '',
+    'نشط': dbTeam.is_active ? 'نعم' : 'لا'
+  };
+}
+
+function mapClient(dbClient) {
+  return {
+    id: dbClient.id,
+    name: dbClient.name,
+    team_id: dbClient.team_id || '',
+    isDefault: dbClient.is_default || false
+  };
+}
+
+function mapReport(dbRep) {
+  return {
+    id: dbRep.id,
+    emp_id: dbRep.emp_id,
+    'اسم الموظف': dbRep.emp_name,
+    team_id: dbRep.team_id,
+    'التاريخ': dbRep.report_date,
+    'العميل': dbRep.client_name,
+    'نوع المهمة': dbRep.task_type,
+    'نوع التكرار': dbRep.recurrence || 'ذاتي',
+    'مصدر المهمة': dbRep.source || 'ذاتي',
+    'من': dbRep.start_time || '',
+    'إلى': dbRep.end_time || '',
+    'المدة': dbRep.duration || '0:00',
+    'وصف المهمة': dbRep.description || '',
+    'التقييم': dbRep.rating || '',
+    'ملاحظات المشرف': dbRep.supervisor_note || '',
+    'task_id': dbRep.task_id || ''
+  };
+}
+
+function mapTask(dbTsk) {
+  return {
+    id: dbTsk.id,
+    emp_id: dbTsk.employee_id,
+    'اسم الموظف': dbTsk.employee_name,
+    team_id: dbTsk.team_id,
+    'العميل': dbTsk.client,
+    'نوع المهمة': dbTsk.task_type,
+    'وصف المهمة': dbTsk.description || '',
+    'تاريخ الإسناد': dbTsk.assigned_date,
+    'الحالة': dbTsk.status || 'معلقة',
+    'تاريخ الاكتمال': dbTsk.completed_date || ''
+  };
+}
+
+function mapRecurringTask(dbRec) {
+  return {
+    id: dbRec.id,
+    emp_id: dbRec.employee_id,
+    'اسم الموظف': dbRec.employee_name,
+    team_id: dbRec.team_id,
+    'العميل': dbRec.client,
+    'التكرار': dbRec.recurrence,
+    'الأسبوع': dbRec.week_num || '',
+    'بند خطة العمل': dbRec.work_plan_item || '',
+    'نوع المهمة': dbRec.task_type,
+    'وصف المهمة': dbRec.description || '',
+    'تاريخ الإنشاء': dbRec.created_at ? dbRec.created_at.slice(0, 10) : '',
+    'نشط': dbRec.is_active ? 'نعم' : 'لا'
+  };
+}
+
+function mapVisit(dbVis) {
+  return {
+    id: dbVis.id,
+    emp_id: dbVis.emp_id,
+    'اسم الموظف': dbVis.emp_name,
+    team_id: dbVis.team_id,
+    'العميل': dbVis.client_name,
+    'واتساب العميل': dbVis.client_whatsapp || '',
+    'تاريخ الزيارة': dbVis.visit_date,
+    'وقت الزيارة': dbVis.visit_time || '',
+    'التكرار': dbVis.recurrence || 'مرة واحدة',
+    'الحالة': dbVis.status || 'مجدولة',
+    'ملاحظات': dbVis.notes || '',
+    'تاريخ الإنشاء': dbVis.created_at ? dbVis.created_at.slice(0, 10) : ''
+  };
+}
 
 function populateTaskTypes() {
   const globalDl = document.getElementById('global-task-types-dl');
@@ -555,105 +654,90 @@ async function init(){
     return;
   }
 
-  // 1️⃣ جلب الفرق والموظفين والعملاء والتقارير والمهام بالكامل للتحميل الفوري
   try {
-    let tr = { ok: false }, er = { ok: false }, clR = { ok: false }, repR = { ok: false }, tskR = { ok: false }, recR = { ok: false }, taskTypesR = { ok: false };
+    // 1️⃣ جلب الفرق والموظفين للتحقق وتحديد الموظف الحالي
+    const [teamsDb, empsDb] = await Promise.all([
+      rpc('get_teams', {}),
+      rpc('get_employees', {})
+    ]);
     
-    try {
-      const initRes = await apiFetch({ action: 'getEmployeeInitData', empName: EMP_NAME });
-      if (initRes.ok && initRes.teams) {
-        tr = { ok: true, teams: initRes.teams };
-        er = { ok: true, employees: initRes.employees };
-        clR = { ok: true, clients: initRes.clients, deletedDefaultClients: initRes.deletedDefaultClients || [] };
-        repR = { ok: true, rows: initRes.reports };
-        tskR = { ok: true, tasks: initRes.tasks };
-        recR = { ok: true, recurringTasks: initRes.recurringTasks };
-        taskTypesR = { ok: true, taskTypes: initRes.taskTypes };
+    globalTeamsList = (teamsDb || []).map(mapTeam);
+    const allEmployees = (empsDb || []).map(mapEmployee);
+    employeeRecords = allEmployees.filter(e => e['الاسم'] === EMP_NAME && e['نشط'] === 'نعم');
+    
+    if (employeeRecords.length === 0) {
+      document.getElementById('loading-overlay').style.display='none';
+      document.getElementById('error-screen').style.display='flex';
+      return;
+    }
+
+    // إعداد مبدل الفرق
+    const switcherGroup = document.getElementById('team-switcher-group');
+    const switcher = document.getElementById('team-switcher');
+    
+    if (employeeRecords.length > 1) {
+      const teamMap = {};
+      globalTeamsList.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
+
+      switcher.innerHTML = employeeRecords.map(r => {
+        const tName = teamMap[r.team_id] || r.team_id;
+        return `<option value="${r.id}">${tName}</option>`;
+      }).join('');
+      
+      if (urlTeamId && employeeRecords.some(r => r.team_id === urlTeamId)) {
+        const matched = employeeRecords.find(r => r.team_id === urlTeamId);
+        switcher.value = matched.id;
+      } else if (urlEmpId && employeeRecords.some(r => r.id === urlEmpId)) {
+        switcher.value = urlEmpId;
       }
-    } catch(err) {
-      console.warn("getEmployeeInitData failed, trying fallback parallel requests...", err);
+      
+      switcherGroup.style.display = 'block';
+    } else {
+      switcherGroup.style.display = 'none';
     }
 
-    if (!tr.ok) {
-      // Fallback
-      const [trF, erF, clRF, repRF, tskRF, recRF, taskTypesRF] = await Promise.all([
-        apiFetch({action:'getTeams'}),
-        apiFetch({action:'getEmployees'}),
-        apiFetch({action:'getClients'}),
-        apiFetch({action:'getReports', empName: EMP_NAME}),
-        apiFetch({action:'getAssignedTasks'}),
-        apiFetch({action:'getRecurringTasks'}),
-        apiFetch({action:'getTaskTypes'})
-      ]);
-      tr = trF; er = erF; clR = clRF; repR = repRF; tskR = tskRF; recR = recRF; taskTypesR = taskTypesRF;
-    }
+    const activeRecord = employeeRecords.find(r => r.id === switcher.value) || employeeRecords[0];
+    EMP_ID = activeRecord.id;
+    TEAM_ID = activeRecord.team_id;
+    const role = activeRecord.role || activeRecord['الدور'] || 'موظف';
+    currentSupRole = role;
 
-    if (tr.ok && tr.teams) {
-      globalTeamsList = tr.teams;
-    }
-    
-    if (er.ok && er.employees) {
-      employeeRecords = er.employees.filter(e => e['الاسم'] === EMP_NAME && e['نشط'] === 'نعم');
-    }
+    // تهيئة الجلسة
+    SESSION.role = role === 'مشرف' ? 'supervisor' : 'employee';
+    SESSION.teamId = TEAM_ID;
+    SESSION.employeeId = EMP_ID;
+    SESSION.employeeName = EMP_NAME;
 
-    // Cache responses locally
-    STATE.clients = clR.ok ? clR : { ok: false, clients: [] };
-    STATE.reports = repR.ok ? (repR.rows || []) : [];
-    STATE.tasks = tskR.ok ? (tskR.tasks || []) : [];
-    STATE.recurringTasks = recR.ok ? (recR.recurringTasks || []) : [];
-    if (taskTypesR && taskTypesR.ok) {
-      TASK_TYPES = taskTypesR.taskTypes || [];
-      populateTaskTypes();
-    }
+    // جلب باقي البيانات للموظف الحالي
+    const [clientsDb, reportsDb, tasksDb, recTasksDb, taskTypesDb, visitsDb] = await Promise.all([
+      rpc('get_clients', { ...auth() }),
+      rpc('get_reports', { ...auth(), p_employee_id: EMP_ID }),
+      rpc('get_tasks', { ...auth(), p_employee_id: EMP_ID }),
+      rpc('get_recurring_tasks', { ...auth(), p_employee_id: EMP_ID }),
+      rpc('get_task_types', { ...auth() }),
+      rpc('get_visits', { ...auth(), p_employee_id: EMP_ID, p_status: 'مجدولة' })
+    ]);
+
+    STATE.clients = (clientsDb || []).map(mapClient);
+    STATE.reports = (reportsDb || []).map(mapReport);
+    STATE.tasks = (tasksDb || []).map(mapTask);
+    STATE.recurringTasks = (recTasksDb || []).map(mapRecurringTask);
+    STATE.visits = (visitsDb || []).map(mapVisit);
+    TASK_TYPES = taskTypesDb || TASK_TYPES;
+    populateTaskTypes();
+
+    document.getElementById('header-date').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    document.getElementById('report-date').value=getLocalDateString();
+
+    await onTeamSwitch();
   } catch(e) {
-    console.error("Failed to load initial teams/employees:", e);
-  }
-
-  if (employeeRecords.length === 0) {
+    console.error("Failed to initialize employee page:", e);
     document.getElementById('loading-overlay').style.display='none';
     document.getElementById('error-screen').style.display='flex';
-    return;
   }
-
-  // 2️⃣ إعداد مبدل الفرق إذا كان مشتركاً في أكثر من فريق
-  const switcherGroup = document.getElementById('team-switcher-group');
-  const switcher = document.getElementById('team-switcher');
-  
-  if (employeeRecords.length > 1) {
-    const teamMap = {};
-    globalTeamsList.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
-
-    switcher.innerHTML = employeeRecords.map(r => {
-      const tName = teamMap[r.team_id] || r.team_id;
-      return `<option value="${r.id}">${tName}</option>`;
-    }).join('');
-    
-    // محاولة اختيار الفريق الممرر في الرابط كافتراضي
-    if (urlTeamId && employeeRecords.some(r => r.team_id === urlTeamId)) {
-      const matched = employeeRecords.find(r => r.team_id === urlTeamId);
-      switcher.value = matched.id;
-    } else if (urlEmpId && employeeRecords.some(r => r.id === urlEmpId)) {
-      switcher.value = urlEmpId;
-    }
-    
-    switcherGroup.style.display = 'block';
-  } else {
-    switcherGroup.style.display = 'none';
-  }
-
-  // 3️⃣ تفعيل الفريق الافتراضي والبدء
-  const activeRecord = employeeRecords.find(r => r.id === switcher.value) || employeeRecords[0];
-  EMP_ID = activeRecord.id;
-  TEAM_ID = activeRecord.team_id;
-  const role = activeRecord.role || activeRecord['الدور'] || 'موظف';
-  currentSupRole = role;
-
-  document.getElementById('header-date').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  document.getElementById('report-date').value=getLocalDateString();
-
-  // تشغيل التهيئة والتنبيهات للفريق الحالي
-  await onTeamSwitch();
 }
+
+
 
 async function onTeamSwitch() {
   document.getElementById('loading-overlay').style.display='flex';
@@ -666,6 +750,30 @@ async function onTeamSwitch() {
     TEAM_ID = record.team_id;
     const role = record.role || record['الدور'] || 'موظف';
     currentSupRole = role;
+
+    // Update SESSION
+    SESSION.role = role === 'مشرف' ? 'supervisor' : 'employee';
+    SESSION.teamId = TEAM_ID;
+    SESSION.employeeId = EMP_ID;
+
+    // Fetch team-specific data
+    try {
+      const [clientsDb, reportsDb, tasksDb, recTasksDb, visitsDb] = await Promise.all([
+        rpc('get_clients', { ...auth() }),
+        rpc('get_reports', { ...auth(), p_employee_id: EMP_ID }),
+        rpc('get_tasks', { ...auth(), p_employee_id: EMP_ID }),
+        rpc('get_recurring_tasks', { ...auth(), p_employee_id: EMP_ID }),
+        rpc('get_visits', { ...auth(), p_employee_id: EMP_ID, p_status: 'مجدولة' })
+      ]);
+
+      STATE.clients = (clientsDb || []).map(mapClient);
+      STATE.reports = (reportsDb || []).map(mapReport);
+      STATE.tasks = (tasksDb || []).map(mapTask);
+      STATE.recurringTasks = (recTasksDb || []).map(mapRecurringTask);
+      STATE.visits = (visitsDb || []).map(mapVisit);
+    } catch(err) {
+      console.error("Failed to fetch switcher data:", err);
+    }
 
     // تحديث الشارات والنصوص في الهيدر
     document.getElementById('emp-badge').textContent=EMP_NAME;
@@ -689,37 +797,16 @@ async function onTeamSwitch() {
     }
 
     // جلب اسم الفريق وتحديث الشارة
-    let isTeam1 = false;
-    if (TEAM_ID.toLowerCase() === 'team-1' || TEAM_ID.toLowerCase() === 'team_1') {
-      isTeam1 = true;
-    }
     const t = globalTeamsList.find(t=>t.id===TEAM_ID);
     if(t){
       const teamName = t['اسم التيم'] || '';
       document.getElementById('team-badge').textContent=teamName;
-      isTeam1 = teamName.includes('تيم 1') || teamName.toLowerCase().includes('team 1') || teamName.toLowerCase().includes('team-1') || TEAM_ID.toLowerCase() === 'team-1' || TEAM_ID.toLowerCase() === 'team_1';
     } else {
       document.getElementById('team-badge').textContent=TEAM_ID;
     }
 
-    // جلب العملاء للفريق المختار (تصفية محلية فورية 100% في 0ms)
-    try{
-      const cr = STATE.clients;
-      const delList = cr.deletedDefaultClients || [];
-      const baseDefaults = DEFAULT_CLIENTS.filter(name => !delList.includes(name));
-      if(cr.ok&&cr.clients){
-        const fromSheet = cr.clients.filter(c => c.team_id === TEAM_ID || c.team_id === '').map(c=>c.name||c);
-        if (isTeam1) {
-          clients = [...new Set([...baseDefaults, ...fromSheet])];
-        } else {
-          clients = fromSheet;
-        }
-      } else {
-        clients = isTeam1 ? [...baseDefaults] : [];
-      }
-    }catch(e){
-      clients=isTeam1 ? [...DEFAULT_CLIENTS] : [];
-    }
+    // جلب العملاء للفريق المختار
+    clients = (STATE.clients || []).map(c => c.name);
 
     // مسح الحاويات والبطاقات الحالية وإعادة التهيئة
     document.getElementById('tasks-container').innerHTML = '';
@@ -983,14 +1070,14 @@ async function confirmAddClient(){
   if(!clients.includes(name)){
     clients.push(name);
     // Local cache update
-    if (STATE.clients && STATE.clients.clients) {
-      STATE.clients.clients.push({ id: 'cli_' + Date.now(), name: name, team_id: TEAM_ID });
+    if (Array.isArray(STATE.clients)) {
+      STATE.clients.push({ id: 'cli_' + Date.now(), name: name, team_id: TEAM_ID });
     }
     try{
-      apiPost('addClient',{name, teamId: TEAM_ID}); // silent background sync
+      await rpc('add_client', { ...auth(), p_name: name, p_target_team_id: TEAM_ID || null });
       showToast(`تمت إضافة "${name}"`, 'success');
     }
-    catch(e){showToast('تمت الإضافة محلياً','info');}
+    catch(e){showToast('حدث خطأ أثناء المزامنة: ' + e.message, 'error');}
   }
   taskIds.forEach(id=>{const dl=document.getElementById(`dl-${id}`);if(dl)dl.innerHTML=clients.map(c=>`<option value="${c}">`).join('');});
   
@@ -1136,7 +1223,7 @@ async function submitReport(appendOverride){
   if (pendingClients.length > 0) {
     for (const cName of pendingClients) {
       try {
-        await apiPost('addClient', { name: cName, teamId: TEAM_ID });
+        await rpc('add_client', { ...auth(), p_name: cName, p_target_team_id: TEAM_ID || null });
         clients.push(cName);
       } catch(e) {
         console.error("Auto client registration failed:", e);
@@ -1149,16 +1236,37 @@ async function submitReport(appendOverride){
 
   try {
     data.append = appendOverride;
-    const r = await apiPost('submitReport', data);
+    await rpc('submit_report', {
+      ...auth(),
+      p_emp_id: data.empId,
+      p_emp_name: data.empName,
+      p_team_id: data.teamId,
+      p_report_date: data.date,
+      p_append_override: appendOverride,
+      p_rows: data.rows.map(row => ({
+        client: row.client,
+        tasktype: row.tasktype,
+        from: row.from,
+        to: row.to,
+        dur: row.dur,
+        desc: row.desc,
+        source: row.source,
+        task_id: row.task_id || null,
+        recurrence: row.recurrence || null
+      })),
+      p_completed_task_ids: data.completedTaskIds || []
+    });
+
+    const r = { ok: true };
     if (r.ok) {
       // Fetch updated reports and tasks from server to ensure perfect sync
       try {
         const [repR, tskR] = await Promise.all([
-          apiFetch({action:'getReports', empId: EMP_ID}),
-          apiFetch({action:'getAssignedTasks', empId: EMP_ID, status: 'معلقة'})
+          rpc('get_reports', { ...auth(), p_employee_id: EMP_ID }),
+          rpc('get_tasks', { ...auth(), p_employee_id: EMP_ID })
         ]);
-        if (repR.ok) STATE.reports = repR.rows || [];
-        if (tskR.ok) STATE.tasks = tskR.tasks || [];
+        STATE.reports = (repR || []).map(mapReport);
+        STATE.tasks = (tskR || []).map(mapTask);
       } catch(e) {
         console.error("Muted fetch errors:", e);
       }
@@ -1677,19 +1785,18 @@ async function loadEmployeeVisits() {
     section.style.display = 'block';
   }
 
-  // تحديث البيانات صامتاً بالخلفية
   try {
-    const vr = await apiFetch({ action: 'getVisits', empId: EMP_ID, status: 'مجدولة' });
-    if (vr.ok && vr.visits) {
-      STATE.visits = STATE.visits.filter(v => String(v.emp_id) !== String(EMP_ID) || v['الحالة'] !== 'مجدولة').concat(vr.visits);
-      
-      const updatedVisits = STATE.visits.filter(v => String(v.emp_id) === String(EMP_ID) && v['الحالة'] === 'مجدولة');
-      if (updatedVisits.length === 0) {
-        section.style.display = 'none';
-      } else {
-        renderEmployeeVisits(updatedVisits);
-        section.style.display = 'block';
-      }
+    const visitsDb = await rpc('get_visits', { ...auth(), p_employee_id: EMP_ID, p_status: 'مجدولة' });
+    const mappedVisits = (visitsDb || []).map(mapVisit);
+    
+    STATE.visits = STATE.visits.filter(v => String(v.emp_id) !== String(EMP_ID) || v['الحالة'] !== 'مجدولة').concat(mappedVisits);
+    
+    const updatedVisits = STATE.visits.filter(v => String(v.emp_id) === String(EMP_ID) && v['الحالة'] === 'مجدولة');
+    if (updatedVisits.length === 0) {
+      section.style.display = 'none';
+    } else {
+      renderEmployeeVisits(updatedVisits);
+      section.style.display = 'block';
     }
   } catch(e) {
     console.error("Visits background refresh failed:", e);
@@ -1813,24 +1920,20 @@ async function submitEmployeeVisitCompletion() {
 
   closeModal('modal-emp-visit-complete');
 
-  // إرسال التحديث للسيرفر بالخلفية
   try {
-    const r = await apiPost('completeVisit', {
-      id: activeEmployeeVisitId,
-      summary: summary,
-      scheduleNext: scheduleNext,
-      nextFrequency: freq
+    await rpc('complete_visit', {
+      ...auth(),
+      p_id: activeEmployeeVisitId,
+      p_summary: summary,
+      p_schedule_next: scheduleNext,
+      p_next_frequency: freq
     });
-    if (r.ok) {
-      showToast('تم إتمام الزيارة بنجاح ومزامنتها وجدولة الموعد القادم!', 'success');
-      loadEmployeeVisits();
-    } else {
-      showToast(r.error || 'حدث خطأ أثناء المزامنة', 'error');
-      STATE.visits = originalVisits;
-      loadEmployeeVisits();
-    }
+    showToast('تم إتمام الزيارة بنجاح ومزامنتها وجدولة الموعد القادم!', 'success');
+    loadEmployeeVisits();
   } catch (e) {
-    showToast('تم تسجيل الإتمام محلياً، وسيتم المزامنة بالخلفية', 'success');
+    showToast('حدث خطأ أثناء المزامنة: ' + e.message, 'error');
+    STATE.visits = originalVisits;
+    loadEmployeeVisits();
   }
 
   btn.disabled = false;
@@ -1857,53 +1960,44 @@ function loadSupervisorBoard() {
 
 async function quietRefreshSupervisorData() {
   try {
-    const [assignedR, reportsR, recR] = await Promise.all([
-      apiFetch({ action: 'getAssignedTasks', empId: EMP_ID }),
-      apiFetch({ action: 'getReports', empId: EMP_ID }),
-      apiFetch({ action: 'getRecurringTasks' })
+    const [assignedDb, reportsDb, recDb] = await Promise.all([
+      rpc('get_tasks', { ...auth(), p_employee_id: EMP_ID }),
+      rpc('get_reports', { ...auth(), p_employee_id: EMP_ID }),
+      rpc('get_recurring_tasks', { ...auth(), p_employee_id: EMP_ID })
     ]);
     
-    if (assignedR.ok && assignedR.tasks) {
-      STATE.tasks = STATE.tasks.filter(t => String(t.emp_id) !== String(EMP_ID)).concat(assignedR.tasks);
-      
-      const pendingTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'معلقة');
-      const completedTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'مكتملة');
-      
-      document.getElementById('stat-sup-pending').textContent = pendingTasks.length;
-      document.getElementById('stat-sup-done').textContent = completedTasks.length;
-      
-      renderSupervisorTasks(pendingTasks);
-    }
-    if (reportsR.ok && reportsR.rows) {
-      STATE.reports = STATE.reports.filter(r => String(r.emp_id) !== String(EMP_ID)).concat(reportsR.rows);
-    }
-    if (recR.ok && recR.recurringTasks) {
-      STATE.recurringTasks = recR.recurringTasks;
-      initEmployeeRecurringTasks();
-    }
-  } catch(e) {}
+    STATE.tasks = (assignedDb || []).map(mapTask);
+    STATE.reports = (reportsDb || []).map(mapReport);
+    STATE.recurringTasks = (recDb || []).map(mapRecurringTask);
+    
+    const pendingTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'معلقة');
+    const completedTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'مكتملة');
+    
+    document.getElementById('stat-sup-pending').textContent = pendingTasks.length;
+    document.getElementById('stat-sup-done').textContent = completedTasks.length;
+    
+    renderSupervisorTasks(pendingTasks);
+    initEmployeeRecurringTasks();
+  } catch(e) {
+    console.error("Supervisor board refresh failed:", e);
+  }
 }
 
 async function quietRefreshEmployeeTasks() {
   try {
-    const [tr, recR, taskTypesR] = await Promise.all([
-      apiFetch({ action: 'getAssignedTasks', empId: EMP_ID, status: 'معلقة' }),
-      apiFetch({ action: 'getRecurringTasks' }),
-      apiFetch({ action: 'getTaskTypes' })
+    const [tasksDb, recDb, taskTypesDb] = await Promise.all([
+      rpc('get_tasks', { ...auth(), p_employee_id: EMP_ID }),
+      rpc('get_recurring_tasks', { ...auth(), p_employee_id: EMP_ID }),
+      rpc('get_task_types', { ...auth() })
     ]);
-    if (tr.ok && tr.tasks) {
-      STATE.tasks = STATE.tasks.filter(t => String(t.emp_id) !== String(EMP_ID)).concat(tr.tasks);
-      const trTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'معلقة');
-      renderAssignedTasks(trTasks);
-    }
-    if (recR.ok && recR.recurringTasks) {
-      STATE.recurringTasks = recR.recurringTasks;
-      initEmployeeRecurringTasks();
-    }
-    if (taskTypesR && taskTypesR.ok) {
-      TASK_TYPES = taskTypesR.taskTypes || [];
-      populateTaskTypes();
-    }
+    STATE.tasks = (tasksDb || []).map(mapTask);
+    STATE.recurringTasks = (recDb || []).map(mapRecurringTask);
+    TASK_TYPES = taskTypesDb || TASK_TYPES;
+    populateTaskTypes();
+    
+    const trTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'معلقة');
+    renderAssignedTasks(trTasks);
+    initEmployeeRecurringTasks();
   } catch(e) {}
 }
 
@@ -2043,38 +2137,54 @@ async function submitSupTaskCompletion() {
   closeModal('modal-sup-complete');
 
   // Quiet background POST
+  const payload = {
+    empId: EMP_ID,
+    empName: EMP_NAME,
+    teamId: TEAM_ID,
+    date: date,
+    append: true,
+    rows: [{
+      client: client,
+      tasktype: tasktype,
+      from: "",
+      to: "",
+      dur: "0:00",
+      desc: desc || (activeSupTaskId ? "تم إتمام التكليف المسند بنجاح." : (activeSupRecDescription || "تم إتمام المهمة الدورية بنجاح.")),
+      source: activeSupTaskId ? "إسناد" : "دوري",
+      task_id: activeSupTaskId || activeSupRecTaskId || "",
+      recurrence: activeSupRecTaskId ? activeSupRecType : ""
+    }],
+    completedTaskIds: activeSupTaskId ? [activeSupTaskId] : []
+  };
+
   try {
-    const payload = {
-      empId: EMP_ID,
-      empName: EMP_NAME,
-      teamId: TEAM_ID,
-      date: date,
-      append: true,
-      rows: [{
-        client: client,
-        tasktype: tasktype,
-        from: "",
-        to: "",
-        dur: "0:00",
-        desc: desc || (activeSupTaskId ? "تم إتمام التكليف المسند بنجاح." : (activeSupRecDescription || "تم إتمام المهمة الدورية بنجاح.")),
-        source: activeSupTaskId ? "إسناد" : "دوري",
-        task_id: activeSupTaskId || activeSupRecTaskId || "",
-        recurrence: activeSupRecTaskId ? activeSupRecType : ""
-      }],
-      completedTaskIds: activeSupTaskId ? [activeSupTaskId] : []
-    };
-    const r = await apiPost('submitReport', payload);
-    if (r.ok) {
-      showToast('تم حفظ التقرير وإتمام المهمة بنجاح', 'success');
-      quietRefreshSupervisorData();
-    } else {
-      showToast(r.error || 'خطأ أثناء المزامنة بالسيرفر', 'error');
-      STATE.tasks = originalTasks;
-      STATE.reports = originalReports;
-      loadSupervisorBoard();
-    }
+    await rpc('submit_report', {
+      ...auth(),
+      p_emp_id: payload.empId,
+      p_emp_name: payload.empName,
+      p_team_id: payload.teamId,
+      p_report_date: payload.date,
+      p_append_override: payload.append,
+      p_rows: payload.rows.map(row => ({
+        client: row.client,
+        tasktype: row.tasktype,
+        from: row.from,
+        to: row.to,
+        dur: row.dur,
+        desc: row.desc,
+        source: row.source,
+        task_id: row.task_id || null,
+        recurrence: row.recurrence || null
+      })),
+      p_completed_task_ids: payload.completedTaskIds || []
+    });
+    showToast('تم حفظ التقرير وإتمام المهمة بنجاح', 'success');
+    quietRefreshSupervisorData();
   } catch(e) {
-    showToast('تم التسجيل محلياً، جاري المزامنة في الخلفية', 'success');
+    showToast('حدث خطأ أثناء المزامنة: ' + e.message, 'error');
+    STATE.tasks = originalTasks;
+    STATE.reports = originalReports;
+    loadSupervisorBoard();
   }
   btn.disabled = false;
   btn.textContent = 'تأكيد إتمام التكليف';
@@ -2087,22 +2197,20 @@ async function promptAddTaskTypeEmployee() {
   const name = prompt("أدخل اسم نوع المهمة الجديد الذي ترغب في إضافته:");
   if (!name || !name.trim()) return;
   
+  if (!SESSION.password) {
+    const pw = prompt("يرجى إدخال كلمة مرور المشرف للقيام بهذا الإجراء:");
+    if (!pw) return;
+    SESSION.password = pw;
+  }
+  
   showToast("جاري إضافة نوع المهمة...", "info");
   
   try {
-    const r = await apiPost('addTaskType', { name: name.trim() });
-    if (r.ok) {
-      showToast(r.message || "تمت الإضافة بنجاح!", "success");
-      if (r.taskTypes) {
-        TASK_TYPES = r.taskTypes;
-        populateTaskTypes();
-      }
-      quietRefreshEmployeeTasks();
-    } else {
-      showToast(r.error || "خطأ أثناء الإضافة", "error");
-    }
+    await rpc('add_task_type', { ...auth(), p_name: name.trim() });
+    showToast("تمت إضافة نوع المهمة بنجاح!", "success");
+    quietRefreshEmployeeTasks();
   } catch(e) {
-    showToast("فشل الاتصال بالخادم", "error");
+    showToast("خطأ أثناء الإضافة: " + e.message, "error");
   }
 }
 
@@ -2121,23 +2229,21 @@ async function promptDeleteTaskTypeEmployee() {
   const ok = confirm(`هل تريد حذف نوع المهمة "${selectedType}" نهائياً من النظام؟`);
   if (!ok) return;
   
+  if (!SESSION.password) {
+    const pw = prompt("يرجى إدخال كلمة مرور المشرف للقيام بهذا الإجراء:");
+    if (!pw) return;
+    SESSION.password = pw;
+  }
+  
   showToast("جاري حذف نوع المهمة...", "info");
   
   try {
-    const r = await apiPost('deleteTaskType', { name: selectedType });
-    if (r.ok) {
-      showToast(r.message || "تم الحذف بنجاح!", "success");
-      if (r.taskTypes) {
-        TASK_TYPES = r.taskTypes;
-        populateTaskTypes();
-        document.getElementById('sup-manual-type').value = '';
-      }
-      quietRefreshEmployeeTasks();
-    } else {
-      showToast(r.error || "خطأ أثناء الحذف", "error");
-    }
+    await rpc('delete_task_type', { ...auth(), p_name: selectedType });
+    showToast("تم الحذف بنجاح!", "success");
+    document.getElementById('sup-manual-type').value = '';
+    quietRefreshEmployeeTasks();
   } catch(e) {
-    showToast("فشل الاتصال بالخادم", "error");
+    showToast("خطأ أثناء الحذف: " + e.message, "error");
   }
 }
 
@@ -2210,17 +2316,33 @@ async function submitSupManualTask() {
       }],
       completedTaskIds: []
     };
-    const r = await apiPost('submitReport', payload);
-    if (r.ok) {
-      showToast('✓ تم تسجيل وإرسال المهمة المنجزة بنجاح!', 'success');
-      quietRefreshSupervisorData();
-    } else {
-      showToast(r.error || 'حدث خطأ: ' + r.error, 'error');
-      STATE.reports = originalReports;
-      loadSupervisorBoard();
-    }
+
+    await rpc('submit_report', {
+      ...auth(),
+      p_emp_id: payload.empId,
+      p_emp_name: payload.empName,
+      p_team_id: payload.teamId,
+      p_report_date: payload.date,
+      p_append_override: payload.append,
+      p_rows: payload.rows.map(row => ({
+        client: row.client,
+        tasktype: row.tasktype,
+        from: row.from,
+        to: row.to,
+        dur: row.dur,
+        desc: row.desc,
+        source: row.source,
+        task_id: row.task_id || null,
+        recurrence: row.recurrence || null
+      })),
+      p_completed_task_ids: payload.completedTaskIds || []
+    });
+    showToast('✓ تم تسجيل وإرسال المهمة المنجزة بنجاح!', 'success');
+    quietRefreshSupervisorData();
   } catch(e) {
-    showToast('تم التسجيل محلياً، جاري المزامنة في الخلفية', 'success');
+    showToast('حدث خطأ أثناء المزامنة: ' + e.message, 'error');
+    STATE.reports = originalReports;
+    loadSupervisorBoard();
   }
   btn.disabled = false;
   btn.textContent = 'تسجيل وإرسال';
