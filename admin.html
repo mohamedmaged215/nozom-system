@@ -2885,8 +2885,8 @@ async function loadDashboard() {
     document.getElementById('kpi-hours').textContent  = data.kpis.totalHours || '0:00';
     document.getElementById('kpi-att').textContent    = data.kpis.attendanceRate !== undefined ? data.kpis.attendanceRate : '0';
     document.getElementById('kpi-rep').textContent    = data.kpis.totalReports || 0;
-    document.getElementById('kpi-emp').textContent    = data.kpis.activeEmployees || 0;
-    document.getElementById('kpi-teams').textContent  = data.kpis.activeTeams || 0;
+    document.getElementById('kpi-emp').textContent    = data.kpis.totalEmployees || 0;
+    document.getElementById('kpi-teams').textContent  = data.kpis.totalTeams || 0;
 
     // Render Charts
     renderHoursChart(data.hoursByTeam || []);
@@ -3065,27 +3065,10 @@ async function loadReports(page = 1) {
     let rows = [];
     let totalCount = 0;
     
-    if (STATE.role === 'admin' && team && !empId) {
-      let query = sb.from('reports').select('*', { count: 'exact' });
-      query = query.eq('team_id', team);
-      if (from) query = query.gte('report_date', from);
-      if (to) query = query.lte('report_date', to);
-      
-      // Pagination
-      if (currentReportsLimit !== 'all') {
-        const limit = parseInt(currentReportsLimit, 10) || 20;
-        const fromIdx = (page - 1) * limit;
-        const toIdx = fromIdx + limit - 1;
-        query = query.range(fromIdx, toIdx);
-      }
-      
-      const { data, count, error } = await query;
-      if (error) throw new Error(error.message);
-      rows = (data || []).map(mapReport);
-      totalCount = count || 0;
-    } else {
+    {
       const res = await rpc('get_reports', {
         ...auth(),
+        p_team_id: STATE.role === 'admin' ? (team || null) : SESSION.teamId,
         p_employee_id: empId || null,
         p_date_from: from || null,
         p_date_to: to || null,
@@ -6644,7 +6627,7 @@ async function saveVisitForm() {
         p_notes: notes
       });
       const found = STATE.visits.find(v => v.id === tempId);
-      if (found) found.id = dbId;
+      if (found) found.id = (dbId && dbId.id) ? dbId.id : dbId;
     }
   } catch(e) {
     STATE.visits = backupVisits;
@@ -6788,9 +6771,9 @@ async function saveVisitComplete() {
       p_next_date: nextDate || null,
       p_next_time: nextTime || null
     });
-    if (scheduleNext && nextDbId) {
+    if (scheduleNext && nextDbId && nextDbId.nextId) {
       const found = STATE.visits.find(v => v.id === tempNextId);
-      if (found) found.id = nextDbId;
+      if (found) found.id = nextDbId.nextId;
     }
   } catch(e) {
     STATE.visits = backupVisits;
