@@ -2289,13 +2289,18 @@ let SESSION = {
   employeeName: null
 };
 
+// ══════════════════════════════════════════════════════
+// DATE HELPER — يحوّل timestamptz من Supabase لـ YYYY-MM-DD
+// ══════════════════════════════════════════════════════
+const fmtDate = d => d ? String(d).substring(0, 10) : '';
+
 // Data Mapper Functions for Compatibility
 function mapTeam(t) {
   return {
     id: t.id,
     'اسم التيم': t.name,
     'مشرف': t.supervisor_name,
-    'تاريخ الإنشاء': t.created_at,
+    'تاريخ الإنشاء': fmtDate(t.created_at),
     'نشط': t.is_active ? 'نعم' : 'لا'
   };
 }
@@ -2306,7 +2311,7 @@ function mapEmployee(e) {
     'الاسم': e.name,
     team_id: e.team_id,
     'الدور': e.role,
-    'تاريخ الإضافة': e.created_at,
+    'تاريخ الإضافة': fmtDate(e.created_at),
     'نشط': e.is_active ? 'نعم' : 'لا',
     role: e.role
   };
@@ -2318,7 +2323,7 @@ function mapClient(c) {
     name: c.name,
     'الاسم': c.name,
     team_id: c.team_id,
-    'تاريخ الإضافة': c.created_at
+    'تاريخ الإضافة': fmtDate(c.created_at)
   };
 }
 
@@ -2328,7 +2333,7 @@ function mapAttendance(a) {
     emp_id: a.employee_id,
     'اسم الموظف': a.employee_name,
     team_id: a.team_id,
-    'التاريخ': a.att_date,
+    'التاريخ': fmtDate(a.att_date),
     'الحالة': a.status,
     'ملاحظة': a.note
   };
@@ -2344,9 +2349,9 @@ function mapTask(t) {
     'بند خطة العمل': t.work_plan_item,
     'نوع المهمة': t.task_type,
     'وصف المهمة': t.description,
-    'تاريخ الإسناد': t.assigned_date,
+    'تاريخ الإسناد': fmtDate(t.assigned_date),
     'الحالة': t.status,
-    'تاريخ الاكتمال': t.completed_date
+    'تاريخ الاكتمال': fmtDate(t.completed_date)
   };
 }
 
@@ -2362,7 +2367,7 @@ function mapRecurringTask(r) {
     'بند خطة العمل': r.work_plan_item,
     'نوع المهمة': r.task_type,
     'وصف المهمة': r.description,
-    'تاريخ الإنشاء': r.created_at,
+    'تاريخ الإنشاء': fmtDate(r.created_at),
     'نشط': r.is_active ? 'نعم' : 'لا'
   };
 }
@@ -2375,12 +2380,12 @@ function mapVisit(v) {
     team_id: v.team_id,
     'العميل': v.client,
     'واتساب العميل': v.client_whatsapp,
-    'تاريخ الزيارة': v.visit_date,
+    'تاريخ الزيارة': fmtDate(v.visit_date),
     'وقت الزيارة': v.visit_time,
     'التكرار': v.recurrence,
     'الحالة': v.status,
     'ملاحظات': v.notes,
-    'تاريخ الإنشاء': v.created_at
+    'تاريخ الإنشاء': fmtDate(v.created_at)
   };
 }
 
@@ -2390,14 +2395,14 @@ function mapReport(r) {
     emp_id: r.employee_id,
     'اسم الموظف': r.employee_name,
     team_id: r.team_id,
-    'التاريخ': r.report_date,
+    'التاريخ': fmtDate(r.report_date),
     'العميل': r.client,
     'نوع المهمة': r.task_type,
     'من': r.time_from,
     'إلى': r.time_to,
     'المدة': r.duration,
     'وصف المهمة': r.description,
-    'وقت الإرسال': r.submitted_at,
+    'وقت الإرسال': fmtDate(r.submitted_at),
     'ملاحظات المشرف': r.supervisor_note,
     'التقييم': r.rating,
     'مصدر المهمة': r.task_source,
@@ -2862,153 +2867,36 @@ async function loadDashboard() {
   const to   = document.getElementById('db-to').value;
   const team = document.getElementById('db-team')?.value || STATE.teamId || '';
 
-  // Get supervisor IDs
-  const supervisorIds = (STATE.employees || []).filter(e => e['الدور'] === 'مشرف').map(e => String(e.id));
-
   // Show loading indicators on KPIs
   document.getElementById('kpi-hours').textContent  = '...';
   document.getElementById('kpi-att').textContent    = '...';
   document.getElementById('kpi-rep').textContent    = '...';
 
-  // Fetch reports and attendance for the selected date range dynamically
-  const [reportsR, attendanceR] = await Promise.all([
-    apiFetch(STATE.role === 'supervisor'
-      ? { action: 'getReports', teamId: STATE.teamId, dateFrom: from, dateTo: to }
-      : { action: 'getReports', teamId: team, dateFrom: from, dateTo: to }),
-    apiFetch(STATE.role === 'supervisor'
-      ? { action: 'getAttendance', teamId: STATE.teamId, dateFrom: from, dateTo: to }
-      : { action: 'getAttendance', teamId: team, dateFrom: from, dateTo: to })
-  ]);
+  try {
+    const data = await rpc('get_dashboard', {
+      p_role:      SESSION.role,
+      p_team_id:   (STATE.role === 'supervisor' ? STATE.teamId : team) || null,
+      p_password:  SESSION.password ?? null,
+      p_date_from: from || null,
+      p_date_to:   to   || null
+    });
 
-  // 1. Filter reports (exclude supervisors)
-  let repFiltered = reportsR.ok ? (reportsR.rows || []) : [];
-  repFiltered = repFiltered.filter(r => !supervisorIds.includes(String(r.emp_id)));
+    // Update UI Elements
+    document.getElementById('kpi-hours').textContent  = data.kpis.totalHours || '0:00';
+    document.getElementById('kpi-att').textContent    = data.kpis.attendanceRate !== undefined ? data.kpis.attendanceRate : '0';
+    document.getElementById('kpi-rep').textContent    = data.kpis.totalReports || 0;
+    document.getElementById('kpi-emp').textContent    = data.kpis.activeEmployees || 0;
+    document.getElementById('kpi-teams').textContent  = data.kpis.activeTeams || 0;
 
-  // 2. Filter attendance (exclude supervisors)
-  let attFiltered = attendanceR.ok ? (attendanceR.rows || []) : [];
-  attFiltered = attFiltered.filter(a => !supervisorIds.includes(String(a.emp_id)));
-
-  // 3. Filter employees and teams
-  let empFiltered = (STATE.employees || []).filter(e => e['نشط'] === 'نعم' && e['الدور'] !== 'مشرف');
-  let teamFiltered = (STATE.teams || []).filter(t => t['نشط'] === 'نعم');
-  if (team) {
-    empFiltered = empFiltered.filter(e => String(e.team_id) === String(team));
-    teamFiltered = teamFiltered.filter(t => String(t.id) === String(team));
+    // Render Charts
+    renderHoursChart(data.hoursByTeam || []);
+    renderAttChart(data.attByTeam || []);
+    renderDailyChart(data.dailyHours || []);
+    renderClientsChart(data.topClients || []);
+    renderDonutChart(data.hoursByTeam || []);
+  } catch(err) {
+    console.error('dashboard error:', err.message);
   }
-
-  // 4. Calculate hoursByTeam (minutes per team, or minutes per employee if team filter is set)
-  const hoursByTeam = {};
-  if (team) {
-    // For supervisor or selected team: hours per employee
-    empFiltered.forEach(e => { hoursByTeam[e.id] = { name: e['الاسم'], minutes: 0 }; });
-    repFiltered.forEach(r => {
-      const dur = r['المدة'];
-      if (!dur || !dur.includes(':')) return;
-      const parts = dur.split(':');
-      const mins = parseInt(parts[0] || 0) * 60 + parseInt(parts[1] || 0);
-      if (hoursByTeam[r.emp_id]) {
-        hoursByTeam[r.emp_id].minutes += mins;
-      }
-    });
-  } else {
-    // For admin all teams: hours per team
-    teamFiltered.forEach(t => { hoursByTeam[t.id] = { name: t['اسم التيم'], minutes: 0 }; });
-    repFiltered.forEach(r => {
-      const dur = r['المدة'];
-      if (!dur || !dur.includes(':')) return;
-      const parts = dur.split(':');
-      const mins = parseInt(parts[0] || 0) * 60 + parseInt(parts[1] || 0);
-      if (hoursByTeam[r.team_id]) {
-        hoursByTeam[r.team_id].minutes += mins;
-      }
-    });
-  }
-
-  // 5. Calculate topClients
-  const clientCount = {};
-  repFiltered.forEach(r => {
-    const c = r['العميل'];
-    if (c) clientCount[c] = (clientCount[c] || 0) + 1;
-  });
-  const topClients = Object.entries(clientCount)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([name, count]) => ({ name, count }));
-
-  // 6. Calculate attByTeam
-  const attByTeamMap = {};
-  if (team) {
-    empFiltered.forEach(e => { attByTeamMap[e.id] = { present: 0, absent: 0, total: 0 }; });
-    attFiltered.forEach(a => {
-      const eid = a.emp_id;
-      if (attByTeamMap[eid]) {
-        attByTeamMap[eid].total++;
-        if (a['الحالة'] === 'حاضر') attByTeamMap[eid].present++;
-        else if (a['الحالة'] === 'غياب') attByTeamMap[eid].absent++;
-      }
-    });
-  } else {
-    teamFiltered.forEach(t => { attByTeamMap[t.id] = { present: 0, absent: 0, total: 0 }; });
-    attFiltered.forEach(a => {
-      const tid = a.team_id;
-      if (attByTeamMap[tid]) {
-        attByTeamMap[tid].total++;
-        if (a['الحالة'] === 'حاضر') attByTeamMap[tid].present++;
-        else if (a['الحالة'] === 'غياب') attByTeamMap[tid].absent++;
-      }
-    });
-  }
-
-  const attByTeam = team 
-    ? empFiltered.map(e => ({
-        teamId:   e['id'],
-        teamName: e['الاسم'],
-        ...( attByTeamMap[e['id']] || { present: 0, absent: 0, total: 0 })
-      }))
-    : teamFiltered.map(t => ({
-        teamId:   t['id'],
-        teamName: t['اسم التيم'],
-        ...( attByTeamMap[t['id']] || { present: 0, absent: 0, total: 0 })
-      }));
-
-  // 7. Calculate dailyHours
-  const dailyHoursMap = {};
-  repFiltered.forEach(r => {
-    const d = r['التاريخ'];
-    if (!d) return;
-    const dur = r['المدة'];
-    if (!dur || !dur.includes(':')) return;
-    const parts = dur.split(':');
-    const mins = parseInt(parts[0] || 0) * 60 + parseInt(parts[1] || 0);
-    dailyHoursMap[d] = (dailyHoursMap[d] || 0) + mins;
-  });
-  const dailyHours = Object.entries(dailyHoursMap)
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([date, mins]) => ({ date, hours: (mins / 60).toFixed(2) }));
-
-  // 8. Calculate KPIs
-  const totalMinutes = Object.values(hoursByTeam).reduce((acc, x) => acc + (x.minutes || 0), 0);
-  const hrs = Math.floor(totalMinutes / 60);
-  const mins = totalMinutes % 60;
-  
-  const totalReports = repFiltered.length;
-  const totalPresent = attFiltered.filter(a => a['الحالة'] === 'حاضر').length;
-  const totalAtt = attFiltered.length;
-  const attendanceRate = totalAtt ? ((totalPresent / totalAtt) * 100).toFixed(1) : '0';
-
-  // Update UI Elements
-  document.getElementById('kpi-hours').textContent  = `${hrs}:${String(mins).padStart(2, '0')}`;
-  document.getElementById('kpi-att').textContent    = attendanceRate;
-  document.getElementById('kpi-rep').textContent    = totalReports;
-  document.getElementById('kpi-emp').textContent    = empFiltered.length;
-  document.getElementById('kpi-teams').textContent  = teamFiltered.length;
-
-  // Render Charts (completely local, 0ms latency!)
-  renderHoursChart(Object.values(hoursByTeam));
-  renderAttChart(attByTeam);
-  renderDailyChart(dailyHours);
-  renderClientsChart(topClients);
-  renderDonutChart(Object.values(hoursByTeam));
 }
 
 const CHART_COLORS = ['#4f6ef7','#34d399','#f87171','#fbbf24','#a78bfa','#38bdf8','#fb923c','#e879f9'];
@@ -3297,20 +3185,23 @@ async function exportReports() {
 
   showToast('جاري تحضير البيانات للتصدير...', 'info');
 
-  const params = {
-    action: 'getReports'
-  };
-  if (team) params.teamId = team;
-  if (empId) params.empId = empId;
-  if (from) params.dateFrom = from;
-  if (to) params.dateTo = to;
-
-  const res = await apiFetch(params);
-  if (!res.ok || !res.rows || !res.rows.length) {
-    showToast('لا توجد بيانات لتصديرها للنطاق المحدد', 'error');
+  let data = [];
+  try {
+    const res = await rpc('get_reports', {
+      ...auth(),
+      p_employee_id: empId || null,
+      p_date_from: from || null,
+      p_date_to: to || null
+    });
+    if (!res || !res.rows || !res.rows.length) {
+      showToast('لا توجد بيانات لتصديرها للنطاق المحدد', 'error');
+      return;
+    }
+    data = res.rows.map(mapReport);
+  } catch (err) {
+    showToast('حدث خطأ أثناء جلب البيانات: ' + err.message, 'error');
     return;
   }
-  const data = res.rows;
 
   const teamMap = {};
   STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
@@ -3536,23 +3427,14 @@ async function loadAttendance() {
     return;
   }
 
-  // Fetch dynamic attendance data from server for the selected range!
-  const params = {
-    action: 'getAttendance',
-    dateFrom: dateFrom,
-    dateTo: dateTo
-  };
-  if (team) params.teamId = team;
-  if (emp) params.empId = emp;
-
   try {
-    const res = await apiFetch(params);
-    if (res.ok) {
-      STATE.attendance = res.rows || [];
-    } else {
-      tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-text">خطأ في جلب الحضور: ${res.error || ''}</div></div></td></tr>`;
-      return;
-    }
+    const data = await rpc('get_attendance', {
+      ...auth(),
+      p_employee_id: emp || null,
+      p_date_from: dateFrom,
+      p_date_to: dateTo
+    });
+    STATE.attendance = (data || []).map(mapAttendance);
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-text">فشل الاتصال بالخادم</div></div></td></tr>`;
     return;
@@ -4463,27 +4345,33 @@ async function changePassword() {
   if (!current || !nw) { showToast('أدخل كل الحقول'); return; }
   if (nw !== confirm)  { showToast('كلمة المرور الجديدة غير متطابقة', 'error'); return; }
   try {
-    let r;
     if (STATE.role === 'supervisor') {
-      r = await apiPost('changeSupervisorPassword', { teamId: STATE.teamId, current, newPassword: nw });
+      await rpc('change_supervisor_password', {
+        ...auth(),
+        p_target_team_id: STATE.teamId,
+        p_current_password: current,
+        p_new_password: nw
+      });
     } else {
-      r = await apiPost('changeAdminPassword', { current, newPassword: nw });
+      await rpc('change_admin_password', {
+        ...auth(),
+        p_current_password: current,
+        p_new_password: nw
+      });
     }
     
-    if (r.ok) {
-      showToast(r.message || 'تم تغيير كلمة المرور بنجاح', 'success');
-      document.getElementById('pw-current').value = '';
-      document.getElementById('pw-new').value = '';
-      document.getElementById('pw-confirm').value = '';
-      
-      // تحديث الباسورد المخزن محلياً لو مفعل تذكرني
-      if (localStorage.getItem('nuzum_remember') === 'true') {
-        localStorage.setItem('nuzum_password', nw);
-      }
-    } else {
-      showToast(r.error || 'خطأ في التغيير', 'error');
+    showToast('تم تغيير كلمة المرور بنجاح', 'success');
+    document.getElementById('pw-current').value = '';
+    document.getElementById('pw-new').value = '';
+    document.getElementById('pw-confirm').value = '';
+    
+    if (localStorage.getItem('nuzum_remember') === 'true') {
+      localStorage.setItem('nuzum_password', nw);
     }
-  } catch(e) { showToast('تعذر الاتصال', 'error'); }
+    STATE.password = nw;
+  } catch(e) {
+    showToast('خطأ في التغيير: ' + e.message, 'error');
+  }
 }
 
 async function fetchSystemCredentials() {
@@ -4497,24 +4385,23 @@ async function fetchSystemCredentials() {
   }
   
   try {
-    const res = await apiPost('getCredentials', { adminPassword: adminPass });
-    if (res.ok && res.credentials) {
-      tbody.innerHTML = '';
-      res.credentials.forEach(c => {
-        tbody.innerHTML += `
-          <tr>
-            <td><strong>${c.name}</strong> (${c.role === 'admin' ? 'مدير عام' : 'مشرف تيم'})</td>
-            <td style="font-family: monospace; font-size: 13px; color: var(--warning); letter-spacing: 1px;">${c.password}</td>
-          </tr>
-        `;
-      });
-      tableWrap.style.display = 'block';
-      showToast('تم استرجاع كلمات السر بنجاح', 'success');
-    } else {
-      showToast(res.error || 'تعذر استرجاع كلمات السر', 'error');
-    }
+    const creds = await rpc('get_credentials', {
+      ...auth(),
+      p_admin_password: adminPass
+    });
+    tbody.innerHTML = '';
+    (creds || []).forEach(c => {
+      tbody.innerHTML += `
+        <tr>
+          <td><strong>${c.name}</strong> (${c.role === 'admin' ? 'مدير عام' : 'مشرف تيم'})</td>
+          <td style="font-family: monospace; font-size: 13px; color: var(--warning); letter-spacing: 1px;">${c.password}</td>
+        </tr>
+      `;
+    });
+    tableWrap.style.display = 'block';
+    showToast('تم استرجاع كلمات السر بنجاح', 'success');
   } catch(e) {
-    showToast('تعذر الاتصال بالخادم', 'error');
+    showToast('خطأ: ' + e.message, 'error');
   }
 }
 
@@ -5388,13 +5275,28 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
   aTbodyPresent.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 1.5rem 0;"><div class="spin" style="margin:auto"></div></td></tr>`;
   aTbodyAbsent.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 1.5rem 0;"><div class="spin" style="margin:auto"></div></td></tr>`;
 
-  const [repRes, attRes] = await Promise.all([
-    apiFetch({ action: 'getReports', empId: empId, dateFrom: firstDay, dateTo: lastDay }),
-    apiFetch({ action: 'getAttendance', empId: empId, month: month })
-  ]);
-
-  const empReports = repRes.ok ? (repRes.rows || []) : [];
-  const empAttendance = attRes.ok ? (attRes.rows || []) : [];
+  let empReports = [];
+  let empAttendance = [];
+  try {
+    const [repRes, attRes] = await Promise.all([
+      rpc('get_reports', {
+        ...auth(),
+        p_employee_id: empId,
+        p_date_from: firstDay,
+        p_date_to: lastDay
+      }),
+      rpc('get_attendance', {
+        ...auth(),
+        p_employee_id: empId,
+        p_date_from: firstDay,
+        p_date_to: lastDay
+      })
+    ]);
+    empReports = (repRes.rows || []).map(mapReport);
+    empAttendance = (attRes || []).map(mapAttendance);
+  } catch(e) {
+    console.error("Failed to fetch performance data:", e);
+  }
   const empTasks = (STATE.tasks || []).filter(t => String(t.emp_id) === String(empId));
 
   let totalMinutes = 0;
@@ -5922,14 +5824,18 @@ async function openClientDetailsModal(clientName) {
   // 1. Process Reports (سجلات العمل) - جلب ديناميكي عند الطلب من السيرفر
   tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 1.5rem 0;"><div class="spin" style="margin:auto"></div></td></tr>`;
   
-  const res = await apiFetch({
-    action: 'getReports',
-    client: clientName,
-    dateFrom: dateFrom,
-    dateTo: dateTo
-  });
-  
-  let rows = res.ok ? (res.rows || []) : [];
+  let rows = [];
+  try {
+    const res = await rpc('get_reports', {
+      ...auth(),
+      p_client: clientName,
+      p_date_from: dateFrom || null,
+      p_date_to: dateTo || null
+    });
+    rows = (res.rows || []).map(mapReport);
+  } catch (err) {
+    console.error("Failed to load client reports:", err);
+  }
 
   const teamMap = {};
   STATE.teams.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
@@ -6708,21 +6614,42 @@ async function saveVisitForm() {
   showToast(id ? 'تم تعديل الزيارة بنجاح!' : 'تمت إضافة الزيارة بنجاح!', 'success');
   
   try {
-    const r = await apiPost(action, payload);
-    if (!r.ok) {
-      STATE.visits = backupVisits;
-      filterVisitsList();
-      showToast(r.error || 'تعذر حفظ الزيارة في الخادم المباشر', 'error');
+    if (id) {
+      await rpc('update_visit', {
+        ...auth(),
+        p_id: id,
+        p_employee_id: empId,
+        p_employee_name: empName,
+        p_team_id: teamId,
+        p_client: client,
+        p_whatsapp: whatsapp,
+        p_visit_date: date,
+        p_visit_time: time,
+        p_frequency: frequency,
+        p_status: status,
+        p_notes: notes
+      });
     } else {
-      if (!id && r.id) {
-        const found = STATE.visits.find(v => v.id === tempId);
-        if (found) found.id = r.id;
-      }
+      const dbId = await rpc('add_visit', {
+        ...auth(),
+        p_employee_id: empId,
+        p_employee_name: empName,
+        p_team_id: teamId,
+        p_client: client,
+        p_whatsapp: whatsapp,
+        p_visit_date: date,
+        p_visit_time: time,
+        p_frequency: frequency,
+        p_status: status,
+        p_notes: notes
+      });
+      const found = STATE.visits.find(v => v.id === tempId);
+      if (found) found.id = dbId;
     }
   } catch(e) {
     STATE.visits = backupVisits;
     filterVisitsList();
-    showToast('فشل اتصال الشبكة - تم التراجع عن الزيارة المحفوظة محلياً', 'error');
+    showToast('خطأ أثناء المزامنة: ' + e.message, 'error');
   }
 }
 
@@ -6735,16 +6662,11 @@ async function deleteVisitCard(id) {
   showToast('تم حذف الزيارة بنجاح', 'success');
   
   try {
-    const r = await apiPost('deleteVisit', { id });
-    if (!r.ok) {
-      STATE.visits = backupVisits;
-      filterVisitsList();
-      showToast(r.error || 'تعذر حذف الزيارة من الخادم المباشر', 'error');
-    }
+    await rpc('delete_visit', { ...auth(), p_id: id });
   } catch(e) {
     STATE.visits = backupVisits;
     filterVisitsList();
-    showToast('فشل المزامنة مع السيرفر - تم استعادة الزيارة', 'error');
+    showToast('خطأ أثناء المزامنة مع السيرفر: ' + e.message, 'error');
   }
 }
 
@@ -6857,23 +6779,23 @@ async function saveVisitComplete() {
   showToast('تم إتمام الزيارة وجدولة الموعد القادم محلياً!', 'success');
   
   try {
-    const r = await apiPost('completeVisit', {
-      id, summary, scheduleNext, nextFrequency, nextDate, nextTime
+    const nextDbId = await rpc('complete_visit', {
+      ...auth(),
+      p_id: id,
+      p_summary: summary || null,
+      p_schedule_next: scheduleNext,
+      p_next_frequency: nextFrequency || null,
+      p_next_date: nextDate || null,
+      p_next_time: nextTime || null
     });
-    if (!r.ok) {
-      STATE.visits = backupVisits;
-      filterVisitsList();
-      showToast(r.error || 'تعذر إتمام الزيارة في خادم جوجل شيت', 'error');
-    } else {
-      if (scheduleNext && r.nextId) {
-        const found = STATE.visits.find(v => v.id === tempNextId);
-        if (found) found.id = r.nextId;
-      }
+    if (scheduleNext && nextDbId) {
+      const found = STATE.visits.find(v => v.id === tempNextId);
+      if (found) found.id = nextDbId;
     }
   } catch(e) {
     STATE.visits = backupVisits;
     filterVisitsList();
-    showToast('فشل المزامنة مع السيرفر - تم التراجع عن الإتمام الفوري', 'error');
+    showToast('خطأ أثناء إتمام الزيارة: ' + e.message, 'error');
   }
 }
 
