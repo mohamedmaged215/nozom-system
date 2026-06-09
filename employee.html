@@ -188,10 +188,30 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
   <div style="font-size:13px;color:var(--text2)">جاري التحميل...</div>
 </div>
 
-<div class="error-screen" id="error-screen">
+<div class="error-screen" id="login-screen" style="display:none; flex-direction:column; gap:1.2rem; max-width:420px; width:100%; padding:2rem; box-sizing:border-box;">
+  <div class="error-icon">👤</div>
+  <div class="error-title">تسجيل الدخول</div>
+  <div class="error-sub" style="margin-bottom:0.5rem">اختر فريقك ثم اسمك للدخول</div>
+  <div style="width:100%">
+    <label style="font-size:13px; color:var(--text2); display:block; margin-bottom:6px;">الفريق</label>
+    <select id="login-team-select" style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid var(--border); background:var(--glass); color:var(--text1); font-family:inherit; font-size:14px;" onchange="onLoginTeamChange()">
+      <option value="">— اختر الفريق —</option>
+    </select>
+  </div>
+  <div style="width:100%">
+    <label style="font-size:13px; color:var(--text2); display:block; margin-bottom:6px;">الموظف</label>
+    <select id="login-emp-select" style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid var(--border); background:var(--glass); color:var(--text1); font-family:inherit; font-size:14px;" disabled>
+      <option value="">— اختر الموظف —</option>
+    </select>
+  </div>
+  <button id="login-btn" onclick="doEmployeeLogin()" style="width:100%; padding:12px; border-radius:10px; border:none; background:var(--accent); color:#fff; font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; margin-top:0.5rem;" disabled>دخول</button>
+  <div id="login-error" style="color:var(--danger,#f87171); font-size:13px; display:none;">حدث خطأ. حاول مرة أخرى.</div>
+</div>
+<!-- error-screen للأخطاء الحقيقية فقط -->
+<div class="error-screen" id="error-screen" style="display:none;">
   <div class="error-icon">⚠️</div>
-  <div class="error-title">رابط غير صحيح</div>
-  <div class="error-sub">هذا الرابط غير مرتبط بموظف. تواصل مع المدير للحصول على رابطك الشخصي.</div>
+  <div class="error-title">خطأ في التحميل</div>
+  <div class="error-sub">تعذّر الاتصال بالخادم. حاول تحديث الصفحة.</div>
 </div>
 
 <header class="app-header">
@@ -537,7 +557,7 @@ function mapEmployee(dbEmp) {
     'الاسم': dbEmp.name,
     team_id: dbEmp.team_id,
     'الدور': dbEmp.role,
-    'تاريخ الإضافة': dbEmp.created_at ? dbEmp.created_at.slice(0, 10) : '',
+    'تاريخ الإضافة': fmtDate(dbEmp.created_at),
     'نشط': dbEmp.is_active ? 'نعم' : 'لا'
   };
 }
@@ -561,13 +581,16 @@ function mapClient(dbClient) {
   };
 }
 
+// DATE HELPER — يحوّل timestamptz من Supabase لـ YYYY-MM-DD
+const fmtDate = d => d ? String(d).substring(0, 10) : '';
+
 function mapReport(dbRep) {
   return {
     id: dbRep.id,
     emp_id: dbRep.emp_id,
     'اسم الموظف': dbRep.emp_name,
     team_id: dbRep.team_id,
-    'التاريخ': dbRep.report_date,
+    'التاريخ': fmtDate(dbRep.report_date),
     'العميل': dbRep.client_name,
     'نوع المهمة': dbRep.task_type,
     'نوع التكرار': dbRep.recurrence || 'ذاتي',
@@ -591,9 +614,9 @@ function mapTask(dbTsk) {
     'العميل': dbTsk.client,
     'نوع المهمة': dbTsk.task_type,
     'وصف المهمة': dbTsk.description || '',
-    'تاريخ الإسناد': dbTsk.assigned_date,
+    'تاريخ الإسناد': fmtDate(dbTsk.assigned_date),
     'الحالة': dbTsk.status || 'معلقة',
-    'تاريخ الاكتمال': dbTsk.completed_date || ''
+    'تاريخ الاكتمال': fmtDate(dbTsk.completed_date) || ''
   };
 }
 
@@ -609,7 +632,7 @@ function mapRecurringTask(dbRec) {
     'بند خطة العمل': dbRec.work_plan_item || '',
     'نوع المهمة': dbRec.task_type,
     'وصف المهمة': dbRec.description || '',
-    'تاريخ الإنشاء': dbRec.created_at ? dbRec.created_at.slice(0, 10) : '',
+    'تاريخ الإنشاء': fmtDate(dbRec.created_at),
     'نشط': dbRec.is_active ? 'نعم' : 'لا'
   };
 }
@@ -622,12 +645,12 @@ function mapVisit(dbVis) {
     team_id: dbVis.team_id,
     'العميل': dbVis.client_name,
     'واتساب العميل': dbVis.client_whatsapp || '',
-    'تاريخ الزيارة': dbVis.visit_date,
+    'تاريخ الزيارة': fmtDate(dbVis.visit_date),
     'وقت الزيارة': dbVis.visit_time || '',
     'التكرار': dbVis.recurrence || 'مرة واحدة',
     'الحالة': dbVis.status || 'مجدولة',
     'ملاحظات': dbVis.notes || '',
-    'تاريخ الإنشاء': dbVis.created_at ? dbVis.created_at.slice(0, 10) : ''
+    'تاريخ الإنشاء': fmtDate(dbVis.created_at)
   };
 }
 
@@ -642,98 +665,153 @@ function populateTaskTypes() {
   }
 }
 
+// بيانات bootstrap محفوظة مؤقتاً لاستخدامها في الـ login screen
+let _bootTeams = [];
+let _bootEmployees = [];
+
+// ── تُشغَّل عند تغيير التيم في شاشة الدخول ──
+function onLoginTeamChange() {
+  const teamId = document.getElementById('login-team-select').value;
+  const empSel = document.getElementById('login-emp-select');
+  const loginBtn = document.getElementById('login-btn');
+
+  empSel.innerHTML = '<option value="">— اختر الموظف —</option>';
+  empSel.disabled = !teamId;
+  loginBtn.disabled = true;
+
+  if (!teamId) return;
+
+  const filtered = _bootEmployees.filter(e =>
+    String(e.team_id) === String(teamId) && e.is_active
+  );
+  filtered.forEach(e => {
+    empSel.innerHTML += `<option value="${e.id}">${e.name}</option>`;
+  });
+
+  empSel.onchange = () => {
+    loginBtn.disabled = !empSel.value;
+  };
+}
+
+// ── تُشغَّل عند ضغط "دخول" ──
+async function doEmployeeLogin() {
+  const teamId = document.getElementById('login-team-select').value;
+  const empId  = document.getElementById('login-emp-select').value;
+  if (!teamId || !empId) return;
+
+  const emp = _bootEmployees.find(e => String(e.id) === String(empId));
+  if (!emp) return;
+
+  // تعيين SESSION
+  SESSION.role         = emp.role === 'مشرف' ? 'supervisor' : 'employee';
+  SESSION.teamId       = teamId;
+  SESSION.password     = null;
+  SESSION.employeeId   = emp.id;
+  SESSION.employeeName = emp.name;
+
+  // إخفاء شاشة الدخول وإظهار شاشة التحميل
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('loading-overlay').style.display = 'flex';
+
+  // إكمال التهيئة الكاملة
+  await _initAfterLogin(emp);
+}
+
 async function init(){
-  const p=new URLSearchParams(window.location.search);
-  EMP_NAME=p.get('name')||'';
-  let urlEmpId = p.get('empId')||'';
-  let urlTeamId = p.get('teamId')||'';
-  
-  if(!EMP_NAME){
-    document.getElementById('loading-overlay').style.display='none';
-    document.getElementById('error-screen').style.display='flex';
+  // 1️⃣ جلب bootstrap بدون أي URL params
+  try {
+    const boot = await rpc('get_login_bootstrap');
+    _bootTeams     = boot.teams     || [];
+    _bootEmployees = boot.employees || [];
+  } catch(e) {
+    console.error("Failed to load bootstrap:", e);
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('error-screen').style.display = 'flex';
     return;
   }
 
-  try {
-    // 1️⃣ جلب الفرق والموظفين للتحقق وتحديد الموظف الحالي
-    const [teamsDb, empsDb] = await Promise.all([
-      rpc('get_teams', {}),
-      rpc('get_employees', {})
-    ]);
-    
-    globalTeamsList = (teamsDb || []).map(mapTeam);
-    const allEmployees = (empsDb || []).map(mapEmployee);
-    employeeRecords = allEmployees.filter(e => e['الاسم'] === EMP_NAME && e['نشط'] === 'نعم');
-    
-    if (employeeRecords.length === 0) {
-      document.getElementById('loading-overlay').style.display='none';
-      document.getElementById('error-screen').style.display='flex';
-      return;
-    }
+  // 2️⃣ ملء قائمة الفرق
+  const teamSel = document.getElementById('login-team-select');
+  globalTeamsList = _bootTeams.map(t => ({
+    id: t.id,
+    'اسم التيم': t.name,
+    'نشط': t.is_active ? 'نعم' : 'لا'
+  }));
+  _bootTeams.forEach(t => {
+    teamSel.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+  });
 
-    // إعداد مبدل الفرق
+  // 3️⃣ إظهار شاشة الدخول
+  document.getElementById('loading-overlay').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// ── التهيئة الكاملة بعد اختيار الموظف ──
+async function _initAfterLogin(empRecord) {
+  EMP_NAME = empRecord.name;
+  EMP_ID   = empRecord.id;
+  TEAM_ID  = empRecord.team_id;
+  const role = empRecord.role || 'موظف';
+  currentSupRole = role;
+
+  // بناء employeeRecords للمبدّل
+  employeeRecords = _bootEmployees
+    .filter(e => e.name === EMP_NAME && e.is_active)
+    .map(e => ({
+      id: e.id,
+      'الاسم': e.name,
+      team_id: e.team_id,
+      'الدور': e.role,
+      role: e.role,
+      'نشط': 'نعم'
+    }));
+
+  try {
+    // إعداد مبدّل الفرق
     const switcherGroup = document.getElementById('team-switcher-group');
-    const switcher = document.getElementById('team-switcher');
-    
+    const switcher      = document.getElementById('team-switcher');
+
     if (employeeRecords.length > 1) {
       const teamMap = {};
       globalTeamsList.forEach(t => { teamMap[t.id] = t['اسم التيم']; });
-
       switcher.innerHTML = employeeRecords.map(r => {
         const tName = teamMap[r.team_id] || r.team_id;
         return `<option value="${r.id}">${tName}</option>`;
       }).join('');
-      
-      if (urlTeamId && employeeRecords.some(r => r.team_id === urlTeamId)) {
-        const matched = employeeRecords.find(r => r.team_id === urlTeamId);
-        switcher.value = matched.id;
-      } else if (urlEmpId && employeeRecords.some(r => r.id === urlEmpId)) {
-        switcher.value = urlEmpId;
-      }
-      
+      switcher.value = EMP_ID;
       switcherGroup.style.display = 'block';
     } else {
       switcherGroup.style.display = 'none';
     }
 
-    const activeRecord = employeeRecords.find(r => r.id === switcher.value) || employeeRecords[0];
-    EMP_ID = activeRecord.id;
-    TEAM_ID = activeRecord.team_id;
-    const role = activeRecord.role || activeRecord['الدور'] || 'موظف';
-    currentSupRole = role;
-
-    // تهيئة الجلسة
-    SESSION.role = role === 'مشرف' ? 'supervisor' : 'employee';
-    SESSION.teamId = TEAM_ID;
-    SESSION.employeeId = EMP_ID;
-    SESSION.employeeName = EMP_NAME;
-
-    // جلب باقي البيانات للموظف الحالي
+    // جلب البيانات الرئيسية
     const [clientsDb, reportsDb, tasksDb, recTasksDb, taskTypesDb, visitsDb] = await Promise.all([
       rpc('get_clients', { ...auth() }),
       rpc('get_reports', { ...auth(), p_employee_id: EMP_ID }),
-      rpc('get_tasks', { ...auth(), p_employee_id: EMP_ID }),
+      rpc('get_tasks',   { ...auth(), p_employee_id: EMP_ID }),
       rpc('get_recurring_tasks', { ...auth(), p_employee_id: EMP_ID }),
       rpc('get_task_types', { ...auth() }),
       rpc('get_visits', { ...auth(), p_employee_id: EMP_ID, p_status: 'مجدولة' })
     ]);
 
-    STATE.clients = (clientsDb || []).map(mapClient);
-    STATE.reports = (reportsDb || []).map(mapReport);
-    STATE.tasks = (tasksDb || []).map(mapTask);
-    STATE.recurringTasks = (recTasksDb || []).map(mapRecurringTask);
-    STATE.visits = (visitsDb || []).map(mapVisit);
+    STATE.clients       = (clientsDb  || []).map(mapClient);
+    STATE.reports       = (reportsDb  || []).map(mapReport);
+    STATE.tasks         = (tasksDb    || []).map(mapTask);
+    STATE.recurringTasks= (recTasksDb || []).map(mapRecurringTask);
+    STATE.visits        = (visitsDb   || []).map(mapVisit);
     TASK_TYPES = taskTypesDb || TASK_TYPES;
     populateTaskTypes();
 
-    document.getElementById('header-date').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-    document.getElementById('report-date').value=getLocalDateString();
+    document.getElementById('header-date').textContent = new Date().toLocaleDateString('en-GB', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+    document.getElementById('report-date').value = getLocalDateString();
 
     await onTeamSwitch();
   } catch(e) {
     console.error("Failed to initialize employee page:", e);
-    document.getElementById('loading-overlay').style.display='none';
-    document.getElementById('error-screen').style.display='flex';
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('error-screen').style.display = 'flex';
   }
 }
 
