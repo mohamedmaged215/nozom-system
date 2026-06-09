@@ -741,6 +741,33 @@ async function init(){
     teamSel.innerHTML += `<option value="${t.id}">${t.name}</option>`;
   });
 
+  const params = new URLSearchParams(window.location.search);
+  const linkedEmpId = params.get('empId');
+  const linkedTeamId = params.get('teamId');
+
+  if (linkedEmpId) {
+    const linkedEmp = _bootEmployees.find(e =>
+      String(e.id) === String(linkedEmpId) &&
+      (!linkedTeamId || String(e.team_id) === String(linkedTeamId)) &&
+      e.is_active
+    );
+
+    if (linkedEmp) {
+      SESSION.role         = linkedEmp.role === 'مشرف' ? 'supervisor' : 'employee';
+      SESSION.teamId       = linkedEmp.team_id;
+      SESSION.password     = null;
+      SESSION.employeeId   = linkedEmp.id;
+      SESSION.employeeName = linkedEmp.name;
+
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('loading-overlay').style.display = 'flex';
+      await _initAfterLogin(linkedEmp);
+      return;
+    }
+
+    console.warn('Employee link is invalid or inactive:', { linkedEmpId, linkedTeamId });
+  }
+
   // 3️⃣ إظهار شاشة الدخول
   document.getElementById('loading-overlay').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
