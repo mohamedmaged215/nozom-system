@@ -654,6 +654,15 @@ function mapVisit(dbVis) {
   };
 }
 
+function normalizeReportsResponse(res) {
+  return Array.isArray(res) ? res : (res?.rows || []);
+}
+
+function normalizeTaskTypesResponse(res) {
+  if (!Array.isArray(res)) return TASK_TYPES;
+  return res.map(t => typeof t === 'string' ? t : t?.name).filter(Boolean);
+}
+
 function populateTaskTypes() {
   const globalDl = document.getElementById('global-task-types-dl');
   if (globalDl) {
@@ -822,11 +831,11 @@ async function _initAfterLogin(empRecord) {
     ]);
 
     STATE.clients       = (clientsDb  || []).map(mapClient);
-    STATE.reports       = (reportsDb  || []).map(mapReport);
+    STATE.reports       = normalizeReportsResponse(reportsDb).map(mapReport);
     STATE.tasks         = (tasksDb    || []).map(mapTask);
     STATE.recurringTasks= (recTasksDb || []).map(mapRecurringTask);
     STATE.visits        = (visitsDb   || []).map(mapVisit);
-    TASK_TYPES = taskTypesDb || TASK_TYPES;
+    TASK_TYPES = normalizeTaskTypesResponse(taskTypesDb);
     populateTaskTypes();
 
     document.getElementById('header-date').textContent = new Date().toLocaleDateString('en-GB', {
@@ -872,7 +881,7 @@ async function onTeamSwitch() {
       ]);
 
       STATE.clients = (clientsDb || []).map(mapClient);
-      STATE.reports = (reportsDb || []).map(mapReport);
+      STATE.reports = normalizeReportsResponse(reportsDb).map(mapReport);
       STATE.tasks = (tasksDb || []).map(mapTask);
       STATE.recurringTasks = (recTasksDb || []).map(mapRecurringTask);
       STATE.visits = (visitsDb || []).map(mapVisit);
@@ -1370,7 +1379,7 @@ async function submitReport(appendOverride){
           rpc('get_reports', { ...auth(), p_employee_id: EMP_ID }),
           rpc('get_tasks', { ...auth(), p_employee_id: EMP_ID })
         ]);
-        STATE.reports = (repR || []).map(mapReport);
+        STATE.reports = normalizeReportsResponse(repR).map(mapReport);
         STATE.tasks = (tskR || []).map(mapTask);
       } catch(e) {
         console.error("Muted fetch errors:", e);
@@ -2072,7 +2081,7 @@ async function quietRefreshSupervisorData() {
     ]);
     
     STATE.tasks = (assignedDb || []).map(mapTask);
-    STATE.reports = (reportsDb || []).map(mapReport);
+    STATE.reports = normalizeReportsResponse(reportsDb).map(mapReport);
     STATE.recurringTasks = (recDb || []).map(mapRecurringTask);
     
     const pendingTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'معلقة');
@@ -2097,7 +2106,7 @@ async function quietRefreshEmployeeTasks() {
     ]);
     STATE.tasks = (tasksDb || []).map(mapTask);
     STATE.recurringTasks = (recDb || []).map(mapRecurringTask);
-    TASK_TYPES = taskTypesDb || TASK_TYPES;
+    TASK_TYPES = normalizeTaskTypesResponse(taskTypesDb);
     populateTaskTypes();
     
     const trTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'معلقة');
