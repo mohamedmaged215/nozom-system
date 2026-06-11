@@ -884,6 +884,22 @@ tr.row-has-note td:first-child {
     font-size: 22px !important;
   }
 }
+
+/* ===== Report Center (مركز التقارير) ===== */
+.rc-types{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px;margin-bottom:16px;}
+.rc-type{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 8px 12px;text-align:center;cursor:pointer;transition:all .22s var(--ease);user-select:none;}
+.rc-type:hover{border-color:var(--border-h);transform:translateY(-1px);}
+.rc-type.active{border-color:var(--accent);background:rgba(212,112,59,0.08);box-shadow:0 6px 22px -10px var(--accent-s2);}
+.rc-type svg{width:22px;height:22px;stroke:var(--text2);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;margin-bottom:7px;transition:stroke .2s;}
+.rc-type.active svg{stroke:var(--accent-l);}
+.rc-type .rc-t{font-size:12.5px;font-weight:600;color:var(--text);line-height:1.4;}
+.rc-quick{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px;}
+.rc-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 14px;}
+.rc-kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;}
+.rc-kpi .l{font-size:11.5px;color:var(--text2);margin-bottom:5px;}
+.rc-kpi .v{font-size:19px;font-weight:700;color:var(--text);font-family:var(--mono);direction:ltr;text-align:right;}
+.rc-note{font-size:11.5px;color:var(--text3);padding:10px 4px 2px;}
+
 </style>
 </head>
 <body>
@@ -1037,6 +1053,9 @@ tr.row-has-note td:first-child {
     </button>
     <button class="nav-item" id="nav-visits" onclick="switchPanel('visits')">
       <span class="ni"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span> الزيارات
+    </button>
+        <button class="nav-item" id="nav-reportcenter" onclick="switchPanel('reportcenter')">
+      <span class="ni"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><rect x="7" y="13" width="3" height="5" rx="0.5"/><rect x="12" y="9" width="3" height="9" rx="0.5"/><rect x="17" y="5" width="3" height="13" rx="0.5"/></svg></span> مركز التقارير
     </button>
     <div class="nav-sep"></div>
     <button class="nav-item" id="nav-teams" onclick="switchPanel('teams')" style="display:none">
@@ -1711,6 +1730,97 @@ tr.row-has-note td:first-child {
     <!-- ═══════════════════════════════════════════════
          SETTINGS
     ═══════════════════════════════════════════════ -->
+        <div class="panel" id="panel-reportcenter">
+      <div class="rc-types">
+        <div class="rc-type active" id="rc-type-reports" onclick="rcSelectType('reports')">
+          <svg viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <div class="rc-t">تقرير المهام</div>
+        </div>
+        <div class="rc-type" id="rc-type-attendance" onclick="rcSelectType('attendance')">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 15 11 17 15 13"/></svg>
+          <div class="rc-t">تقرير الحضور</div>
+        </div>
+        <div class="rc-type" id="rc-type-visits" onclick="rcSelectType('visits')">
+          <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <div class="rc-t">تقرير الزيارات</div>
+        </div>
+        <div class="rc-type" id="rc-type-tasks" onclick="rcSelectType('tasks')">
+          <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <div class="rc-t">تقرير التكليفات</div>
+        </div>
+        <div class="rc-type" id="rc-type-empProfile" onclick="rcSelectType('empProfile')">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <div class="rc-t">كشف موظف</div>
+        </div>
+        <div class="rc-type" id="rc-type-clientActivity" onclick="rcSelectType('clientActivity')">
+          <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          <div class="rc-t">نشاط عميل</div>
+        </div>
+        <div class="rc-type" id="rc-type-teamSummary" onclick="rcSelectType('teamSummary')">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <div class="rc-t">ملخص التيمات</div>
+        </div>
+        <div class="rc-type" id="rc-type-backup" onclick="rcSelectType('backup')">
+          <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          <div class="rc-t">نسخة كاملة</div>
+        </div>
+        <div class="rc-type" id="rc-type-recurringCompliance" onclick="rcSelectType('recurringCompliance')">
+          <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3"/><path d="M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+          <div class="rc-t">التزام المهام الدورية</div>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="filter-group" id="rc-team-wrap">
+          <label>التيم</label>
+          <select id="rc-team" onchange="rcPopulateEmpClient()"><option value="">الكل</option></select>
+        </div>
+        <div class="filter-group" id="rc-emp-wrap">
+          <label>الموظف</label>
+          <select id="rc-emp"><option value="">الكل</option></select>
+        </div>
+        <div class="filter-group" id="rc-client-wrap">
+          <label>العميل</label>
+          <select id="rc-client"><option value="">الكل</option></select>
+        </div>
+        <div class="filter-group" id="rc-dates-wrap1">
+          <label>من تاريخ</label>
+          <input type="date" id="rc-from">
+        </div>
+        <div class="filter-group" id="rc-dates-wrap2">
+          <label>إلى تاريخ</label>
+          <input type="date" id="rc-to">
+        </div>
+        <div class="filter-group" style="justify-content:flex-end">
+          <button class="btn btn-primary" id="rc-run" onclick="rcRun()">عرض</button>
+        </div>
+      </div>
+
+      <div class="rc-quick" id="rc-quick">
+        <button class="btn btn-secondary btn-sm" onclick="rcQuick('today')">اليوم</button>
+        <button class="btn btn-secondary btn-sm" onclick="rcQuick('week')">آخر 7 أيام</button>
+        <button class="btn btn-secondary btn-sm" onclick="rcQuick('month')">هذا الشهر</button>
+        <button class="btn btn-secondary btn-sm" onclick="rcQuick('quarter')">هذا الربع</button>
+        <button class="btn btn-secondary btn-sm" onclick="rcQuick('all')">كل الفترة</button>
+      </div>
+
+      <div class="rc-kpis" id="rc-kpis"></div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title" id="rc-title">المعاينة</span>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="rcExportExcel()">📊 تصدير Excel</button>
+            <button class="btn btn-secondary btn-sm" onclick="rcPrint()">🖨️ طباعة / PDF</button>
+          </div>
+        </div>
+        <div class="table-wrap" id="rc-preview">
+          <div class="empty"><div class="empty-text">اختر نوع التقرير ثم اضغط عرض</div></div>
+        </div>
+        <div class="rc-note" id="rc-note"></div>
+      </div>
+    </div>
+
     <div class="panel" id="panel-settings">
       <div class="settings-grid">
         <div class="settings-card">
@@ -1801,6 +1911,27 @@ tr.row-has-note td:first-child {
     <div class="modal-actions">
       <button class="btn-sm-cancel" onclick="closeModal('modal-team')">إلغاء</button>
       <button class="btn-sm-confirm" onclick="confirmTeam()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Employee -->
+<div class="modal-overlay" id="modal-employee">
+  <div class="modal">
+    <div class="modal-title">تعديل بيانات الموظف</div>
+    <input type="hidden" id="emp-edit-id">
+    <div class="modal-field"><label>اسم الموظف</label><input type="text" id="emp-edit-name" placeholder="اسم الموظف"></div>
+    <div class="modal-field"><label>التيم</label><select id="emp-edit-team"></select></div>
+    <div class="modal-field">
+      <label>الدور الوظيفي</label>
+      <select id="emp-edit-role">
+        <option value="موظف">موظف</option>
+        <option value="مشرف">مشرف</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sm-cancel" onclick="closeModal('modal-employee')">إلغاء</button>
+      <button class="btn-sm-confirm" onclick="confirmEditEmployee()">حفظ</button>
     </div>
   </div>
 </div>
@@ -3878,7 +4009,8 @@ function renderEmployeesList() {
           <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600; font-size:13.5px;" onclick="openEmployeePerformanceModal('${e.id}','${escapeHtml(e['الاسم'])}','${e.team_id}')" title="اضغط لعرض الأداء الشهري">${escapeHtml(e['الاسم'])}</div>
           <div class="item-meta" style="color:var(--text3); font-size:11px; margin-top:2px;">${escapeHtml(teamMap[e.team_id]||'')} • مشرف</div>
         </div>
-        <div class="mgmt-item-actions">
+        <div class="mgmt-item-actions" style="display:flex; gap:6px;">
+          <button class="btn btn-secondary btn-sm" onclick="openEditEmployee('${e.id}')" style="padding: 4px 8px; font-size: 11px;">تعديل</button>
           <button class="btn btn-danger btn-sm" onclick="removeEmployee('${e.id}','${e['الاسم']}')" style="padding: 4px 8px; font-size: 11px;">حذف</button>
         </div>
       </div>`).join('');
@@ -3894,7 +4026,8 @@ function renderEmployeesList() {
           <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600; font-size:13.5px;" onclick="openEmployeePerformanceModal('${e.id}','${escapeHtml(e['الاسم'])}','${e.team_id}')" title="اضغط لعرض الأداء الشهري">${escapeHtml(e['الاسم'])}</div>
           <div class="item-meta" style="color:var(--text3); font-size:11px; margin-top:2px;">${escapeHtml(teamMap[e.team_id]||'')} • موظف</div>
         </div>
-        <div class="mgmt-item-actions">
+        <div class="mgmt-item-actions" style="display:flex; gap:6px;">
+          <button class="btn btn-secondary btn-sm" onclick="openEditEmployee('${e.id}')" style="padding: 4px 8px; font-size: 11px;">تعديل</button>
           <button class="btn btn-danger btn-sm" onclick="removeEmployee('${e.id}','${e['الاسم']}')" style="padding: 4px 8px; font-size: 11px;">حذف</button>
         </div>
       </div>`).join('');
@@ -3959,6 +4092,67 @@ async function removeEmployee(id, name) {
   try {
     await rpc('remove_employee', { ...auth(), p_id: id });
     showToast('تم حذف الموظف بنجاح', 'success');
+    refreshData();
+  } catch(e) {
+    showToast('حدث خطأ أثناء المزامنة: ' + e.message, 'error');
+    STATE.employees = originalEmployees;
+    renderEmployeesList();
+  }
+}
+
+function openEditEmployee(id) {
+  const e = STATE.employees.find(x => x.id === id);
+  if (!e) return;
+
+  // ملء قائمة التيمات (المشرف يرى تيمه فقط، الأدمن يرى الكل)
+  const teamSel = document.getElementById('emp-edit-team');
+  const teams = STATE.role === 'supervisor'
+    ? STATE.teams.filter(t => t.id === STATE.teamId)
+    : STATE.teams;
+  teamSel.innerHTML = teams.map(t => `<option value="${t.id}">${escapeHtml(t['اسم التيم'])}</option>`).join('');
+
+  document.getElementById('emp-edit-id').value   = id;
+  document.getElementById('emp-edit-name').value = e['الاسم'] || '';
+  document.getElementById('emp-edit-team').value = e.team_id || '';
+  document.getElementById('emp-edit-role').value = e['الدور'] || 'موظف';
+  openModal('modal-employee');
+}
+
+async function confirmEditEmployee() {
+  const id     = document.getElementById('emp-edit-id').value;
+  const name   = document.getElementById('emp-edit-name').value.trim();
+  const teamId = document.getElementById('emp-edit-team').value;
+  const role   = document.getElementById('emp-edit-role').value;
+  if (!id)     return;
+  if (!name)   { showToast('أدخل اسم الموظف'); return; }
+  if (!teamId) { showToast('اختر التيم'); return; }
+
+  if (STATE.role === 'supervisor' && teamId !== STATE.teamId) {
+    showToast('لا يمكنك النقل إلى تيم آخر', 'error'); return;
+  }
+
+  // 0ms local update
+  const originalEmployees = JSON.parse(JSON.stringify(STATE.employees));
+  const idx = STATE.employees.findIndex(e => e.id === id);
+  if (idx !== -1) {
+    STATE.employees[idx]['الاسم'] = name;
+    STATE.employees[idx].team_id  = teamId;
+    STATE.employees[idx]['الدور'] = role;
+    STATE.employees[idx].role     = role;
+  }
+
+  renderEmployeesList();
+  closeModal('modal-employee');
+
+  try {
+    await rpc('update_employee', {
+      ...auth(),
+      p_id: id,
+      p_name: name,
+      p_new_team_id: teamId,
+      p_emp_role: role
+    });
+    showToast('تم تحديث بيانات الموظف بنجاح', 'success');
     refreshData();
   } catch(e) {
     showToast('حدث خطأ أثناء المزامنة: ' + e.message, 'error');
@@ -4398,6 +4592,508 @@ function updateInfoPanel() {
 // ══════════════════════════════════════════════════════
 // REFRESH
 // ══════════════════════════════════════════════════════
+
+/* ============================================================
+   مركز التقارير — Report Center
+   ============================================================ */
+const RC = { type: 'reports', rows: [], cols: [], kpis: [], excel: null, fileBase: 'تقرير', title: '', inited: false };
+
+const RC_TYPES = {
+  reports:        { filters: ['team','emp','client','dates'] },
+  attendance:     { filters: ['team','emp','dates'] },
+  visits:         { filters: ['team','emp','dates'] },
+  tasks:          { filters: ['team','emp','dates'] },
+  empProfile:     { filters: ['team','emp','dates'], requireEmp: true },
+  clientActivity: { filters: ['team','client','dates'], requireClient: true },
+  teamSummary:    { filters: ['dates'] },
+  backup:         { filters: [] },
+  recurringCompliance: { filters: ['team','emp','dates'] }
+};
+
+const rcVal = id => (document.getElementById(id)?.value || '').trim();
+const rcDurMin = d => { const m = String(d || '').match(/^(\d+):(\d+)/); return m ? (+m[1]) * 60 + (+m[2]) : 0; };
+const rcHours = min => Math.round((min / 60) * 10) / 10;
+const rcTeamName = id => (STATE.teams.find(t => t.id === id) || {})['اسم التيم'] || '';
+
+function initReportCenter() {
+  const teamSel = document.getElementById('rc-team');
+  if (!teamSel) return;
+  const prevTeam = teamSel.value;
+  teamSel.innerHTML = '<option value="">الكل</option>' +
+    STATE.teams.map(t => `<option value="${t.id}">${t['اسم التيم']}</option>`).join('');
+  if ([...teamSel.options].some(o => o.value === prevTeam)) teamSel.value = prevTeam;
+  rcPopulateEmpClient();
+  if (!RC.inited) {
+    const now = new Date();
+    document.getElementById('rc-from').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    document.getElementById('rc-to').value = getLocalDateString();
+    RC.inited = true;
+  }
+  rcSelectType(RC.type, true);
+}
+
+function rcPopulateEmpClient() {
+  const teamF = (STATE.role === 'admin') ? rcVal('rc-team') : '';
+  const empSel = document.getElementById('rc-emp');
+  const clientSel = document.getElementById('rc-client');
+  const prevEmp = empSel.value, prevClient = clientSel.value;
+
+  const emps = STATE.employees.filter(e => !teamF || e.team_id === teamF);
+  empSel.innerHTML = '<option value="">الكل</option>' +
+    emps.map(e => `<option value="${e.id}">${e['الاسم']}${(!teamF && STATE.role === 'admin') ? ' — ' + (rcTeamName(e.team_id) || '') : ''}</option>`).join('');
+  if ([...empSel.options].some(o => o.value === prevEmp)) empSel.value = prevEmp;
+
+  const names = [...new Set(STATE.clients
+    .filter(c => !teamF || c.team_id === teamF || !c.team_id)
+    .map(c => c['الاسم'] || c.name))].sort((a, b) => String(a).localeCompare(String(b), 'ar'));
+  clientSel.innerHTML = '<option value="">الكل</option>' + names.map(n => `<option value="${n}">${n}</option>`).join('');
+  if ([...clientSel.options].some(o => o.value === prevClient)) clientSel.value = prevClient;
+}
+
+function rcSelectType(type, silent) {
+  RC.type = type;
+  Object.keys(RC_TYPES).forEach(t => document.getElementById(`rc-type-${t}`)?.classList.toggle('active', t === type));
+  const f = RC_TYPES[type].filters;
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  show('rc-team-wrap', f.includes('team') && STATE.role === 'admin');
+  show('rc-emp-wrap', f.includes('emp'));
+  show('rc-client-wrap', f.includes('client'));
+  show('rc-dates-wrap1', f.includes('dates'));
+  show('rc-dates-wrap2', f.includes('dates'));
+  show('rc-quick', f.includes('dates'));
+  if (!silent) {
+    const cfg = RC_TYPES[type];
+    if ((cfg.requireEmp && !rcVal('rc-emp')) || (cfg.requireClient && !rcVal('rc-client'))) {
+      showToast(cfg.requireEmp ? 'اختر الموظف ثم اضغط عرض' : 'اختر العميل ثم اضغط عرض', 'info');
+      return;
+    }
+    rcRun();
+  }
+}
+
+function rcQuick(p) {
+  const now = new Date();
+  const toStr = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  let from = '', to = toStr(now);
+  if (p === 'today') from = to;
+  else if (p === 'week') { const d = new Date(now); d.setDate(d.getDate() - 6); from = toStr(d); }
+  else if (p === 'month') from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  else if (p === 'quarter') { const qm = Math.floor(now.getMonth() / 3) * 3; from = `${now.getFullYear()}-${String(qm + 1).padStart(2, '0')}-01`; }
+  else if (p === 'all') { from = ''; to = ''; }
+  document.getElementById('rc-from').value = from;
+  document.getElementById('rc-to').value = to;
+  rcRun();
+}
+
+async function rcRun() {
+  const t = RC.type, cfg = RC_TYPES[t];
+  const from = rcVal('rc-from') || null, to = rcVal('rc-to') || null;
+  const teamF = (STATE.role === 'admin') ? rcVal('rc-team') : '';
+  const empF = rcVal('rc-emp'), clientF = rcVal('rc-client');
+  if (cfg.requireEmp && !empF) { showToast('اختر الموظف أولاً ثم اضغط عرض', 'info'); return; }
+  if (cfg.requireClient && !clientF) { showToast('اختر العميل أولاً ثم اضغط عرض', 'info'); return; }
+  const btn = document.getElementById('rc-run');
+  if (btn) { btn.disabled = true; btn.textContent = 'جاري التحميل...'; }
+  try {
+    if (t === 'reports') await rcBuildReports(teamF, empF, clientF, from, to);
+    else if (t === 'attendance') await rcBuildAttendance(teamF, empF, from, to);
+    else if (t === 'visits') await rcBuildVisits(teamF, empF, from, to);
+    else if (t === 'tasks') await rcBuildTasks(teamF, empF, from, to);
+    else if (t === 'empProfile') await rcBuildEmpProfile(empF, from, to);
+    else if (t === 'clientActivity') await rcBuildClientActivity(teamF, clientF, from, to);
+    else if (t === 'teamSummary') await rcBuildTeamSummary(from, to);
+    else if (t === 'backup') await rcBuildBackup();
+    else if (t === 'recurringCompliance') await rcBuildRecurringCompliance(teamF, empF, from, to);
+    rcRender();
+  } catch (err) {
+    console.error('rcRun', err);
+    showToast('خطأ في تجهيز التقرير: ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'عرض'; }
+  }
+}
+
+function rcReportExcelRow(r) {
+  return {
+    'اسم الموظف': r['اسم الموظف'], 'التيم': rcTeamName(r.team_id), 'التاريخ': r['التاريخ'],
+    'العميل': r['العميل'], 'نوع المهمة': r['نوع المهمة'], 'من': r['من'], 'إلى': r['إلى'], 'المدة': r['المدة'],
+    'وصف المهمة': r['وصف المهمة'], 'التقييم': r['التقييم'], 'ملاحظات المشرف': r['ملاحظات المشرف'],
+    'مصدر المهمة': r['مصدر المهمة'], 'وقت الإرسال': r['وقت الإرسال']
+  };
+}
+
+async function rcBuildReports(teamF, empF, clientF, from, to) {
+  const params = { ...auth(), p_employee_id: empF || null, p_client: clientF || null, p_date_from: from, p_date_to: to };
+  if (STATE.role === 'admin' && teamF) params.p_team_id = teamF;
+  const res = await rpc('get_reports', params);
+  const rows = (res.rows || []).map(mapReport);
+  const mins = rows.reduce((s, r) => s + rcDurMin(r['المدة']), 0);
+  RC.rows = rows;
+  RC.cols = [['اسم الموظف', 'الموظف'], ['التاريخ', 'التاريخ'], ['العميل', 'العميل'], ['نوع المهمة', 'نوع المهمة'], ['المدة', 'المدة']];
+  RC.kpis = [['عدد التقارير', rows.length], ['إجمالي الساعات', rcHours(mins)], ['موظفون', new Set(rows.map(r => r.emp_id)).size]];
+  RC.excel = { 'التقارير': rows.map(rcReportExcelRow) };
+  RC.fileBase = 'تقرير_المهام'; RC.title = 'تقرير المهام';
+}
+
+async function rcBuildAttendance(teamF, empF, from, to) {
+  let rows = (await rpc('get_attendance', { ...auth(), p_date_from: from, p_date_to: to })).map(mapAttendance);
+  if (teamF) rows = rows.filter(r => r.team_id === teamF);
+  if (empF) rows = rows.filter(r => r.emp_id === empF);
+  rows.sort((a, b) => (b['التاريخ'] || '').localeCompare(a['التاريخ'] || ''));
+  const present = rows.filter(r => r['الحالة'] === 'حاضر').length;
+  RC.rows = rows;
+  RC.cols = [['اسم الموظف', 'الموظف'], ['التاريخ', 'التاريخ'], ['الحالة', 'الحالة'], ['ملاحظة', 'ملاحظة']];
+  RC.kpis = [['إجمالي السجلات', rows.length], ['حاضر', present], ['نسبة الحضور', rows.length ? Math.round(present * 100 / rows.length) + '%' : '—']];
+  RC.excel = { 'الحضور': rows.map(r => ({ 'اسم الموظف': r['اسم الموظف'], 'التيم': rcTeamName(r.team_id), 'التاريخ': r['التاريخ'], 'الحالة': r['الحالة'], 'ملاحظة': r['ملاحظة'] })) };
+  RC.fileBase = 'تقرير_الحضور'; RC.title = 'تقرير الحضور';
+}
+
+async function rcBuildVisits(teamF, empF, from, to) {
+  let rows = (await rpc('get_visits', { ...auth(), p_date_from: from, p_date_to: to })).map(mapVisit);
+  if (teamF) rows = rows.filter(r => r.team_id === teamF);
+  if (empF) rows = rows.filter(r => r.emp_id === empF);
+  rows.sort((a, b) => (b['تاريخ الزيارة'] || '').localeCompare(a['تاريخ الزيارة'] || ''));
+  const done = rows.filter(r => r['الحالة'] === 'تمت').length;
+  RC.rows = rows;
+  RC.cols = [['اسم الموظف', 'الموظف'], ['العميل', 'العميل'], ['تاريخ الزيارة', 'التاريخ'], ['وقت الزيارة', 'الوقت'], ['الحالة', 'الحالة']];
+  RC.kpis = [['إجمالي الزيارات', rows.length], ['تمت', done], ['مجدولة', rows.filter(r => r['الحالة'] === 'مجدولة').length]];
+  RC.excel = { 'الزيارات': rows.map(r => ({ 'اسم الموظف': r['اسم الموظف'], 'التيم': rcTeamName(r.team_id), 'العميل': r['العميل'], 'التاريخ': r['تاريخ الزيارة'], 'الوقت': r['وقت الزيارة'], 'التكرار': r['التكرار'], 'الحالة': r['الحالة'], 'ملاحظات': r['ملاحظات'] })) };
+  RC.fileBase = 'تقرير_الزيارات'; RC.title = 'تقرير الزيارات';
+}
+
+async function rcBuildTasks(teamF, empF, from, to) {
+  let rows = (await rpc('get_tasks', { ...auth() })).map(mapTask);
+  if (teamF) rows = rows.filter(r => r.team_id === teamF);
+  if (empF) rows = rows.filter(r => r.emp_id === empF);
+  if (from) rows = rows.filter(r => (r['تاريخ الإسناد'] || '') >= from);
+  if (to) rows = rows.filter(r => (r['تاريخ الإسناد'] || '') <= to);
+  rows.sort((a, b) => (b['تاريخ الإسناد'] || '').localeCompare(a['تاريخ الإسناد'] || ''));
+  const done = rows.filter(r => r['الحالة'] === 'مكتملة').length;
+  RC.rows = rows;
+  RC.cols = [['اسم الموظف', 'الموظف'], ['العميل', 'العميل'], ['نوع المهمة', 'نوع المهمة'], ['تاريخ الإسناد', 'تاريخ الإسناد'], ['الحالة', 'الحالة']];
+  RC.kpis = [['إجمالي التكليفات', rows.length], ['مكتملة', done], ['معلقة', rows.length - done]];
+  RC.excel = { 'التكليفات': rows.map(r => ({ 'اسم الموظف': r['اسم الموظف'], 'التيم': rcTeamName(r.team_id), 'العميل': r['العميل'], 'بند خطة العمل': r['بند خطة العمل'], 'نوع المهمة': r['نوع المهمة'], 'الوصف': r['وصف المهمة'], 'تاريخ الإسناد': r['تاريخ الإسناد'], 'الحالة': r['الحالة'], 'تاريخ الاكتمال': r['تاريخ الاكتمال'] })) };
+  RC.fileBase = 'تقرير_التكليفات'; RC.title = 'تقرير التكليفات';
+}
+
+async function rcBuildEmpProfile(empF, from, to) {
+  const emp = STATE.employees.find(e => e.id === empF) || {};
+  const repParams = { ...auth(), p_employee_id: empF, p_date_from: from, p_date_to: to };
+  if (STATE.role === 'admin') repParams.p_team_id = emp.team_id || null;
+  const [repRes, attAll, tskAll, vstAll] = await Promise.all([
+    rpc('get_reports', repParams),
+    rpc('get_attendance', { ...auth(), p_date_from: from, p_date_to: to }),
+    rpc('get_tasks', { ...auth() }),
+    rpc('get_visits', { ...auth(), p_date_from: from, p_date_to: to })
+  ]);
+  const reports = (repRes.rows || []).map(mapReport);
+  const att = attAll.map(mapAttendance).filter(r => r.emp_id === empF);
+  let tsk = tskAll.map(mapTask).filter(r => r.emp_id === empF);
+  if (from) tsk = tsk.filter(r => (r['تاريخ الإسناد'] || '') >= from);
+  if (to) tsk = tsk.filter(r => (r['تاريخ الإسناد'] || '') <= to);
+  const vst = vstAll.map(mapVisit).filter(r => r.emp_id === empF);
+  const mins = reports.reduce((s, r) => s + rcDurMin(r['المدة']), 0);
+  const present = att.filter(r => r['الحالة'] === 'حاضر').length;
+  const tskDone = tsk.filter(r => r['الحالة'] === 'مكتملة').length;
+  RC.rows = reports;
+  RC.cols = [['التاريخ', 'التاريخ'], ['العميل', 'العميل'], ['نوع المهمة', 'نوع المهمة'], ['المدة', 'المدة'], ['وصف المهمة', 'الوصف']];
+  RC.kpis = [['التقارير', reports.length], ['الساعات', rcHours(mins)], ['نسبة الحضور', att.length ? Math.round(present * 100 / att.length) + '%' : '—'], ['تكليفات مكتملة', `${tskDone}/${tsk.length}`], ['الزيارات', vst.length]];
+  RC.excel = {
+    'ملخص': [{ 'الموظف': emp['الاسم'] || '', 'التيم': rcTeamName(emp.team_id), 'من': from || 'البداية', 'إلى': to || 'الآن', 'عدد التقارير': reports.length, 'إجمالي الساعات': rcHours(mins), 'أيام الحضور': present, 'سجلات الحضور': att.length, 'تكليفات مكتملة': tskDone, 'إجمالي التكليفات': tsk.length, 'الزيارات': vst.length }],
+    'التقارير': reports.map(rcReportExcelRow),
+    'الحضور': att.map(r => ({ 'التاريخ': r['التاريخ'], 'الحالة': r['الحالة'], 'ملاحظة': r['ملاحظة'] })),
+    'التكليفات': tsk.map(r => ({ 'العميل': r['العميل'], 'نوع المهمة': r['نوع المهمة'], 'الوصف': r['وصف المهمة'], 'تاريخ الإسناد': r['تاريخ الإسناد'], 'الحالة': r['الحالة'], 'تاريخ الاكتمال': r['تاريخ الاكتمال'] })),
+    'الزيارات': vst.map(r => ({ 'العميل': r['العميل'], 'التاريخ': r['تاريخ الزيارة'], 'الوقت': r['وقت الزيارة'], 'الحالة': r['الحالة'], 'ملاحظات': r['ملاحظات'] }))
+  };
+  RC.fileBase = 'كشف_' + String(emp['الاسم'] || 'موظف').replace(/\s+/g, '_');
+  RC.title = 'كشف موظف — ' + (emp['الاسم'] || '');
+}
+
+async function rcBuildClientActivity(teamF, clientF, from, to) {
+  const repParams = { ...auth(), p_client: clientF, p_date_from: from, p_date_to: to };
+  if (STATE.role === 'admin' && teamF) repParams.p_team_id = teamF;
+  const [repRes, vstAll] = await Promise.all([
+    rpc('get_reports', repParams),
+    rpc('get_visits', { ...auth(), p_date_from: from, p_date_to: to })
+  ]);
+  const reports = (repRes.rows || []).map(mapReport);
+  let vst = vstAll.map(mapVisit).filter(v => v['العميل'] === clientF);
+  if (teamF) vst = vst.filter(v => v.team_id === teamF);
+  const mins = reports.reduce((s, r) => s + rcDurMin(r['المدة']), 0);
+  RC.rows = reports;
+  RC.cols = [['اسم الموظف', 'الموظف'], ['التاريخ', 'التاريخ'], ['نوع المهمة', 'نوع المهمة'], ['المدة', 'المدة'], ['وصف المهمة', 'الوصف']];
+  RC.kpis = [['التقارير', reports.length], ['الساعات', rcHours(mins)], ['موظفون شاركوا', new Set(reports.map(r => r.emp_id)).size], ['الزيارات', vst.length]];
+  RC.excel = {
+    'ملخص': [{ 'العميل': clientF, 'من': from || 'البداية', 'إلى': to || 'الآن', 'عدد التقارير': reports.length, 'إجمالي الساعات': rcHours(mins), 'عدد الموظفين': new Set(reports.map(r => r.emp_id)).size, 'عدد الزيارات': vst.length }],
+    'التقارير': reports.map(rcReportExcelRow),
+    'الزيارات': vst.map(r => ({ 'اسم الموظف': r['اسم الموظف'], 'التاريخ': r['تاريخ الزيارة'], 'الوقت': r['وقت الزيارة'], 'الحالة': r['الحالة'], 'ملاحظات': r['ملاحظات'] }))
+  };
+  RC.fileBase = 'نشاط_' + String(clientF).replace(/\s+/g, '_').substring(0, 30);
+  RC.title = 'نشاط عميل — ' + clientF;
+}
+
+async function rcBuildTeamSummary(from, to) {
+  const d = await rpc('get_dashboard', { ...auth(), p_date_from: from, p_date_to: to });
+  const hoursMap = {};
+  (d.hoursByTeam || []).forEach(h => { hoursMap[h.name] = h.minutes || 0; });
+  const rows = (d.attByTeam || []).map(a => ({
+    'الاسم': a.teamName,
+    'الساعات': rcHours(hoursMap[a.teamName] || 0),
+    'حاضر': a.present || 0,
+    'غائب': a.absent || 0,
+    'نسبة الحضور': a.total ? Math.round((a.present || 0) * 100 / a.total) + '%' : '—'
+  }));
+  Object.keys(hoursMap).forEach(n => {
+    if (!rows.some(r => r['الاسم'] === n)) rows.push({ 'الاسم': n, 'الساعات': rcHours(hoursMap[n]), 'حاضر': 0, 'غائب': 0, 'نسبة الحضور': '—' });
+  });
+  rows.sort((a, b) => b['الساعات'] - a['الساعات']);
+  const k = d.kpis || {};
+  RC.rows = rows;
+  RC.cols = [['الاسم', STATE.role === 'admin' ? 'التيم' : 'الموظف'], ['الساعات', 'الساعات'], ['حاضر', 'حاضر'], ['غائب', 'غائب'], ['نسبة الحضور', 'نسبة الحضور']];
+  RC.kpis = [['إجمالي الساعات', k.totalHours ?? 0], ['إجمالي التقارير', k.totalReports ?? 0], ['نسبة الحضور', (k.attendanceRate ?? 0) + '%'], ['موظفون', k.totalEmployees ?? 0]];
+  RC.excel = { 'الملخص': rows };
+  RC.fileBase = 'ملخص_التيمات';
+  RC.title = STATE.role === 'admin' ? 'ملخص التيمات' : 'ملخص التيم';
+}
+
+async function rcBuildBackup() {
+  showToast('جاري تجميع نسخة كاملة من كل الجداول...', 'info');
+  const [teams, emps, clients, repRes, att, tsk, rec, vst, tt, wpi] = await Promise.all([
+    rpc('get_teams', { ...auth() }),
+    rpc('get_employees', { ...auth() }),
+    rpc('get_clients', { ...auth() }),
+    rpc('get_reports', { ...auth() }),
+    rpc('get_attendance', { ...auth() }),
+    rpc('get_tasks', { ...auth() }),
+    rpc('get_recurring_tasks', { ...auth() }),
+    rpc('get_visits', { ...auth() }),
+    rpc('get_task_types', { ...auth() }),
+    rpc('get_work_plan_items', { ...auth() })
+  ]);
+  const reports = (repRes && repRes.rows) || [];
+  const tn = id => (teams.find(t => t.id === id) || {}).name || '';
+  const sheets = {
+    'التيمات': (teams || []).map(t => ({ 'المعرف': t.id, 'اسم التيم': t.name, 'المشرف': t.supervisor_name || '', 'نشط': t.is_active ? 'نعم' : 'لا' })),
+    'الموظفون': (emps || []).map(e => ({ 'المعرف': e.id, 'الاسم': e.name, 'التيم': tn(e.team_id), 'معرف التيم': e.team_id || '', 'الدور': e.role || '' })),
+    'العملاء': (clients || []).map(c => ({ 'المعرف': c.id, 'الاسم': c.name, 'التيم': tn(c.team_id), 'معرف التيم': c.team_id || '' })),
+    'التقارير': reports.map(r => ({ 'المعرف': r.id, 'اسم الموظف': r.employee_name, 'التيم': tn(r.team_id), 'التاريخ': fmtDate(r.report_date), 'العميل': r.client || '', 'نوع المهمة': r.task_type || '', 'من': r.time_from || '', 'إلى': r.time_to || '', 'المدة': r.duration || '', 'الوصف': r.description || '', 'التقييم': r.rating || '', 'ملاحظات المشرف': r.supervisor_note || '' })),
+    'الحضور': (att || []).map(a => ({ 'المعرف': a.id, 'اسم الموظف': a.employee_name, 'التيم': tn(a.team_id), 'التاريخ': fmtDate(a.att_date), 'الحالة': a.status || '', 'ملاحظة': a.note || '' })),
+    'التكليفات': (tsk || []).map(x => ({ 'المعرف': x.id, 'اسم الموظف': x.employee_name, 'العميل': x.client || '', 'نوع المهمة': x.task_type || '', 'الوصف': x.description || '', 'تاريخ الإسناد': fmtDate(x.assigned_date), 'الحالة': x.status || '', 'تاريخ الاكتمال': fmtDate(x.completed_date) })),
+    'المهام الدورية': (rec || []).map(x => ({ 'المعرف': x.id, 'اسم الموظف': x.employee_name, 'العميل': x.client || '', 'التكرار': x.recurrence || '', 'الأسبوع': x.week || '', 'نوع المهمة': x.task_type || '', 'الوصف': x.description || '', 'نشط': x.is_active ? 'نعم' : 'لا' })),
+    'الزيارات': (vst || []).map(x => ({ 'المعرف': x.id, 'اسم الموظف': x.employee_name, 'العميل': x.client || '', 'التاريخ': fmtDate(x.visit_date), 'الوقت': x.visit_time || '', 'التكرار': x.recurrence || '', 'الحالة': x.status || '', 'ملاحظات': x.notes || '' })),
+    'أنواع المهام': (tt || []).map(x => ({ 'النوع': x.name })),
+    'بنود خطة العمل': (wpi || []).map(x => ({ 'البند': x.name }))
+  };
+  RC.excel = sheets;
+  RC.rows = Object.keys(sheets).map(k2 => ({ 'الجدول': k2, 'عدد الصفوف': sheets[k2].length }));
+  RC.cols = [['الجدول', 'الجدول'], ['عدد الصفوف', 'عدد الصفوف']];
+  const total = RC.rows.reduce((s, r) => s + r['عدد الصفوف'], 0);
+  RC.kpis = [['الجداول', RC.rows.length], ['إجمالي الصفوف', total], ['تاريخ النسخة', getLocalDateString()]];
+  RC.fileBase = 'نسخة_احتياطية_نظم';
+  RC.title = 'نسخة احتياطية كاملة';
+}
+
+/* ───── التزام المهام الدورية ───── */
+function rccParse(s) {
+  const p = String(s || '').split('-');
+  return new Date(parseInt(p[0]), parseInt(p[1] || 1) - 1, parseInt(p[2] || 1));
+}
+
+function rccPeriods(rec, fromStr, toStr) {
+  const out = [];
+  const from = rccParse(fromStr), to = rccParse(toStr);
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  if (rec === 'يومي') {
+    for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+      if (d.getDay() === 5) continue; // الجمعة إجازة رسمية — لا تُحتسب استحقاقاً
+      const s = fmt(d);
+      out.push({ from: s, to: s, label: `${DAYS_AR[d.getDay()]} ${s}` });
+    }
+  } else if (rec === 'أسبوعي') {
+    const ws = new Date(from);
+    ws.setDate(ws.getDate() - ws.getDay()); // بداية الأسبوع = الأحد
+    for (; ws <= to; ws.setDate(ws.getDate() + 7)) {
+      const we = new Date(ws); we.setDate(we.getDate() + 6);
+      out.push({ from: fmt(ws), to: fmt(we), label: `أسبوع ${fmt(ws)} ← ${fmt(we)}` });
+    }
+  } else if (rec === 'شهري') {
+    const m = new Date(from.getFullYear(), from.getMonth(), 1);
+    for (; m <= to; m.setMonth(m.getMonth() + 1)) {
+      const me = new Date(m.getFullYear(), m.getMonth() + 1, 0);
+      out.push({ from: fmt(m), to: fmt(me), label: `شهر ${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}` });
+    }
+  } else if (rec === 'ربع سنوي') {
+    const q = new Date(from.getFullYear(), Math.floor(from.getMonth() / 3) * 3, 1);
+    for (; q <= to; q.setMonth(q.getMonth() + 3)) {
+      const qe = new Date(q.getFullYear(), q.getMonth() + 3, 0);
+      out.push({ from: fmt(q), to: fmt(qe), label: `الربع ${Math.floor(q.getMonth() / 3) + 1} من ${q.getFullYear()}` });
+    }
+  } else if (rec === 'سنوي') {
+    for (let y = from.getFullYear(); y <= to.getFullYear(); y++) {
+      out.push({ from: `${y}-01-01`, to: `${y}-12-31`, label: `سنة ${y}` });
+    }
+  }
+  return out;
+}
+
+async function rcBuildRecurringCompliance(teamF, empF, from, to) {
+  const todayStr = getLocalDateString();
+
+  // 1) القوالب الدورية النشطة
+  let temps = (await rpc('get_recurring_tasks', { ...auth() })).map(mapRecurringTask);
+  if (teamF) temps = temps.filter(t => t.team_id === teamF);
+  if (empF) temps = temps.filter(t => String(t.emp_id) === String(empF));
+
+  RC.cols = [['اسم الموظف', 'الموظف'], ['العميل', 'العميل'], ['نوع المهمة', 'المهمة'], ['التكرار', 'التكرار'], ['الفترة', 'الفترة المستحقة'], ['الحالة', 'الحالة'], ['تاريخ التسليم', 'تاريخ التسليم']];
+  RC.fileBase = 'التزام_المهام_الدورية'; RC.title = 'التزام المهام الدورية';
+
+  if (!temps.length) {
+    RC.rows = []; RC.kpis = [['الفترات المستحقة', 0], ['منجز في معاده', 0], ['فائت', 0], ['نسبة الالتزام', '—']];
+    RC.excel = { 'التزام المهام الدورية': [] };
+    return;
+  }
+
+  // 2) نطاق الحساب الفعلي
+  const minCreated = temps.reduce((m, t) => { const c = t['تاريخ الإنشاء'] || ''; return (c && (!m || c < m)) ? c : m; }, '');
+  const fromStr = from || minCreated || todayStr;
+  const toStr = to || todayStr;
+
+  // 3) جلب التقارير بنطاق موسّع لتغطية الفترات الممتدة خارج حدود المدى (أسبوع/شهر/ربع/سنة على الأطراف)
+  const repParams = { ...auth(), p_date_from: fromStr.slice(0, 4) + '-01-01', p_date_to: toStr.slice(0, 4) + '-12-31', p_employee_id: empF || null };
+  if (STATE.role === 'admin' && teamF) repParams.p_team_id = teamF;
+  const repRes = await rpc('get_reports', repParams);
+  const byTask = {};
+  (repRes.rows || []).forEach(r => {
+    if (!r.task_id) return;
+    (byTask[r.task_id] = byTask[r.task_id] || []).push(fmtDate(r.report_date));
+  });
+  Object.keys(byTask).forEach(k => byTask[k].sort());
+
+  // 4) توليد الفترات ومطابقتها
+  const rows = [];
+  temps.forEach(t => {
+    const createdStr = fmtDate(t['تاريخ الإنشاء']) || fromStr;
+    const effFrom = createdStr > fromStr ? createdStr : fromStr;
+    if (effFrom > toStr) return;
+    const done = byTask[t.id] || [];
+    rccPeriods(t['التكرار'], effFrom, toStr).forEach(p => {
+      const hit = done.find(d => d >= p.from && d <= p.to);
+      let status;
+      if (hit) status = 'منجزة';
+      else if (p.to < todayStr) status = 'فائتة';
+      else status = 'جارية';
+      rows.push({
+        'اسم الموظف': t['اسم الموظف'], team_id: t.team_id,
+        'العميل': t['العميل'], 'نوع المهمة': t['نوع المهمة'], 'التكرار': t['التكرار'],
+        'الفترة': p.label, '_pf': p.from,
+        'الحالة': status, 'تاريخ التسليم': hit || '',
+        'وصف المهمة': t['وصف المهمة'] || ''
+      });
+    });
+  });
+
+  // 5) ترتيب: الموظف ← الفائت أولاً ثم الجاري ثم المنجز ← الأحدث أولاً
+  const sOrder = { 'فائتة': 0, 'جارية': 1, 'منجزة': 2 };
+  rows.sort((a, b) =>
+    String(a['اسم الموظف']).localeCompare(String(b['اسم الموظف']), 'ar') ||
+    (sOrder[a['الحالة']] - sOrder[b['الحالة']]) ||
+    String(b._pf).localeCompare(String(a._pf))
+  );
+
+  const doneN = rows.filter(r => r['الحالة'] === 'منجزة').length;
+  const missN = rows.filter(r => r['الحالة'] === 'فائتة').length;
+  const dueN = doneN + missN;
+  RC.rows = rows;
+  RC.kpis = [
+    ['الفترات المستحقة', dueN],
+    ['منجز في معاده', doneN],
+    ['فائت', missN],
+    ['نسبة الالتزام', dueN ? Math.round(doneN * 100 / dueN) + '%' : '—']
+  ];
+  RC.excel = { 'التزام المهام الدورية': rows.map(r => ({
+    'اسم الموظف': r['اسم الموظف'], 'التيم': rcTeamName(r.team_id), 'العميل': r['العميل'],
+    'نوع المهمة': r['نوع المهمة'], 'التكرار': r['التكرار'], 'الفترة المستحقة': r['الفترة'],
+    'الحالة': r['الحالة'], 'تاريخ التسليم': r['تاريخ التسليم'] || '—', 'وصف المهمة': r['وصف المهمة']
+  })) };
+}
+
+function rcRender() {
+  document.getElementById('rc-title').textContent = RC.title || 'المعاينة';
+  document.getElementById('rc-kpis').innerHTML = RC.kpis.map(k =>
+    `<div class="rc-kpi"><div class="l">${k[0]}</div><div class="v">${k[1]}</div></div>`).join('');
+  const wrap = document.getElementById('rc-preview');
+  if (!RC.rows.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-text">لا توجد بيانات للنطاق المحدد</div></div>';
+    document.getElementById('rc-note').textContent = '';
+    return;
+  }
+  const CAP = 60;
+  const esc = s => String(s).replace(/</g, '&lt;');
+  const head = '<tr>' + RC.cols.map(c => `<th>${c[1]}</th>`).join('') + '</tr>';
+  const body = RC.rows.slice(0, CAP).map(r =>
+    '<tr>' + RC.cols.map(c => { const v = r[c[0]]; return `<td>${(v === undefined || v === null || v === '') ? '—' : esc(v)}</td>`; }).join('') + '</tr>').join('');
+  wrap.innerHTML = `<table><thead>${head}</thead><tbody>${body}</tbody></table>`;
+  document.getElementById('rc-note').textContent =
+    RC.rows.length > CAP
+      ? `المعاينة تعرض أول ${CAP} صف — التصدير والطباعة يشملان كل الصفوف (${RC.rows.length})`
+      : `${RC.rows.length} صف`;
+}
+
+function rcExportExcel() {
+  if (!RC.excel || !Object.keys(RC.excel).length) { showToast('اعرض التقرير أولاً قبل التصدير', 'info'); return; }
+  const wb = XLSX.utils.book_new();
+  wb.Workbook = { Views: [{ RTL: true }] };
+  let any = false;
+  Object.keys(RC.excel).forEach(name => {
+    const rows = RC.excel[name];
+    if (!rows || !rows.length) return;
+    any = true;
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const headers = Object.keys(rows[0]);
+    ws['!cols'] = headers.map(h => ({ wch: (h === 'الوصف' || h === 'وصف المهمة' || h === 'ملاحظات' || h === 'ملاحظات المشرف') ? 35 : Math.max(12, h.length + 6) }));
+    XLSX.utils.book_append_sheet(wb, ws, name.substring(0, 31));
+  });
+  if (!any) { showToast('لا توجد بيانات للتصدير', 'info'); return; }
+  XLSX.writeFile(wb, `${RC.fileBase}_${getLocalDateString()}.xlsx`);
+  showToast('تم تصدير الملف بنجاح ✓', 'success');
+}
+
+function rcPrint() {
+  if (!RC.rows.length) { showToast('اعرض التقرير أولاً قبل الطباعة', 'info'); return; }
+  const from = rcVal('rc-from'), to = rcVal('rc-to');
+  const period = (from || to) ? `الفترة: ${from || 'البداية'} ← ${to || 'الآن'}` : 'كل الفترة';
+  const esc = s => String(s).replace(/</g, '&lt;');
+  const kpisHtml = RC.kpis.map(k => `<div class="k"><span>${k[0]}</span><b>${k[1]}</b></div>`).join('');
+  const head = '<tr>' + RC.cols.map(c => `<th>${c[1]}</th>`).join('') + '</tr>';
+  const body = RC.rows.map(r =>
+    '<tr>' + RC.cols.map(c => { const v = r[c[0]]; return `<td>${(v === undefined || v === null || v === '') ? '—' : esc(v)}</td>`; }).join('') + '</tr>').join('');
+  const w = window.open('', '_blank');
+  if (!w) { showToast('المتصفح منع فتح نافذة الطباعة — اسمح بالنوافذ المنبثقة', 'error'); return; }
+  w.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>${RC.title}</title>
+<style>
+body{font-family:'Tajawal','Segoe UI',Arial,sans-serif;color:#1a1a1a;margin:24px;}
+h1{font-size:20px;margin:0 0 4px;}
+.sub{color:#666;font-size:12px;margin-bottom:14px;}
+.kpis{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:16px;}
+.k{font-size:11.5px;color:#555;}
+.k b{display:block;font-size:16px;color:#111;margin-top:2px;}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+th,td{border:1px solid #ccc;padding:5px 7px;text-align:right;vertical-align:top;}
+th{background:#f2f2f2;font-weight:700;}
+tr:nth-child(even) td{background:#fafafa;}
+@media print{body{margin:8mm;} thead{display:table-header-group;}}
+</style></head><body>
+<h1>${RC.title}</h1>
+<div class="sub">نظم وحلول للتقنية المالية — ${period} — تاريخ الإصدار: ${getLocalDateString()}</div>
+<div class="kpis">${kpisHtml}</div>
+<table><thead>${head}</thead><tbody>${body}</tbody></table>
+</body></html>`);
+  w.document.close();
+  w.focus();
+  setTimeout(() => { try { w.print(); } catch (e) {} }, 500);
+}
+/* ===================== نهاية مركز التقارير ===================== */
+
 async function refreshData() {
   try {
     const [teams, employees, clients, tasks, visits, recTasks, taskTypes, workPlanItems] = await Promise.all([
@@ -4481,11 +5177,11 @@ function exportExcel() {
 // ══════════════════════════════════════════════════════
 // UTILS
 // ══════════════════════════════════════════════════════
-const PANELS = ['dashboard','reports','attendance','tasks','visits','teams','employees','clients','links','settings'];
+const PANELS = ['dashboard','reports','attendance','tasks','visits','reportcenter','teams','employees','clients','links','settings'];
 const PANEL_TITLES = {
   dashboard:'الداشبورد', reports:'التقارير', attendance:'الحضور',
   tasks:'التكليفات', visits:'إدارة الزيارات', teams:'التيمات', employees:'الموظفين', clients:'العملاء',
-  links:'روابط الموظفين', settings:'الإعدادات'
+  links:'روابط الموظفين', reportcenter:'مركز التقارير', settings:'الإعدادات'
 };
 function switchPanel(name) {
   PANELS.forEach(p => {
@@ -4502,7 +5198,9 @@ function switchPanel(name) {
   if (backdrop) {
     backdrop.style.display = 'none';
   }
-  if (name === 'tasks') {
+  if (name === 'reportcenter') {
+    initReportCenter();
+  } else if (name === 'tasks') {
     loadAssignedTasksList();
     checkRecTaskEmpRole();
   } else if (name === 'visits') {
