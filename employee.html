@@ -503,7 +503,6 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
 </div>
 
 <script>
-const API = 'https://script.google.com/macros/s/AKfycbzgYKZQiepr-XJwn928zSTpUnWFznF8SLi4ENwNOCmql6280H2zr3mPh3QumHErifWUWQ/exec';
 const HOURS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 const MINS  = ['00','05','10','15','20','25','30','35','40','45','50','55'];
 let TASK_TYPES = ['مبيعات','مشتريات','بنوك','تسجيلات','إقفالات شهرية','إقفالات سنوية','تقارير','إقرارات شهرية','إقرارات ربع سنوية','تفريغ','قوائم مالية','متابعة عملاء يومية','اجتماع','اجتماع العمل الأسبوعي','أمور تقنية','إضافي'];
@@ -1043,7 +1042,7 @@ function addTask(){
         <div class="client-wrap">
           <input type="text" id="client-${id}" placeholder="ابحث أو اكتب..." list="dl-${id}" oninput="updateStats()">
           <datalist id="dl-${id}">${dlOpts}</datalist>
-          <button class="btn-add-client" onclick="openAddClient(${id})">+</button>
+          ${currentSupRole === 'مشرف' ? `<button class="btn-add-client" onclick="openAddClient(${id})">+</button>` : ''}
         </div>
       </div>
       <div class="field-group">
@@ -1180,6 +1179,11 @@ function openAddClient(id){
 }
 
 async function confirmAddClient(){
+  if (currentSupRole !== 'مشرف') {
+    showToast('غير مصرّح — تواصل مع مشرفك لإضافة العميل', 'error');
+    closeModal('modal-client');
+    return;
+  }
   const name=document.getElementById('new-client-input').value.trim();
   if(!name)return;
   if(!clients.includes(name)){
@@ -1336,6 +1340,12 @@ async function submitReport(appendOverride){
     }
   });
   if (pendingClients.length > 0) {
+    if (currentSupRole !== 'مشرف') {
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg> إرسال التقرير';
+      showToast(`العميل "${pendingClients[0]}" غير مسجّل — اطلب من مشرفك إضافته أولاً`, 'error');
+      return;
+    }
     for (const cName of pendingClients) {
       try {
         await rpc('add_client', { ...auth(), p_name: cName, p_target_team_id: TEAM_ID || null });
