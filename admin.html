@@ -6347,6 +6347,35 @@ async function exportSingleClientExcel() {
     'تاريخ جدولة الزيارة': v['تاريخ الإنشاء'] || ''
   }));
 
+  // Page 3: خطة عمل العميل (المهام الدورية والتكليفات الطارئة)
+  const clientRecs = (STATE.recurringTasks || []).filter(t => String(t['العميل']) === String(clientName));
+  const clientTasks = (STATE.tasks || []).filter(t => String(t['العميل']) === String(clientName));
+  const sheet3Data = [];
+
+  clientRecs.forEach(t => {
+    const recType = t['التكرار'] || '';
+    sheet3Data.push({
+      'نوع المهمة': t['نوع المهمة'] || '',
+      'المسؤول': t['اسم الموظف'] || '',
+      'بند خطة العمل': t['بند خطة العمل'] || '—',
+      'نوع التكليف': `مهمة دورية (${recType})`,
+      'حالة التكليف': t['نشط'] === 'نعم' || t.is_active ? 'نشطة' : 'متوقفة',
+      'الوصف والتفاصيل': t['وصف المهمة'] || ''
+    });
+  });
+
+  clientTasks.forEach(t => {
+    const status = t['الحالة'] || 'معلقة';
+    sheet3Data.push({
+      'نوع المهمة': t['نوع المهمة'] || '',
+      'المسؤول': t['اسم الموظف'] || '',
+      'بند خطة العمل': '—',
+      'نوع التكليف': 'تكليف طارئ',
+      'حالة التكليف': status,
+      'الوصف والتفاصيل': t['وصف المهمة'] || ''
+    });
+  });
+
   try {
     const wb = XLSX.utils.book_new();
 
@@ -6357,6 +6386,10 @@ async function exportSingleClientExcel() {
     // Visits Sheet
     const ws2 = XLSX.utils.json_to_sheet(sheet2Data.length > 0 ? sheet2Data : [{'تنبيه': 'لا توجد زيارات ميدانية مسجلة لهذا العميل بعد'}]);
     XLSX.utils.book_append_sheet(wb, ws2, 'سجل ومتابعة الزيارات (CRM)');
+
+    // Work Plan Sheet
+    const ws3 = XLSX.utils.json_to_sheet(sheet3Data.length > 0 ? sheet3Data : [{'تنبيه': 'لا توجد مهام أو تكليفات دورية مسجلة لهذا العميل بعد'}]);
+    XLSX.utils.book_append_sheet(wb, ws3, 'خطة عمل العميل');
 
     let fileSuffix = 'كل_الاوقات';
     if (dateFrom && dateTo) {
