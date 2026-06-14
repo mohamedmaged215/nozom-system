@@ -711,8 +711,8 @@ async function doEmployeeLogin() {
   const emp = _bootEmployees.find(e => String(e.id) === String(empId));
   if (!emp) return;
 
-  // تعيين SESSION
-  SESSION.role         = emp.role === 'مشرف' ? 'supervisor' : 'employee';
+  // تعيين SESSION (دائماً نستخدم دور 'employee' لجلب البيانات من السيرفر بدون حاجة لكلمة مرور المشرف)
+  SESSION.role         = 'employee';
   SESSION.teamId       = teamId;
   SESSION.password     = null;
   SESSION.employeeId   = emp.id;
@@ -762,7 +762,7 @@ async function init(){
     );
 
     if (linkedEmp) {
-      SESSION.role         = linkedEmp.role === 'مشرف' ? 'supervisor' : 'employee';
+      SESSION.role         = 'employee';
       SESSION.teamId       = linkedEmp.team_id;
       SESSION.password     = null;
       SESSION.employeeId   = linkedEmp.id;
@@ -866,7 +866,7 @@ async function onTeamSwitch() {
     currentSupRole = role;
 
     // Update SESSION
-    SESSION.role = role === 'مشرف' ? 'supervisor' : 'employee';
+    SESSION.role = 'employee';
     SESSION.teamId = TEAM_ID;
     SESSION.employeeId = EMP_ID;
 
