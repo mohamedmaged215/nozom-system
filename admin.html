@@ -6281,7 +6281,7 @@ function switchCliDetailsTab(tab) {
   }
 }
 
-function exportSingleClientExcel() {
+async function exportSingleClientExcel() {
   const clientName = STATE.activeClientDetailsName;
   if (!clientName) {
     showToast('خطأ: لم يتم تحديد عميل للتصدير', 'error');
@@ -6291,15 +6291,27 @@ function exportSingleClientExcel() {
   const dateFrom = document.getElementById('clients-filter-date-from')?.value || '';
   const dateTo = document.getElementById('clients-filter-date-to')?.value || '';
 
-  let reports = (STATE.reports || []).filter(r => String(r['العميل']) === String(clientName));
+  let reports = [];
+  try {
+    const res = await rpc('get_reports', {
+      ...auth(),
+      p_client: clientName,
+      p_date_from: dateFrom || null,
+      p_date_to: dateTo || null
+    });
+    reports = (res.rows || []).map(mapReport);
+  } catch (err) {
+    console.error("Failed to load client reports for export:", err);
+    showToast('تعذر جلب سجلات العميل من الخادم', 'error');
+    return;
+  }
+
   let visits = (STATE.visits || []).filter(v => String(v['العميل']) === String(clientName));
 
   if (dateFrom) {
-    reports = reports.filter(r => r['التاريخ'] && r['التاريخ'] >= dateFrom);
     visits = visits.filter(v => v['تاريخ الزيارة'] && v['تاريخ الزيارة'] >= dateFrom);
   }
   if (dateTo) {
-    reports = reports.filter(r => r['التاريخ'] && r['التاريخ'] <= dateTo);
     visits = visits.filter(v => v['تاريخ الزيارة'] && v['تاريخ الزيارة'] <= dateTo);
   }
 
