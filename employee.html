@@ -1,14 +1,200 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <script src="guard.js"></script>
+  <script src="guard.js">
+function toggleGuideItem(headerEl) {
+  const item = headerEl.parentElement;
+  const isExpanded = item.classList.contains('active');
+  
+  const siblingItems = item.parentElement.querySelectorAll('.wg-point-item');
+  siblingItems.forEach(sib => {
+    if (sib !== item) {
+      sib.classList.remove('active');
+      const btn = sib.querySelector('.wg-toggle-btn');
+      if (btn) btn.innerHTML = '▼';
+    }
+  });
+
+  if (isExpanded) {
+    item.classList.remove('active');
+    const btn = headerEl.querySelector('.wg-toggle-btn');
+    if (btn) btn.innerHTML = '▼';
+  } else {
+    item.classList.add('active');
+    const btn = headerEl.querySelector('.wg-toggle-btn');
+    if (btn) btn.innerHTML = '✕ إغلاق';
+  }
+}
+
+function switchGuideTab(tabName, scopeId) {
+  const container = document.getElementById(scopeId);
+  if (!container) return;
+  
+  const buttons = container.querySelectorAll('.wg-tab-btn');
+  buttons.forEach(btn => {
+    if (btn.getAttribute('data-tab') === tabName) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  const sections = container.querySelectorAll('.wg-section');
+  sections.forEach(sec => {
+    if (sec.id === (scopeId + '-' + tabName)) {
+      sec.classList.add('active');
+    } else {
+      sec.classList.remove('active');
+    }
+  });
+}
+
+function openWorkGuideModal() {
+  const modal = document.getElementById('modal-work-guide');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function closeWorkGuideModal() {
+  const modal = document.getElementById('modal-work-guide');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>تقرير المهام — نظم وحلول</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+function toggleGuideItem(headerEl) {
+  const item = headerEl.parentElement;
+  const isExpanded = item.classList.contains('active');
+  
+  const siblingItems = item.parentElement.querySelectorAll('.wg-point-item');
+  siblingItems.forEach(sib => {
+    if (sib !== item) {
+      sib.classList.remove('active');
+      const btn = sib.querySelector('.wg-toggle-btn');
+      if (btn) btn.innerHTML = '▼';
+    }
+  });
+
+  if (isExpanded) {
+    item.classList.remove('active');
+    const btn = headerEl.querySelector('.wg-toggle-btn');
+    if (btn) btn.innerHTML = '▼';
+  } else {
+    item.classList.add('active');
+    const btn = headerEl.querySelector('.wg-toggle-btn');
+    if (btn) btn.innerHTML = '✕ إغلاق';
+  }
+}
+
+function switchGuideTab(tabName, scopeId) {
+  const container = document.getElementById(scopeId);
+  if (!container) return;
+  
+  const buttons = container.querySelectorAll('.wg-tab-btn');
+  buttons.forEach(btn => {
+    if (btn.getAttribute('data-tab') === tabName) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  const sections = container.querySelectorAll('.wg-section');
+  sections.forEach(sec => {
+    if (sec.id === (scopeId + '-' + tabName)) {
+      sec.classList.add('active');
+    } else {
+      sec.classList.remove('active');
+    }
+  });
+}
+
+function openWorkGuideModal() {
+  const modal = document.getElementById('modal-work-guide');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function closeWorkGuideModal() {
+  const modal = document.getElementById('modal-work-guide');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+function toggleGuideItem(headerEl) {
+  const item = headerEl.parentElement;
+  const isExpanded = item.classList.contains('active');
+  
+  const siblingItems = item.parentElement.querySelectorAll('.wg-point-item');
+  siblingItems.forEach(sib => {
+    if (sib !== item) {
+      sib.classList.remove('active');
+      const btn = sib.querySelector('.wg-toggle-btn');
+      if (btn) btn.innerHTML = '▼';
+    }
+  });
+
+  if (isExpanded) {
+    item.classList.remove('active');
+    const btn = headerEl.querySelector('.wg-toggle-btn');
+    if (btn) btn.innerHTML = '▼';
+  } else {
+    item.classList.add('active');
+    const btn = headerEl.querySelector('.wg-toggle-btn');
+    if (btn) btn.innerHTML = '✕ إغلاق';
+  }
+}
+
+function switchGuideTab(tabName, scopeId) {
+  const container = document.getElementById(scopeId);
+  if (!container) return;
+  
+  const buttons = container.querySelectorAll('.wg-tab-btn');
+  buttons.forEach(btn => {
+    if (btn.getAttribute('data-tab') === tabName) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  const sections = container.querySelectorAll('.wg-section');
+  sections.forEach(sec => {
+    if (sec.id === (scopeId + '-' + tabName)) {
+      sec.classList.add('active');
+    } else {
+      sec.classList.remove('active');
+    }
+  });
+}
+
+function openWorkGuideModal() {
+  const modal = document.getElementById('modal-work-guide');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function closeWorkGuideModal() {
+  const modal = document.getElementById('modal-work-guide');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+</script>
 <style>
 :root {
   /* Nuzum Design System v2.0 Tokens */
@@ -175,6 +361,224 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
 ::-webkit-scrollbar-track{background:var(--bg2);}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.22);border:3px solid var(--bg2);border-radius:10px;transition:background 0.2s;}
 ::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+
+/* --- WORK GUIDE COMPONENT (دليل العمل الشامل) --- */
+.wg-wrapper {
+  background: var(--bg2, #182232);
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 16px;
+  padding: 1.75rem;
+  box-shadow: var(--shadow, 0 10px 30px rgba(0,0,0,0.35));
+  margin-bottom: 2rem;
+}
+.wg-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.wg-header h2 {
+  font-family: 'Tajawal', 'Cairo', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text, #f1f5f9);
+  margin-bottom: 6px;
+  background: linear-gradient(135deg, #ffffff 0%, var(--gold, #c5a059) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.wg-header p {
+  font-size: 13px;
+  color: var(--text3, #94a3b8);
+}
+.wg-tabs {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+.wg-tab-btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  border: 1px solid var(--border, rgba(255,255,255,0.12));
+  border-radius: 12px;
+  cursor: pointer;
+  background: var(--bg3, #1e293b);
+  color: var(--text2, #cbd5e1);
+  transition: all 0.25s ease;
+  outline: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.wg-tab-btn:hover {
+  border-color: var(--gold, #c5a059);
+  color: var(--gold, #c5a059);
+  transform: translateY(-2px);
+}
+.wg-tab-btn.active {
+  background: linear-gradient(135deg, var(--accent, #2563eb) 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+}
+.wg-tab-btn[data-tab="general"].active {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+}
+.wg-tab-btn[data-tab="purchases"].active {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  box-shadow: 0 4px 15px rgba(22, 163, 74, 0.4);
+}
+.wg-tab-btn[data-tab="sales"].active {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  box-shadow: 0 4px 15px rgba(234, 88, 12, 0.4);
+}
+.wg-tab-btn[data-tab="taxes"].active {
+  background: linear-gradient(135deg, #9333ea 0%, #7e22ce 100%);
+  box-shadow: 0 4px 15px rgba(147, 51, 234, 0.4);
+}
+.wg-tab-btn[data-tab="budgets"].active {
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+}
+
+.wg-section {
+  display: none;
+  animation: wgFadeIn 0.3s ease;
+}
+.wg-section.active {
+  display: block;
+}
+@keyframes wgFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.wg-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+  color: var(--gold, #c5a059);
+  padding-bottom: 8px;
+  border-bottom: 1px dashed rgba(197, 160, 89, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wg-point-item {
+  margin-bottom: 1rem;
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: var(--bg3, #1e293b);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.wg-point-item:hover {
+  border-color: rgba(197, 160, 89, 0.4);
+}
+.wg-point-item.active {
+  border-color: var(--gold, #c5a059);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.wg-point-header {
+  padding: 1rem 1.25rem;
+  font-size: 15px;
+  font-weight: 700;
+  background-color: rgba(255, 255, 255, 0.02);
+  color: var(--text, #f1f5f9);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  transition: background 0.2s ease;
+}
+.wg-point-header:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+.wg-point-item.active .wg-point-header {
+  background-color: rgba(197, 160, 89, 0.08);
+  color: var(--gold, #c5a059);
+}
+
+.wg-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text3, #94a3b8);
+  transition: all 0.2s ease;
+}
+.wg-point-item.active .wg-toggle-btn {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+.wg-point-details {
+  display: none;
+  padding: 1.25rem;
+  background-color: var(--bg2, #182232);
+  color: var(--text2, #cbd5e1);
+  line-height: 1.8;
+  font-size: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.wg-point-item.active .wg-point-details {
+  display: block;
+  animation: wgSlideDown 0.25s ease-out;
+}
+@keyframes wgSlideDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.wg-point-details ul {
+  padding-right: 1.2rem;
+  margin-top: 0.5rem;
+  list-style: none;
+}
+.wg-point-details li {
+  margin-bottom: 0.6rem;
+  position: relative;
+}
+.wg-point-details li strong {
+  color: var(--gold, #c5a059);
+}
+
+.btn-guide-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(197, 160, 89, 0.15);
+  border: 1px solid rgba(197, 160, 89, 0.4);
+  color: var(--gold, #c5a059);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-family: 'Cairo', 'Tajawal', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 12px rgba(197, 160, 89, 0.15);
+  margin-left: 10px;
+}
+.btn-guide-pill:hover {
+  background: rgba(197, 160, 89, 0.25);
+  border-color: rgba(197, 160, 89, 0.7);
+  box-shadow: 0 0 20px rgba(197, 160, 89, 0.35);
+  transform: translateY(-1px);
+}
+
 </style>
 </head>
 <body>
@@ -224,6 +628,11 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
     </div>
   </div>
   <div class="header-right">
+    <button type="button" class="btn-guide-pill" onclick="openWorkGuideModal()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span>📖 دليل العمل الشامل</span>
+    </button>
+
     <span class="team-badge" id="team-badge">—</span>
     <span class="emp-badge" id="emp-badge">—</span>
     <span class="header-date" id="header-date"></span>
@@ -2474,6 +2883,243 @@ async function submitSupManualTask() {
 }
 
 init();
+
+function toggleGuideItem(headerEl) {
+  const item = headerEl.parentElement;
+  const isExpanded = item.classList.contains('active');
+  
+  const siblingItems = item.parentElement.querySelectorAll('.wg-point-item');
+  siblingItems.forEach(sib => {
+    if (sib !== item) {
+      sib.classList.remove('active');
+      const btn = sib.querySelector('.wg-toggle-btn');
+      if (btn) btn.innerHTML = '▼';
+    }
+  });
+
+  if (isExpanded) {
+    item.classList.remove('active');
+    const btn = headerEl.querySelector('.wg-toggle-btn');
+    if (btn) btn.innerHTML = '▼';
+  } else {
+    item.classList.add('active');
+    const btn = headerEl.querySelector('.wg-toggle-btn');
+    if (btn) btn.innerHTML = '✕ إغلاق';
+  }
+}
+
+function switchGuideTab(tabName, scopeId) {
+  const container = document.getElementById(scopeId);
+  if (!container) return;
+  
+  const buttons = container.querySelectorAll('.wg-tab-btn');
+  buttons.forEach(btn => {
+    if (btn.getAttribute('data-tab') === tabName) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  const sections = container.querySelectorAll('.wg-section');
+  sections.forEach(sec => {
+    if (sec.id === (scopeId + '-' + tabName)) {
+      sec.classList.add('active');
+    } else {
+      sec.classList.remove('active');
+    }
+  });
+}
+
+function openWorkGuideModal() {
+  const modal = document.getElementById('modal-work-guide');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function closeWorkGuideModal() {
+  const modal = document.getElementById('modal-work-guide');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
 </script>
+
+<!-- Work Guide Modal -->
+<div class="modal-overlay" id="modal-work-guide" style="display:none; align-items:center; justify-content:center; z-index:1000;">
+  <div class="modal" style="max-width:920px; width:95%; max-height:90vh; overflow-y:auto; position:relative; padding:1.5rem;">
+    <button type="button" onclick="closeWorkGuideModal()" style="position:absolute; top:15px; left:15px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#f87171; border-radius:50%; width:32px; height:32px; font-size:16px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; outline:none; transition:all 0.2s;">✕</button>
+
+<div class="wg-wrapper" id="wg-container-emp">
+  <div class="wg-header">
+    <h2>📖 دليل العمل الشامل</h2>
+    <p>دليل ميسر ومبسط لإدارة المستندات والعمليات المحاسبية والضريبية بنظم وحلول</p>
+  </div>
+  
+  <div class="wg-tabs">
+    <button type="button" class="wg-tab-btn active" data-tab="general" onclick="switchGuideTab('general', 'wg-container-emp')">🌐 العام</button>
+    <button type="button" class="wg-tab-btn" data-tab="purchases" onclick="switchGuideTab('purchases', 'wg-container-emp')">🛒 المشتريات</button>
+    <button type="button" class="wg-tab-btn" data-tab="sales" onclick="switchGuideTab('sales', 'wg-container-emp')">💰 المبيعات</button>
+    <button type="button" class="wg-tab-btn" data-tab="taxes" onclick="switchGuideTab('taxes', 'wg-container-emp')">📋 الإقرارات الضريبية</button>
+    <button type="button" class="wg-tab-btn" data-tab="budgets" onclick="switchGuideTab('budgets', 'wg-container-emp')">📊 الميزانيات</button>
+  </div>
+
+  <!-- قسم العام -->
+  <div class="wg-section active" id="wg-container-emp-general">
+    <div class="wg-section-title">قسم: العام</div>
+    <div class="wg-point-item">
+      <div class="wg-point-header" onclick="toggleGuideItem(this)">
+        <span>1. مبادئ الحوكمة والضبط المستندي</span>
+        <span class="wg-toggle-btn">▼</span>
+      </div>
+      <div class="wg-point-details">
+        <ul>
+          <li><strong>• أصل المعاملات:</strong> لا يُعتمد أي قيد أو قيد تسوية أو صرف بدون وجود المرفق الثبوتي الأصلي المعتمد (فاتورة، عقد، سند).</li>
+          <li><strong>• التسلسل الزمني:</strong> التزام تام بربط المستندات بالتواريخ الفعلية للحدوث لضمان دقة القوائم والتقارير الدورية.</li>
+          <li><strong>• عدم الجمع بين السلطات:</strong> الفصل التام بين إعداد المعاملة، مراجعتها، واعتمادها النهائي.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="wg-point-item">
+      <div class="wg-point-header" onclick="toggleGuideItem(this)">
+        <span>2. الأرشفة والحفظ الرقمي</span>
+        <span class="wg-toggle-btn">▼</span>
+      </div>
+      <div class="wg-point-details">
+        <ul>
+          <li><strong>• ربط الأرشيف:</strong> رفع جميع الفواتير والمستندات بملفات PDF واضحة وتسميتها وفق معيار (الموظف_العميل_التاريخ_نوع_المستند).</li>
+          <li><strong>• النسخ الاحتياطي:</strong> حفظ الأرشيف المستندي في المجلدات المخصصة على السحابة وفق تقسيم التيمات والعملاء.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- قسم المشتريات -->
+  <div class="wg-section" id="wg-container-emp-purchases">
+    <div class="wg-section-title">قسم: المشتريات</div>
+    <div class="wg-point-item">
+      <div class="wg-point-header" onclick="toggleGuideItem(this)">
+        <span>1. فواتير المشتريات والمصروفات</span>
+        <span class="wg-toggle-btn">▼</span>
+      </div>
+      <div class="wg-point-details">
+        <ul>
+          <li><strong>• الفاتورة الضريبية:</strong> التحقق من توفر الرقم الضريبي (VAT Registration Number) والعنوان والاسم الكامل للشركات والمؤسسات.</li>
+          <li><strong>• استيفاء الشروط الضريبية:</strong> أن تحتوي الفاتورة على تاريخ التوريد/الصرف، رقم فاتورة مسلسل، وضريبة القيمة المضافة بشكل منفصل (15%).</li>
+          <li><strong>• الإثبات الدفتري:</strong> ربط قيد المشتريات بالحساب التحليلي الصحيح للمورد وتحديد مركز التكلفة إن وجد.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="wg-point-item">
+      <div class="wg-point-header" onclick="toggleGuideItem(this)">
+        <span>2. سداد الموردين والمصروفات</span>
+        <span class="wg-toggle-btn">▼</span>
+      </div>
+      <div class="wg-point-details">
+        <ul>
+          <li><strong>• كشف حساب المورد:</strong> إرفاق كشف حساب المورد المطابق قبل إجراء السداد أو التسوية.</li>
+          <li><strong>• إثبات وسائل الدفع:</strong> إرفاق إيصال التحويل البنكي أو السند الثبوتي بالصرف وتوثيقه بالقيد.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- قسم المبيعات -->
+  <div class="wg-section" id="wg-container-emp-sales">
+    <div class="wg-section-title">قسم: المبيعات</div>
+    <div class="wg-point-item">
+      <div class="wg-point-header" onclick="toggleGuideItem(this)">
+        <span>1. فواتير المبيعات والإيرادات</span>
+        <span class="wg-toggle-btn">▼</span>
+      </div>
+      <div class="wg-point-details">
+        <ul>
+          <li><strong>• التسجيل الفوري:</strong> تسجيل فواتير المبيعات فور إصدارها وتوثيق تاريخ الاستحقاق.</li>
+          <li><strong>• الفاتورة الضريبية الصادرة:</strong> التأكد من دقة بيانات العميل، الرقم الضريبي، وتفاصيل الخدمة أو المنتج المقدم.</li>
+          <li><strong>• مطابقة الإيرادات:</strong> ربط الإيراد بالخدمة المقدمة والتأكد من توافق القوائم المالية مع التقارير الضريبية.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="wg-point-item">
+      <div class="wg-point-header" onclick="toggleGuideItem(this)">
+        <span>2. التحصيلات وحسابات العملاء</span>
+        <span class="wg-toggle-btn">▼</span>
+      </div>
+      <div class="wg-point-details">
+        <ul>
+          <li><strong>• السندات وإيصالات القبض:</strong> توثيق التحصيلات فور دخولها الحساب البنكي وإرفاق الإشعار.</li>
+          <li><strong>• تسوية حسابات العملاء:</strong> مراجعة الديون والتحصيلات بشكل دوري وإرسال المصادقات الدورية للعملاء.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- قسم الإقرارات الضريبية -->
+  <div class="wg-section" id="wg-container-emp-taxes">
+    <div class="wg-section-title">قسم: الإقرارات الضريبية</div>
+    <div class="wg-point-item">
+      <div class="wg-point-header" onclick="toggleGuideItem(this)">
+        <span>1. ضريبة القيمة المضافة (VAT)</span>
+        <span class="wg-toggle-btn">▼</span>
+      </div>
+      <div class="wg-point-details">
+        <ul>
+          <li><strong>• المطابقة الشهرية/الربع سنوية:</strong> مطابقة فواتير المبيعات والمشتريات المسجلة بالنظام مع الإقرار الضريبي قبل التقديم.</li>
+          <li><strong>• فحص المدخلات والمخرجات:</strong> التأكد من خصم ضريبة المشتريات المؤهلة فقط واستبعاد المصروفات غير الخاضعة أو المعفاة.</li>
+          <li><strong>• توثيق الإقرار والسداد:</strong> حفظ نسخة الإقرار الصادر من الهيئة وإشعار السداد في ملف العميل.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="wg-point-item">
+      <div class="wg-point-header" onclick="toggleGuideItem(this)">
+        <span>2. الاستقطاع والضريبة الصفرية</span>
+        <span class="wg-toggle-btn">▼</span>
+      </div>
+      <div class="wg-point-details">
+        <ul>
+          <li><strong>• ضريبة الاستقطاع (Withholding Tax):</strong> التحقق من التعاملات مع الجهات الخارجية وتطبيق نسب الاستقطاع الصحيحة وحفظ النماذج.</li>
+          <li><strong>• التوريدات الصفرية والمعفاة:</strong> توثيق مستندات الشحن أو الإعفاءات الخاصة بالتصدير والخدمات الصفرية.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- قسم الميزانيات -->
+  <div class="wg-section" id="wg-container-emp-budgets">
+    <div class="wg-section-title">قسم: الميزانيات</div>
+    <div class="wg-point-item">
+      <div class="wg-point-header" onclick="toggleGuideItem(this)">
+        <span>1. منهجية سحب العينات والمرفقات</span>
+        <span class="wg-toggle-btn">▼</span>
+      </div>
+      <div class="wg-point-details">
+        <ul>
+          <li><strong>• سحب أكبر المبالغ:</strong> من كشوف الحسابات بنسبة لا تقل عن 30% من التسجيلات.</li>
+          <li><strong>• استثناء للأصول الثابتة:</strong> يتم سحب كافة التسجيلات بنسبة 100%.</li>
+          <li><strong>• طباعة القيد أو الفاتورة:</strong> المرفقة من النظام مع المرفق الثبوتي.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="wg-point-item">
+      <div class="wg-point-header" onclick="toggleGuideItem(this)">
+        <span>2. مراجعة ميزان المراجعة والتسويات</span>
+        <span class="wg-toggle-btn">▼</span>
+      </div>
+      <div class="wg-point-details">
+        <ul>
+          <li><strong>• مطابقة الأرصدة الافتتاحية:</strong> مع الميزانية السابقة المعتمدة.</li>
+          <li><strong>• إجراء قيود الإهلاك:</strong> وتسويات جاد الاستحقاق والمقدمات والأصول.</li>
+          <li><strong>• التأكد من توازن ميزان المراجعة:</strong> قبل إعداد القوائم المالية النهائية.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+  </div>
+</div>
+
 </body>
 </html>
