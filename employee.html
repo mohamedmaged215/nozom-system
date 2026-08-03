@@ -2,67 +2,6 @@
 <html lang="ar" dir="rtl">
 <head>
   <script src="guard.js">
-function toggleGuideItem(headerEl) {
-  const item = headerEl.parentElement;
-  const isExpanded = item.classList.contains('active');
-  
-  const siblingItems = item.parentElement.querySelectorAll('.wg-point-item');
-  siblingItems.forEach(sib => {
-    if (sib !== item) {
-      sib.classList.remove('active');
-      const btn = sib.querySelector('.wg-toggle-btn');
-      if (btn) btn.innerHTML = '▼';
-    }
-  });
-
-  if (isExpanded) {
-    item.classList.remove('active');
-    const btn = headerEl.querySelector('.wg-toggle-btn');
-    if (btn) btn.innerHTML = '▼';
-  } else {
-    item.classList.add('active');
-    const btn = headerEl.querySelector('.wg-toggle-btn');
-    if (btn) btn.innerHTML = '✕ إغلاق';
-  }
-}
-
-function switchGuideTab(tabName, scopeId) {
-  const container = document.getElementById(scopeId);
-  if (!container) return;
-  
-  const buttons = container.querySelectorAll('.wg-tab-btn');
-  buttons.forEach(btn => {
-    if (btn.getAttribute('data-tab') === tabName) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
-
-  const sections = container.querySelectorAll('.wg-section');
-  sections.forEach(sec => {
-    if (sec.id === (scopeId + '-' + tabName)) {
-      sec.classList.add('active');
-    } else {
-      sec.classList.remove('active');
-    }
-  });
-}
-
-function openWorkGuideModal() {
-  const modal = document.getElementById('modal-work-guide');
-  if (modal) {
-    modal.style.display = 'flex';
-  }
-}
-
-function closeWorkGuideModal() {
-  const modal = document.getElementById('modal-work-guide');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-}
-
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -70,130 +9,8 @@ function closeWorkGuideModal() {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
-function toggleGuideItem(headerEl) {
-  const item = headerEl.parentElement;
-  const isExpanded = item.classList.contains('active');
-  
-  const siblingItems = item.parentElement.querySelectorAll('.wg-point-item');
-  siblingItems.forEach(sib => {
-    if (sib !== item) {
-      sib.classList.remove('active');
-      const btn = sib.querySelector('.wg-toggle-btn');
-      if (btn) btn.innerHTML = '▼';
-    }
-  });
-
-  if (isExpanded) {
-    item.classList.remove('active');
-    const btn = headerEl.querySelector('.wg-toggle-btn');
-    if (btn) btn.innerHTML = '▼';
-  } else {
-    item.classList.add('active');
-    const btn = headerEl.querySelector('.wg-toggle-btn');
-    if (btn) btn.innerHTML = '✕ إغلاق';
-  }
-}
-
-function switchGuideTab(tabName, scopeId) {
-  const container = document.getElementById(scopeId);
-  if (!container) return;
-  
-  const buttons = container.querySelectorAll('.wg-tab-btn');
-  buttons.forEach(btn => {
-    if (btn.getAttribute('data-tab') === tabName) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
-
-  const sections = container.querySelectorAll('.wg-section');
-  sections.forEach(sec => {
-    if (sec.id === (scopeId + '-' + tabName)) {
-      sec.classList.add('active');
-    } else {
-      sec.classList.remove('active');
-    }
-  });
-}
-
-function openWorkGuideModal() {
-  const modal = document.getElementById('modal-work-guide');
-  if (modal) {
-    modal.style.display = 'flex';
-  }
-}
-
-function closeWorkGuideModal() {
-  const modal = document.getElementById('modal-work-guide');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-}
-
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-function toggleGuideItem(headerEl) {
-  const item = headerEl.parentElement;
-  const isExpanded = item.classList.contains('active');
-  
-  const siblingItems = item.parentElement.querySelectorAll('.wg-point-item');
-  siblingItems.forEach(sib => {
-    if (sib !== item) {
-      sib.classList.remove('active');
-      const btn = sib.querySelector('.wg-toggle-btn');
-      if (btn) btn.innerHTML = '▼';
-    }
-  });
-
-  if (isExpanded) {
-    item.classList.remove('active');
-    const btn = headerEl.querySelector('.wg-toggle-btn');
-    if (btn) btn.innerHTML = '▼';
-  } else {
-    item.classList.add('active');
-    const btn = headerEl.querySelector('.wg-toggle-btn');
-    if (btn) btn.innerHTML = '✕ إغلاق';
-  }
-}
-
-function switchGuideTab(tabName, scopeId) {
-  const container = document.getElementById(scopeId);
-  if (!container) return;
-  
-  const buttons = container.querySelectorAll('.wg-tab-btn');
-  buttons.forEach(btn => {
-    if (btn.getAttribute('data-tab') === tabName) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
-
-  const sections = container.querySelectorAll('.wg-section');
-  sections.forEach(sec => {
-    if (sec.id === (scopeId + '-' + tabName)) {
-      sec.classList.add('active');
-    } else {
-      sec.classList.remove('active');
-    }
-  });
-}
-
-function openWorkGuideModal() {
-  const modal = document.getElementById('modal-work-guide');
-  if (modal) {
-    modal.style.display = 'flex';
-  }
-}
-
-function closeWorkGuideModal() {
-  const modal = document.getElementById('modal-work-guide');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-}
-
 </script>
 <style>
 :root {
@@ -2884,6 +2701,8 @@ async function submitSupManualTask() {
 
 init();
 
+
+
 function toggleGuideItem(headerEl) {
   const item = headerEl.parentElement;
   const isExpanded = item.classList.contains('active');
@@ -2932,23 +2751,27 @@ function switchGuideTab(tabName, scopeId) {
 }
 
 function openWorkGuideModal() {
-  const modal = document.getElementById('modal-work-guide');
-  if (modal) {
-    modal.style.display = 'flex';
+  if (typeof openModal === 'function') {
+    openModal('modal-work-guide');
+  } else {
+    const modal = document.getElementById('modal-work-guide');
+    if (modal) modal.classList.add('open');
   }
 }
 
 function closeWorkGuideModal() {
-  const modal = document.getElementById('modal-work-guide');
-  if (modal) {
-    modal.style.display = 'none';
+  if (typeof closeModal === 'function') {
+    closeModal('modal-work-guide');
+  } else {
+    const modal = document.getElementById('modal-work-guide');
+    if (modal) modal.classList.remove('open');
   }
 }
 
 </script>
 
 <!-- Work Guide Modal -->
-<div class="modal-overlay" id="modal-work-guide" style="display:none; align-items:center; justify-content:center; z-index:1000;">
+<div class="modal-overlay" id="modal-work-guide" style="z-index:9999;">
   <div class="modal" style="max-width:920px; width:95%; max-height:90vh; overflow-y:auto; position:relative; padding:1.5rem;">
     <button type="button" onclick="closeWorkGuideModal()" style="position:absolute; top:15px; left:15px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#f87171; border-radius:50%; width:32px; height:32px; font-size:16px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; outline:none; transition:all 0.2s;">✕</button>
 
