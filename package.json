@@ -1,0 +1,7 @@
+{
+  "name": "nozom-system",
+  "private": true,
+  "scripts": {
+    "test": "node tests/smoke-check.mjs"
+  }
+}

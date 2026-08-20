@@ -1,264 +1,16 @@
-\<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <script src="guard.js">
-function toggleGuideItem(headerEl) {
-  const item = headerEl.parentElement;
-  const isExpanded = item.classList.contains('active');
-  
-  const siblingItems = item.parentElement.querySelectorAll('.wg-point-item');
-  siblingItems.forEach(sib => {
-    if (sib !== item) {
-      sib.classList.remove('active');
-      const btn = sib.querySelector('.wg-toggle-btn');
-      if (btn) btn.innerHTML = '▼';
-    }
-  });
-
-  if (isExpanded) {
-    item.classList.remove('active');
-    const btn = headerEl.querySelector('.wg-toggle-btn');
-    if (btn) btn.innerHTML = '▼';
-  } else {
-    item.classList.add('active');
-    const btn = headerEl.querySelector('.wg-toggle-btn');
-    if (btn) btn.innerHTML = '✕ إغلاق';
-  }
-}
-
-function switchGuideTab(tabName, scopeId) {
-  const container = document.getElementById(scopeId);
-  if (!container) return;
-  
-  const buttons = container.querySelectorAll('.wg-tab-btn');
-  buttons.forEach(btn => {
-    if (btn.getAttribute('data-tab') === tabName) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
-
-  const sections = container.querySelectorAll('.wg-section');
-  sections.forEach(sec => {
-    if (sec.id === (scopeId + '-' + tabName)) {
-      sec.classList.add('active');
-    } else {
-      sec.classList.remove('active');
-    }
-  });
-}
-
-function openWorkGuideModal() {
-  const modal = document.getElementById('modal-work-guide');
-  if (modal) {
-    modal.style.display = 'flex';
-  }
-}
-
-function closeWorkGuideModal() {
-  const modal = document.getElementById('modal-work-guide');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-}
-
-</script>
+  <script src="guard.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة الإدارة — نظم وحلول</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=El+Messiri:wght@600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
-function toggleGuideItem(headerEl) {
-  const item = headerEl.parentElement;
-  const isExpanded = item.classList.contains('active');
-  
-  const siblingItems = item.parentElement.querySelectorAll('.wg-point-item');
-  siblingItems.forEach(sib => {
-    if (sib !== item) {
-      sib.classList.remove('active');
-      const btn = sib.querySelector('.wg-toggle-btn');
-      if (btn) btn.innerHTML = '▼';
-    }
-  });
-
-  if (isExpanded) {
-    item.classList.remove('active');
-    const btn = headerEl.querySelector('.wg-toggle-btn');
-    if (btn) btn.innerHTML = '▼';
-  } else {
-    item.classList.add('active');
-    const btn = headerEl.querySelector('.wg-toggle-btn');
-    if (btn) btn.innerHTML = '✕ إغلاق';
-  }
-}
-
-function switchGuideTab(tabName, scopeId) {
-  const container = document.getElementById(scopeId);
-  if (!container) return;
-  
-  const buttons = container.querySelectorAll('.wg-tab-btn');
-  buttons.forEach(btn => {
-    if (btn.getAttribute('data-tab') === tabName) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
-
-  const sections = container.querySelectorAll('.wg-section');
-  sections.forEach(sec => {
-    if (sec.id === (scopeId + '-' + tabName)) {
-      sec.classList.add('active');
-    } else {
-      sec.classList.remove('active');
-    }
-  });
-}
-
-function openWorkGuideModal() {
-  const modal = document.getElementById('modal-work-guide');
-  if (modal) {
-    modal.style.display = 'flex';
-  }
-}
-
-function closeWorkGuideModal() {
-  const modal = document.getElementById('modal-work-guide');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-}
-
-</script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
-function toggleGuideItem(headerEl) {
-  const item = headerEl.parentElement;
-  const isExpanded = item.classList.contains('active');
-  
-  const siblingItems = item.parentElement.querySelectorAll('.wg-point-item');
-  siblingItems.forEach(sib => {
-    if (sib !== item) {
-      sib.classList.remove('active');
-      const btn = sib.querySelector('.wg-toggle-btn');
-      if (btn) btn.innerHTML = '▼';
-    }
-  });
-
-  if (isExpanded) {
-    item.classList.remove('active');
-    const btn = headerEl.querySelector('.wg-toggle-btn');
-    if (btn) btn.innerHTML = '▼';
-  } else {
-    item.classList.add('active');
-    const btn = headerEl.querySelector('.wg-toggle-btn');
-    if (btn) btn.innerHTML = '✕ إغلاق';
-  }
-}
-
-function switchGuideTab(tabName, scopeId) {
-  const container = document.getElementById(scopeId);
-  if (!container) return;
-  
-  const buttons = container.querySelectorAll('.wg-tab-btn');
-  buttons.forEach(btn => {
-    if (btn.getAttribute('data-tab') === tabName) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
-
-  const sections = container.querySelectorAll('.wg-section');
-  sections.forEach(sec => {
-    if (sec.id === (scopeId + '-' + tabName)) {
-      sec.classList.add('active');
-    } else {
-      sec.classList.remove('active');
-    }
-  });
-}
-
-function openWorkGuideModal() {
-  const modal = document.getElementById('modal-work-guide');
-  if (modal) {
-    modal.style.display = 'flex';
-  }
-}
-
-function closeWorkGuideModal() {
-  const modal = document.getElementById('modal-work-guide');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-}
-
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-function toggleGuideItem(headerEl) {
-  const item = headerEl.parentElement;
-  const isExpanded = item.classList.contains('active');
-  
-  const siblingItems = item.parentElement.querySelectorAll('.wg-point-item');
-  siblingItems.forEach(sib => {
-    if (sib !== item) {
-      sib.classList.remove('active');
-      const btn = sib.querySelector('.wg-toggle-btn');
-      if (btn) btn.innerHTML = '▼';
-    }
-  });
-
-  if (isExpanded) {
-    item.classList.remove('active');
-    const btn = headerEl.querySelector('.wg-toggle-btn');
-    if (btn) btn.innerHTML = '▼';
-  } else {
-    item.classList.add('active');
-    const btn = headerEl.querySelector('.wg-toggle-btn');
-    if (btn) btn.innerHTML = '✕ إغلاق';
-  }
-}
-
-function switchGuideTab(tabName, scopeId) {
-  const container = document.getElementById(scopeId);
-  if (!container) return;
-  
-  const buttons = container.querySelectorAll('.wg-tab-btn');
-  buttons.forEach(btn => {
-    if (btn.getAttribute('data-tab') === tabName) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
-
-  const sections = container.querySelectorAll('.wg-section');
-  sections.forEach(sec => {
-    if (sec.id === (scopeId + '-' + tabName)) {
-      sec.classList.add('active');
-    } else {
-      sec.classList.remove('active');
-    }
-  });
-}
-
-function openWorkGuideModal() {
-  const modal = document.getElementById('modal-work-guide');
-  if (modal) {
-    modal.style.display = 'flex';
-  }
-}
-
-function closeWorkGuideModal() {
-  const modal = document.getElementById('modal-work-guide');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-}
-
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
 <style>
 :root {
   /* Nuzum Design System v2.0 Tokens */
@@ -3400,30 +3152,6 @@ let editingAtt = null;
 const DAYS_AR = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 
 // ══════════════════════════════════════════════════════
-// API HELPERS
-// ══════════════════════════════════════════════════════
-async function apiFetch(params) {
-  const url = API + '?' + new URLSearchParams(params);
-  const r = await fetch(url);
-  return r.json();
-}
-
-async function apiPost(action, data) {
-  const password = STATE.password || localStorage.getItem('nuzum_password') || '';
-  const r = await fetch(API, {
-    method: 'POST',
-    body: JSON.stringify({
-      action,
-      authPassword: password,
-      authRole: STATE.role || '',
-      authTeamId: STATE.teamId || '',
-      ...data
-    })
-  });
-  return r.json();
-}
-
-// ══════════════════════════════════════════════════════
 // LOGIN
 // ══════════════════════════════════════════════════════
 async function initLogin() {
@@ -3476,28 +3204,20 @@ async function initLogin() {
   // Initialize Canvas Particles & 3D Tilt
   initLoginVisuals();
 
-  // فحص تسجيل الدخول التلقائي (تذكرني) مبكراً
-  let isAutoLogin = false;
+  // استعادة نوع الحساب والتيم فقط. كلمة المرور لا تُحفظ في المتصفح.
   if (localStorage.getItem('nuzum_remember') === 'true') {
     const role = localStorage.getItem('nuzum_role');
-    const pass = localStorage.getItem('nuzum_password');
     const teamId = localStorage.getItem('nuzum_team_id');
-    if (role && pass) {
-      isAutoLogin = true;
+    if (role) {
       const card = document.querySelector(`.role-card[data-role="${role}"]`);
       if (card) card.click();
-      document.getElementById('login-pass').value = pass;
       if (role === 'supervisor' && teamId) {
         document.getElementById('login-team').value = teamId;
       }
       document.getElementById('login-remember').checked = true;
-      
-      // دخول تلقائي سريع
-      setTimeout(() => {
-        doLogin();
-      }, 200);
     }
   }
+  localStorage.removeItem('nuzum_password');
 
   // جلب التيمات في الخلفية دون تعطيل ظهور الصفحة أو الدخول التلقائي للأدمن
   rpc('get_login_bootstrap').then(r => {
@@ -3530,10 +3250,7 @@ async function initLogin() {
     }
   }).catch(e => console.error("Error fetching teams in background:", e));
   
-  // إذا لم يكن هناك دخول تلقائي، نخفي غطاء التحميل فوراً لتصبح الصفحة تفاعلية
-  if (!isAutoLogin) {
-    document.getElementById('loading-overlay').style.display = 'none';
-  }
+  document.getElementById('loading-overlay').style.display = 'none';
 }
 
 function initLoginVisuals() {
@@ -3609,13 +3326,20 @@ function enterDashboard(role, teamId, teamName, password) {
 
   // Save "Remember Me"
   const remember = document.getElementById('login-remember').checked;
-  if (remember && password) {
+  if (remember) {
     localStorage.setItem('nuzum_remember', 'true');
     localStorage.setItem('nuzum_role', role);
-    localStorage.setItem('nuzum_password', password);
+    localStorage.removeItem('nuzum_password');
     if (role === 'supervisor') {
       localStorage.setItem('nuzum_team_id', teamId);
+    } else {
+      localStorage.removeItem('nuzum_team_id');
     }
+  } else {
+    localStorage.removeItem('nuzum_remember');
+    localStorage.removeItem('nuzum_role');
+    localStorage.removeItem('nuzum_password');
+    localStorage.removeItem('nuzum_team_id');
   }
 
   document.getElementById('login-wrap').style.display = 'none';
@@ -3990,18 +3714,6 @@ async function loadReports(page = 1) {
   tbody.innerHTML = `<tr><td colspan="12"><div class="empty"><div class="spin" style="margin:auto"></div></div></td></tr>`;
   paginationContainer.innerHTML = '';
 
-  const params = {
-    action: 'getReports'
-  };
-  if (currentReportsLimit !== 'all') {
-    params.page = 1;
-    params.limit = currentReportsLimit;
-  }
-  if (team) params.teamId = team;
-  if (empId) params.empId = empId;
-  if (from) params.dateFrom = from;
-  if (to) params.dateTo = to;
-
   try {
     let rows = [];
     let totalCount = 0;
@@ -4022,6 +3734,7 @@ async function loadReports(page = 1) {
 
     window._reportData = rows;
     document.getElementById('rep-count').textContent = `التقارير (${totalCount})`;
+    renderReportsPagination(totalCount, page);
 
     if (!rows.length) {
       tbody.innerHTML = `<tr><td colspan="12"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">لا توجد تقارير</div></div></td></tr>`;
@@ -4046,10 +3759,10 @@ async function loadReports(page = 1) {
 
       return `
         <tr class="${hasNoteClass}">
-          <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}')" title="اضغط لعرض الأداء الشهري">${escapeHtml(r['اسم الموظف']||'')}</strong></td>
+          <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${escapeInlineJs(r.emp_id)}','${escapeInlineJs(r['اسم الموظف'])}','${escapeInlineJs(r.team_id)}')" title="اضغط لعرض الأداء الشهري">${escapeHtml(r['اسم الموظف']||'')}</strong></td>
           <td><span style="font-size:11px;color:var(--text3)">${escapeHtml(teamMap[r.team_id]||r.team_id||'')}</span></td>
           <td>${escapeHtml(r['التاريخ']||'')}</td>
-          <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(r['العميل'])}')" title="عرض تفاصيل العميل">${escapeHtml(r['العميل']||'')}</span></td>
+          <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeInlineJs(r['العميل'])}')" title="عرض تفاصيل العميل">${escapeHtml(r['العميل']||'')}</span></td>
           <td>${escapeHtml(r['نوع المهمة']||'')}</td>
           <td>${recBadge}</td>
           <td>${escapeHtml(r['من']||'')}</td>
@@ -4065,8 +3778,6 @@ async function loadReports(page = 1) {
           </td>
         </tr>`;
     }).join('');
-
-    renderReportsPagination(totalCount, page);
 
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="12"><div class="empty"><div class="empty-text">فشل الاتصال بالخادم</div></div></td></tr>`;
@@ -4090,12 +3801,36 @@ function renderReportsPagination(totalCount, currentPage) {
     html += `<button class="btn btn-secondary btn-sm" ${activeStyle} onclick="changeReportsLimit('${lim}')">${label}</button>`;
   });
 
-  let infoText = '';
-  if (currentReportsLimit === 'all' || totalCount <= currentReportsLimit) {
-    infoText = `عرض الكل (${totalCount} تقرير)`;
-  } else {
-    infoText = `عرض 1 إلى ${currentReportsLimit} من أصل ${totalCount} تقرير`;
+  const limit = currentReportsLimit === 'all' ? Math.max(totalCount, 1) : Number(currentReportsLimit);
+  const totalPages = currentReportsLimit === 'all' ? 1 : Math.max(1, Math.ceil(totalCount / limit));
+  const safePage = Math.min(Math.max(Number(currentPage) || 1, 1), totalPages);
+
+  if (currentReportsLimit !== 'all' && totalPages > 1) {
+    html += `<button class="btn btn-secondary btn-sm" onclick="loadReports(${safePage - 1})" ${safePage === 1 ? 'disabled' : ''}>السابق</button>`;
+
+    const startPage = Math.max(1, safePage - 2);
+    const endPage = Math.min(totalPages, safePage + 2);
+    if (startPage > 1) {
+      html += `<button class="btn btn-secondary btn-sm" onclick="loadReports(1)">1</button>`;
+      if (startPage > 2) html += `<span style="color:var(--text3);padding:0 4px;">…</span>`;
+    }
+    for (let p = startPage; p <= endPage; p++) {
+      const activeStyle = p === safePage ? 'style="background:var(--accent);color:#fff;border-color:var(--accent);"' : '';
+      html += `<button class="btn btn-secondary btn-sm" ${activeStyle} onclick="loadReports(${p})">${p}</button>`;
+    }
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) html += `<span style="color:var(--text3);padding:0 4px;">…</span>`;
+      html += `<button class="btn btn-secondary btn-sm" onclick="loadReports(${totalPages})">${totalPages}</button>`;
+    }
+
+    html += `<button class="btn btn-secondary btn-sm" onclick="loadReports(${safePage + 1})" ${safePage === totalPages ? 'disabled' : ''}>التالي</button>`;
   }
+
+  const start = totalCount ? ((safePage - 1) * limit) + 1 : 0;
+  const end = currentReportsLimit === 'all' ? totalCount : Math.min(safePage * limit, totalCount);
+  const infoText = currentReportsLimit === 'all'
+    ? `عرض الكل (${totalCount} تقرير)`
+    : `عرض ${start} إلى ${end} من أصل ${totalCount} تقرير`;
   html += `<span style="color:var(--text3); font-size:12px; margin-right:16px;">(${infoText})</span>`;
 
   paginationContainer.innerHTML = html;
@@ -4457,12 +4192,12 @@ async function loadAttendance() {
     const bc = row.status === 'حاضر' ? 'badge-present' : row.status === 'غياب' ? 'badge-absent' : (row.status.includes('رسمية') || row.status.includes('عطلة')) ? 'badge-holiday' : 'badge-leave';
     const opacityStyle = row.isFriday ? 'style="opacity: 0.55;"' : '';
     return `<tr ${opacityStyle}>
-      <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${row.empId}','${escapeHtml(row.empName)}','${row.teamId}')" title="اضغط لعرض كارت الأداء التفصيلي وسجل الحضور">${row.empName}</strong></td>
+      <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${escapeInlineJs(row.empId)}','${escapeInlineJs(row.empName)}','${escapeInlineJs(row.teamId)}')" title="اضغط لعرض كارت الأداء التفصيلي وسجل الحضور">${escapeHtml(row.empName)}</strong></td>
       <td style="font-size:11px;color:var(--text3)">${teamMap[row.teamId] || ''}</td>
       <td>${row.date} (${row.day})</td>
       <td><span class="badge ${bc}">${row.status}</span></td>
       <td style="color:var(--text3);font-size:12px">${row.note || ''}</td>
-      <td><button class="btn btn-secondary btn-sm" onclick="openAttEdit('${row.empId}','${escapeHtml(row.empName)}','${row.teamId}','${row.date}','${row.status}','${escapeHtml(row.note || '')}')">تعديل</button></td>
+      <td><button class="btn btn-secondary btn-sm" onclick="openAttEdit('${escapeInlineJs(row.empId)}','${escapeInlineJs(row.empName)}','${escapeInlineJs(row.teamId)}','${escapeInlineJs(row.date)}','${escapeInlineJs(row.status)}','${escapeInlineJs(row.note || '')}')">تعديل</button></td>
     </tr>`;
   }).join('');
 }
@@ -4671,7 +4406,7 @@ function renderTeams() {
       <div class="team-card-top">
         <div>
           <div class="team-name">${t['اسم التيم']}</div>
-          <div class="team-supervisor">المشرف: <strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModalByName('${escapeHtml(t['مشرف'])}')" title="اضغط لعرض الأداء">${t['مشرف']||'—'}</strong></div>
+          <div class="team-supervisor">المشرف: <strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModalByName('${escapeInlineJs(t['مشرف'])}')" title="اضغط لعرض الأداء">${escapeHtml(t['مشرف']||'—')}</strong></div>
         </div>
         <span style="font-size:20px">🏷️</span>
       </div>
@@ -4680,7 +4415,7 @@ function renderTeams() {
       </div>
       <div class="team-actions">
         <button class="btn btn-secondary btn-sm" onclick="openEditTeam('${t.id}')">تعديل</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteTeam('${t.id}','${t['اسم التيم']}')">حذف</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTeam('${escapeInlineJs(t.id)}','${escapeInlineJs(t['اسم التيم'])}')">حذف</button>
       </div>
     </div>`).join('');
 }
@@ -4815,12 +4550,12 @@ function renderEmployeesList() {
     supervisorsListEl.innerHTML = supervisors.map(e => `
       <div class="mgmt-item" style="border-bottom:1px solid var(--border); padding: 10px 14px; display:flex; justify-content:space-between; align-items:center;">
         <div class="mgmt-item-info">
-          <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600; font-size:13.5px;" onclick="openEmployeePerformanceModal('${e.id}','${escapeHtml(e['الاسم'])}','${e.team_id}')" title="اضغط لعرض الأداء الشهري">${escapeHtml(e['الاسم'])}</div>
+          <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600; font-size:13.5px;" onclick="openEmployeePerformanceModal('${escapeInlineJs(e.id)}','${escapeInlineJs(e['الاسم'])}','${escapeInlineJs(e.team_id)}')" title="اضغط لعرض الأداء الشهري">${escapeHtml(e['الاسم'])}</div>
           <div class="item-meta" style="color:var(--text3); font-size:11px; margin-top:2px;">${escapeHtml(teamMap[e.team_id]||'')} • مشرف</div>
         </div>
         <div class="mgmt-item-actions" style="display:flex; gap:6px;">
           <button class="btn btn-secondary btn-sm" onclick="openEditEmployee('${e.id}')" style="padding: 4px 8px; font-size: 11px;">تعديل</button>
-          <button class="btn btn-danger btn-sm" onclick="removeEmployee('${e.id}','${e['الاسم']}')" style="padding: 4px 8px; font-size: 11px;">حذف</button>
+          <button class="btn btn-danger btn-sm" onclick="removeEmployee('${escapeInlineJs(e.id)}','${escapeInlineJs(e['الاسم'])}')" style="padding: 4px 8px; font-size: 11px;">حذف</button>
         </div>
       </div>`).join('');
   }
@@ -4832,12 +4567,12 @@ function renderEmployeesList() {
     staffListEl.innerHTML = staff.map(e => `
       <div class="mgmt-item" style="border-bottom:1px solid var(--border); padding: 10px 14px; display:flex; justify-content:space-between; align-items:center;">
         <div class="mgmt-item-info">
-          <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600; font-size:13.5px;" onclick="openEmployeePerformanceModal('${e.id}','${escapeHtml(e['الاسم'])}','${e.team_id}')" title="اضغط لعرض الأداء الشهري">${escapeHtml(e['الاسم'])}</div>
+          <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600; font-size:13.5px;" onclick="openEmployeePerformanceModal('${escapeInlineJs(e.id)}','${escapeInlineJs(e['الاسم'])}','${escapeInlineJs(e.team_id)}')" title="اضغط لعرض الأداء الشهري">${escapeHtml(e['الاسم'])}</div>
           <div class="item-meta" style="color:var(--text3); font-size:11px; margin-top:2px;">${escapeHtml(teamMap[e.team_id]||'')} • موظف</div>
         </div>
         <div class="mgmt-item-actions" style="display:flex; gap:6px;">
           <button class="btn btn-secondary btn-sm" onclick="openEditEmployee('${e.id}')" style="padding: 4px 8px; font-size: 11px;">تعديل</button>
-          <button class="btn btn-danger btn-sm" onclick="removeEmployee('${e.id}','${e['الاسم']}')" style="padding: 4px 8px; font-size: 11px;">حذف</button>
+          <button class="btn btn-danger btn-sm" onclick="removeEmployee('${escapeInlineJs(e.id)}','${escapeInlineJs(e['الاسم'])}')" style="padding: 4px 8px; font-size: 11px;">حذف</button>
         </div>
       </div>`).join('');
   }
@@ -4994,10 +4729,10 @@ function renderClientsList() {
   }
   
   el.innerHTML = filteredClients.map(c => {
-    const deleteBtn = `<button class="btn btn-danger btn-sm" onclick="removeClient('${c.id}','${escapeHtml(c.name)}')">حذف</button>`;
+    const deleteBtn = `<button class="btn btn-danger btn-sm" onclick="removeClient('${escapeInlineJs(c.id)}','${escapeInlineJs(c.name)}')">حذف</button>`;
     return `
       <div class="mgmt-item">
-        <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(c.name)}')" title="اضغط لعرض تفاصيل وأداء العميل">${escapeHtml(c.name)}</div>
+        <div class="item-name" style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeInlineJs(c.name)}')" title="اضغط لعرض تفاصيل وأداء العميل">${escapeHtml(c.name)}</div>
         <div class="mgmt-item-actions">${deleteBtn}</div>
       </div>
     `;
@@ -5277,15 +5012,15 @@ function renderLinks() {
   if (supervisors.length > 0) {
     html += `<div style="grid-column: 1 / -1; padding: 8px 14px; background: rgba(251,191,36,0.06); border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 700; color: var(--warning); border-radius: 6px; margin-bottom: 6px; margin-top: 10px;">👑 روابط المشرفين (${supervisors.length})</div>`;
     html += supervisors.map(e => {
-      const url = `${base}?empId=${e.id}&name=${encodeURIComponent(e['الاسم'])}&teamId=${e.team_id}&role=${encodeURIComponent(e['الدور'] || 'موظف')}`;
+      const url = `${base}?empId=${encodeURIComponent(e.id)}&name=${encodeURIComponent(e['الاسم'])}&teamId=${encodeURIComponent(e.team_id)}&role=${encodeURIComponent(e['الدور'] || 'موظف')}`;
       const roleColor = 'var(--warning)';
       return `<div class="link-card">
-        <div class="link-emp">${e['الاسم']}</div>
-        <div class="link-role" style="color:${roleColor}">${e['الدور']||'موظف'} • ${teamMap[e.team_id]||''}</div>
-        <div class="link-url">${url}</div>
+        <div class="link-emp">${escapeHtml(e['الاسم'])}</div>
+        <div class="link-role" style="color:${roleColor}">${escapeHtml(e['الدور']||'موظف')} • ${escapeHtml(teamMap[e.team_id]||'')}</div>
+        <div class="link-url">${escapeHtml(url)}</div>
         <div style="display:flex;gap:6px;margin-top:6px">
-          <button class="btn-copy" onclick="copyLink('${url}')">📋 نسخ الرابط</button>
-          <a href="${url}" target="_blank" style="text-decoration:none">
+          <button class="btn-copy" onclick="copyLink('${escapeInlineJs(url)}')">📋 نسخ الرابط</button>
+          <a href="${escapeHtml(url)}" target="_blank" rel="noopener" style="text-decoration:none">
             <button class="btn-copy">🔗 فتح</button>
           </a>
         </div>
@@ -5299,15 +5034,15 @@ function renderLinks() {
     }
     html += `<div style="grid-column: 1 / -1; padding: 8px 14px; background: rgba(74,222,128,0.06); border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 700; color: var(--success); border-radius: 6px; margin-bottom: 6px; margin-top: 10px;">👥 روابط الموظفين (${staff.length})</div>`;
     html += staff.map(e => {
-      const url = `${base}?empId=${e.id}&name=${encodeURIComponent(e['الاسم'])}&teamId=${e.team_id}&role=${encodeURIComponent(e['الدور'] || 'موظف')}`;
+      const url = `${base}?empId=${encodeURIComponent(e.id)}&name=${encodeURIComponent(e['الاسم'])}&teamId=${encodeURIComponent(e.team_id)}&role=${encodeURIComponent(e['الدور'] || 'موظف')}`;
       const roleColor = 'var(--success)';
       return `<div class="link-card">
-        <div class="link-emp">${e['الاسم']}</div>
-        <div class="link-role" style="color:${roleColor}">${e['الدور']||'موظف'} • ${teamMap[e.team_id]||''}</div>
-        <div class="link-url">${url}</div>
+        <div class="link-emp">${escapeHtml(e['الاسم'])}</div>
+        <div class="link-role" style="color:${roleColor}">${escapeHtml(e['الدور']||'موظف')} • ${escapeHtml(teamMap[e.team_id]||'')}</div>
+        <div class="link-url">${escapeHtml(url)}</div>
         <div style="display:flex;gap:6px;margin-top:6px">
-          <button class="btn-copy" onclick="copyLink('${url}')">📋 نسخ الرابط</button>
-          <a href="${url}" target="_blank" style="text-decoration:none">
+          <button class="btn-copy" onclick="copyLink('${escapeInlineJs(url)}')">📋 نسخ الرابط</button>
+          <a href="${escapeHtml(url)}" target="_blank" rel="noopener" style="text-decoration:none">
             <button class="btn-copy">🔗 فتح</button>
           </a>
         </div>
@@ -5352,9 +5087,7 @@ async function changePassword() {
     document.getElementById('pw-new').value = '';
     document.getElementById('pw-confirm').value = '';
     
-    if (localStorage.getItem('nuzum_remember') === 'true') {
-      localStorage.setItem('nuzum_password', nw);
-    }
+    localStorage.removeItem('nuzum_password');
     STATE.password = nw;
   } catch(e) {
     showToast('خطأ في التغيير: ' + e.message, 'error');
@@ -6144,9 +5877,9 @@ function loadAssignedTasksList() {
 
     return `
       <tr>
-        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${t.emp_id}','${escapeHtml(t['اسم الموظف'])}','${t.team_id}')" title="اضغط لعرض الأداء الشهري">${t['اسم الموظف'] || ''}</strong></td>
+        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${escapeInlineJs(t.emp_id)}','${escapeInlineJs(t['اسم الموظف'])}','${escapeInlineJs(t.team_id)}')" title="اضغط لعرض الأداء الشهري">${escapeHtml(t['اسم الموظف'] || '')}</strong></td>
         <td><span style="font-size:11px;color:var(--text3)">${teamMap[t.team_id] || t.team_id || ''}</span></td>
-        <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeHtml(t['العميل'])}')" title="عرض تفاصيل العميل">${t['العميل'] || ''}</span></td>
+        <td><span style="cursor:pointer; color:var(--accent-l); font-weight:600;" onclick="openClientDetailsModal('${escapeInlineJs(t['العميل'])}')" title="عرض تفاصيل العميل">${escapeHtml(t['العميل'] || '')}</span></td>
         <td>${t['نوع المهمة'] || ''}</td>
         <td class="td-trunc" title="${(t['وصف المهمة'] || '').replace(/"/g, '&quot;')}">${t['وصف المهمة'] || ''}</td>
         <td>${t['تاريخ الإسناد'] || ''}</td>
@@ -6595,7 +6328,7 @@ function loadRecurringTasksList() {
       <tr>
         <td><strong>${t['اسم الموظف'] || ''}</strong></td>
         <td><span style="font-size:11px;color:var(--text3)">${teamMap[t.team_id] || t.team_id || ''}</span></td>
-        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openClientDetailsModal('${escapeHtml(t['العميل'])}')" title="عرض تفاصيل العميل">${t['العميل'] || ''}</strong></td>
+        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openClientDetailsModal('${escapeInlineJs(t['العميل'])}')" title="عرض تفاصيل العميل">${escapeHtml(t['العميل'] || '')}</strong></td>
         <td><span class="badge ${badgeClass}" style="font-weight:600;">${recType}</span></td>
         <td>${t['نوع المهمة'] || ''}</td>
         <td><span style="color:var(--accent-l); font-weight:600;">${t['بند خطة العمل'] || '<span style="color:var(--text3)">—</span>'}</span></td>
@@ -6612,7 +6345,7 @@ function loadRecurringTasksList() {
   }).join('');
 }
 
-function exploreClientDetails() {
+async function exploreClientDetails() {
   const clientName = document.getElementById('db-client-explorer').value;
   const resultDiv = document.getElementById('client-explorer-result');
   const emptyDiv = document.getElementById('client-explorer-empty');
@@ -6620,10 +6353,32 @@ function exploreClientDetails() {
   if (!clientName) {
     resultDiv.style.display = 'none';
     emptyDiv.style.display = 'block';
+    emptyDiv.textContent = 'الرجاء اختيار عميل لعرض التحليلات التفاعلية المخصصة';
     return;
   }
 
-  const rows = (STATE.reports || []).filter(r => String(r['العميل']) === String(clientName));
+  resultDiv.style.display = 'none';
+  emptyDiv.style.display = 'block';
+  emptyDiv.innerHTML = '<div class="spin" style="margin:auto"></div>';
+
+  let rows = [];
+  try {
+    const response = await rpc('get_reports', {
+      ...auth(),
+      p_client: clientName,
+      p_team_id: STATE.role === 'admin' ? null : SESSION.teamId,
+      p_employee_id: null,
+      p_date_from: null,
+      p_date_to: null,
+      p_page: null,
+      p_limit: null
+    });
+    rows = (response.rows || []).map(mapReport);
+  } catch (error) {
+    emptyDiv.innerHTML = '<div style="color:var(--danger);">تعذر تحميل بيانات العميل</div>';
+    showToast('تعذر تحميل بيانات العميل: ' + error.message, 'error');
+    return;
+  }
   
   if (rows.length === 0) {
     document.getElementById('exp-total-hours').textContent = '0';
@@ -6679,7 +6434,7 @@ function exploreClientDetails() {
     .map(t => {
       const th = Math.floor(t.minutes / 60);
       const tm = t.minutes % 60;
-      return `<tr><td><strong>${t.name}</strong></td><td><span style="color:var(--success);font-weight:600;">${th}:${String(tm).padStart(2, '0')}</span></td></tr>`;
+      return `<tr><td><strong>${escapeHtml(t.name)}</strong></td><td><span style="color:var(--success);font-weight:600;">${th}:${String(tm).padStart(2, '0')}</span></td></tr>`;
     })
     .join('');
 
@@ -6688,7 +6443,7 @@ function exploreClientDetails() {
     .map(([eid, e]) => {
       const eh = Math.floor(e.minutes / 60);
       const em = e.minutes % 60;
-      return `<tr><td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${eid}','${escapeHtml(e.name)}','${e.teamId}')" title="عرض كشف الموظف">${e.name}</strong></td><td style="color:var(--text3);font-size:11px;">${e.team}</td><td><span style="color:var(--accent-l);font-weight:600;">${eh}:${String(em).padStart(2, '0')}</span></td></tr>`;
+      return `<tr><td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${escapeInlineJs(eid)}','${escapeInlineJs(e.name)}','${escapeInlineJs(e.teamId)}')" title="عرض كشف الموظف">${escapeHtml(e.name)}</strong></td><td style="color:var(--text3);font-size:11px;">${escapeHtml(e.team)}</td><td><span style="color:var(--accent-l);font-weight:600;">${eh}:${String(em).padStart(2, '0')}</span></td></tr>`;
     })
     .join('');
 
@@ -6759,7 +6514,9 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
   switchPerfTab('tasks'); // وضع التبويب الأول كافتراضي عند الفتح
 
   const firstDay = `${month}-01`;
-  const lastDay = `${month}-31`;
+  const [performanceYear, performanceMonth] = month.split('-').map(Number);
+  const performanceLastDay = new Date(performanceYear, performanceMonth, 0).getDate();
+  const lastDay = `${month}-${String(performanceLastDay).padStart(2, '0')}`;
   
   // تصفية البيانات ديناميكياً وجلبها من السيرفر
   rTbody.innerHTML = `<tr><td colspan="${isSupervisor ? 6 : 7}" style="text-align:center; padding: 1.5rem 0;"><div class="spin" style="margin:auto"></div></td></tr>`;
@@ -6943,7 +6700,7 @@ async function openEmployeePerformanceModal(empId, empName, teamId) {
         <tr>
           <td style="font-weight:600;">${v['تاريخ الزيارة'] || ''}</td>
           <td>${v['وقت الزيارة'] || ''}</td>
-          <td><strong style="color:var(--accent-l); cursor:pointer;" onclick="closeModal('modal-emp-performance'); setTimeout(() => openClientDetailsModal('${escapeHtml(v['العميل'])}'), 200)" title="عرض ملف العميل">${v['العميل'] || ''}</strong></td>
+          <td><strong style="color:var(--accent-l); cursor:pointer;" onclick="closeModal('modal-emp-performance'); setTimeout(() => openClientDetailsModal('${escapeInlineJs(v['العميل'])}'), 200)" title="عرض ملف العميل">${escapeHtml(v['العميل'] || '')}</strong></td>
           <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(v['ملاحظات'] || '').replace(/"/g, '&quot;')}">${v['ملاحظات'] || ''}</td>
           <td>
             <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-emp-performance'); setTimeout(() => openCompleteVisitModal('${v.id}'), 200)" style="background:rgba(52,211,153,0.15); color:var(--success); border:1px solid rgba(52,211,153,0.25); padding:4px 8px; font-size:11px; font-weight:600; cursor:pointer;">✅ إتمام</button>
@@ -7041,8 +6798,14 @@ function sanitizeWhatsAppNumber(numStr) {
 }
 
 function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+function escapeInlineJs(value) {
+  return String(value ?? '').replace(/[\\"'`<>&$\r\n\u2028\u2029]/g, char =>
+    `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`
+  );
 }
 
 // ══════════════════════════════════════════════════════
@@ -7216,7 +6979,7 @@ async function exportSingleClientExcel() {
   }
 }
 
-function exportEmployeeProfileExcel() {
+async function exportEmployeeProfileExcel() {
   const empId = STATE.activeEmpPerformanceId;
   const empName = STATE.activeEmpPerformanceName;
   const month = STATE.activeEmpPerformanceMonth;
@@ -7229,10 +6992,36 @@ function exportEmployeeProfileExcel() {
   showToast('جاري تحضير ملف كشف أداء الموظف المطور...', 'info');
 
   const firstDay = `${month}-01`;
-  const lastDay = `${month}-31`;
+  const [exportYear, exportMonth] = month.split('-').map(Number);
+  const exportLastDay = new Date(exportYear, exportMonth, 0).getDate();
+  const lastDay = `${month}-${String(exportLastDay).padStart(2, '0')}`;
 
-  const empReports = (STATE.reports || []).filter(r => String(r.emp_id) === String(empId) && r['التاريخ'] >= firstDay && r['التاريخ'] <= lastDay);
-  const empAttendance = (STATE.attendance || []).filter(a => String(a.emp_id) === String(empId) && a['التاريخ'].startsWith(month));
+  let empReports = [];
+  let empAttendance = [];
+  try {
+    const [reportsResponse, attendanceResponse] = await Promise.all([
+      rpc('get_reports', {
+        ...auth(),
+        p_team_id: STATE.role === 'admin' ? null : SESSION.teamId,
+        p_employee_id: empId,
+        p_date_from: firstDay,
+        p_date_to: lastDay,
+        p_page: null,
+        p_limit: null
+      }),
+      rpc('get_attendance', {
+        ...auth(),
+        p_employee_id: empId,
+        p_date_from: firstDay,
+        p_date_to: lastDay
+      })
+    ]);
+    empReports = (reportsResponse.rows || []).map(mapReport);
+    empAttendance = (attendanceResponse || []).map(mapAttendance);
+  } catch (error) {
+    showToast('تعذر جلب بيانات الموظف للتصدير: ' + error.message, 'error');
+    return;
+  }
   const empTasks = (STATE.tasks || []).filter(t => String(t.emp_id) === String(empId));
   const empVisits = (STATE.visits || []).filter(v => String(v.emp_id) === String(empId));
 
@@ -7408,7 +7197,7 @@ async function openClientDetailsModal(clientName) {
     tbody.innerHTML = rows.map(r => `
       <tr>
         <td>${r['التاريخ'] || ''}</td>
-        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="closeModal('modal-client-details'); setTimeout(() => openEmployeePerformanceModal('${r.emp_id}','${escapeHtml(r['اسم الموظف'])}','${r.team_id}'), 200)" title="عرض كشف الموظف">${r['اسم الموظف'] || ''}</strong></td>
+        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="closeModal('modal-client-details'); setTimeout(() => openEmployeePerformanceModal('${escapeInlineJs(r.emp_id)}','${escapeInlineJs(r['اسم الموظف'])}','${escapeInlineJs(r.team_id)}'), 200)" title="عرض كشف الموظف">${escapeHtml(r['اسم الموظف'] || '')}</strong></td>
         <td><span style="font-size:10px; color:var(--text3);">${teamMap[r.team_id] || r.team_id || ''}</span></td>
         <td>${r['نوع المهمة'] || ''}</td>
         <td style="color:var(--success); font-weight:600;">${r['المدة'] || ''}</td>
@@ -7857,8 +7646,8 @@ function renderVisitsCards(list) {
         <div>
           <div class="team-card-top" style="margin-bottom:8px;">
             <div>
-              <div class="team-name" style="font-size:15px; color:var(--accent-l); cursor:pointer; font-weight:700;" onclick="openClientDetailsModal('${escapeHtml(v['العميل'])}')" title="اضغط لعرض تفاصيل العميل والزيارات">${v['العميل']}</div>
-              <div class="team-supervisor" style="font-size:11px; margin-top:2px;">المسؤول: <strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${v.emp_id}','${escapeHtml(v['اسم الموظف'])}','${v.team_id}')" title="اضغط لعرض الأداء الشهري">${v['اسم الموظف']}</strong> (${teamName})</div>
+              <div class="team-name" style="font-size:15px; color:var(--accent-l); cursor:pointer; font-weight:700;" onclick="openClientDetailsModal('${escapeInlineJs(v['العميل'])}')" title="اضغط لعرض تفاصيل العميل والزيارات">${escapeHtml(v['العميل'])}</div>
+              <div class="team-supervisor" style="font-size:11px; margin-top:2px;">المسؤول: <strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${escapeInlineJs(v.emp_id)}','${escapeInlineJs(v['اسم الموظف'])}','${escapeInlineJs(v.team_id)}')" title="اضغط لعرض الأداء الشهري">${escapeHtml(v['اسم الموظف'])}</strong> (${escapeHtml(teamName)})</div>
             </div>
             <span class="badge ${badgeClass}">${badgeText}</span>
           </div>
@@ -7948,8 +7737,8 @@ function renderVisitsTable(list) {
     
     return `
       <tr>
-        <td style="font-weight:600; color:var(--accent-l); cursor:pointer;" onclick="openClientDetailsModal('${escapeHtml(v['العميل'])}')" title="اضغط لعرض تفاصيل العميل والزيارات">${escapeHtml(v['العميل'])}</td>
-        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${v.emp_id}','${escapeHtml(v['اسم الموظف'])}','${v.team_id}')" title="اضغط لعرض الأداء الشهري">${escapeHtml(v['اسم الموظف'])}</strong></td>
+        <td style="font-weight:600; color:var(--accent-l); cursor:pointer;" onclick="openClientDetailsModal('${escapeInlineJs(v['العميل'])}')" title="اضغط لعرض تفاصيل العميل والزيارات">${escapeHtml(v['العميل'])}</td>
+        <td><strong style="cursor:pointer; color:var(--accent-l);" onclick="openEmployeePerformanceModal('${escapeInlineJs(v.emp_id)}','${escapeInlineJs(v['اسم الموظف'])}','${escapeInlineJs(v.team_id)}')" title="اضغط لعرض الأداء الشهري">${escapeHtml(v['اسم الموظف'])}</strong></td>
         <td><span class="team-badge" style="padding:2px 8px; font-size:11px;">${escapeHtml(teamName)}</span></td>
         <td>${escapeHtml(v['تاريخ الزيارة'])}</td>
         <td>${escapeHtml(v['وقت الزيارة'])}</td>
@@ -8000,7 +7789,7 @@ function renderNeglectedClients(teamId) {
     const tId = c.team_id || teamId || '';
     const tName = (STATE.teams.find(t => t.id === tId) || {})['اسم التيم'] || tId || 'مشترك';
     return `
-      <span class="btn-copy" onclick="quickScheduleVisitForClient('${name.replace(/'/g, "\\'")}', '${tId}')" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; background:var(--bg3); border-color:rgba(248, 113, 113, 0.25); color:var(--text2);" title="اضغط لجدولة زيارة فورية لهذا العميل">
+      <span class="btn-copy" onclick="quickScheduleVisitForClient('${escapeInlineJs(name)}', '${escapeInlineJs(tId)}')" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; background:var(--bg3); border-color:rgba(248, 113, 113, 0.25); color:var(--text2);" title="اضغط لجدولة زيارة فورية لهذا العميل">
         🏢 ${name} <small style="color:var(--text3); font-size:9.5px;">(${tName})</small> ➕
       </span>
     `;

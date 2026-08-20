@@ -8,7 +8,12 @@
   s.textContent = 'body{visibility:hidden!important;pointer-events:none!important;}';
   (document.head || document.documentElement).appendChild(s);
 
-  var timer = setTimeout(reveal, 6000); // ظهر بعد 6 ثواني لو الشبكة بطيئة
+  var finished = false;
+  var timer = setTimeout(function () {
+    if (finished) return;
+    finished = true;
+    lock();
+  }, 6000);
 
   function reveal() {
     clearTimeout(timer);
@@ -65,11 +70,14 @@
   })
   .then(function (r) { return r.json(); })
   .then(function (d) {
+    if (finished) return;
+    finished = true;
     if (d && d.active === true) { reveal(); }
     else { lock(); }
   })
   .catch(function () {
-    // لو الشبكة فصلت — اظهر الصفحة (RPCs هي اللي بتمنع البيانات)
-    reveal();
+    if (finished) return;
+    finished = true;
+    lock();
   });
 })();
