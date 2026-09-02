@@ -42,6 +42,10 @@ check(!/localStorage\.setItem\(['"]nuzum_password/.test(admin), 'admin password 
 check(admin.includes('async function exploreClientDetails()'), 'client explorer must fetch data asynchronously');
 check(admin.includes('async function exportEmployeeProfileExcel()'), 'employee export must fetch fresh data');
 check(!admin.includes('`${month}-31`'), 'month ranges must use the real final day');
+check(admin.includes("document.getElementById('rep-from')"), 'reports must initialize a start-date filter');
+check(admin.includes("document.getElementById('rep-to')"), 'reports must initialize an end-date filter');
+check(admin.includes('repFromInput.value = firstDay'), 'reports must default to the first day of the current month');
+check(admin.includes('repToInput.value   = lastDay'), 'reports must default to the real last day of the current month');
 
 const employee = fs.readFileSync('employee.html', 'utf8');
 check(employee.includes('if (teamSel.value) onLoginTeamChange();'), 'fallback login must populate employees for a selected team');

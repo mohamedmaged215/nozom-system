@@ -5735,6 +5735,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const lastDayDate = new Date(y, now.getMonth() + 1, 0);
   const lastDay = `${y}-${m}-${String(lastDayDate.getDate()).padStart(2, '0')}`;
+  const repFromInput = document.getElementById('rep-from');
+  const repToInput   = document.getElementById('rep-to');
+  if (repFromInput) repFromInput.value = firstDay;
+  if (repToInput)   repToInput.value   = lastDay;
+
   const attFromInput = document.getElementById('att-date-from');
   const attToInput   = document.getElementById('att-date-to');
   if (attFromInput) attFromInput.value = firstDay;
