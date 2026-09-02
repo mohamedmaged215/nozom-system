@@ -1556,89 +1556,7 @@ tr.row-has-note td:first-child {
          TASKS (التكليفات)
     ═══════════════════════════════════════════════ -->
     <div class="panel" id="panel-tasks">
-      <!-- أزرار التبويب الفرعي -->
-      <div class="filter-bar" style="margin-bottom:1.5rem; justify-content:flex-start; gap:10px; border-bottom:1px solid var(--border-color); padding-bottom:12px; background:none; border:none; padding-left:0; padding-right:0;">
-        <button id="task-subtab-normal-btn" class="btn btn-primary" onclick="switchTasksSubTab('normal')">
-          انشاء مهمه طارئه
-        </button>
-        <button id="task-subtab-recurring-btn" class="btn btn-secondary" style="background:transparent; color:var(--text2); border:1px solid var(--border-color);" onclick="switchTasksSubTab('recurring')">
-          انشاء مهمات متكرره
-        </button>
-      </div>
-
-      <!-- الحاوية الأولى: التكليفات العادية -->
-      <div id="tasks-normal-container">
-        <div class="mgmt-grid" style="margin-bottom:1.5rem;">
-          <div class="mgmt-card" style="grid-column: 1 / -1;">
-            <div class="mgmt-card-header"><span class="mgmt-card-title">إسناد تكليف جديد لموظف</span></div>
-            <div style="padding:1.25rem 1.5rem;">
-              <div class="add-row" style="flex-wrap:wrap; display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) 100px; gap:10px; margin-top:0;">
-                <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
-                  <label style="font-size:11px; color:var(--text3); font-weight:600;">الموظف</label>
-                  <input type="text" id="task-assign-emp" placeholder="اختر أو ابحث..." list="global-assign-emps-dl" style="width:100%;">
-                  <datalist id="global-assign-emps-dl"></datalist>
-                </div>
-                <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
-                  <label style="font-size:11px; color:var(--text3); font-weight:600;">العميل</label>
-                  <input type="text" id="task-assign-client" placeholder="اكتب أو ابحث..." list="task-assign-clients-dl">
-                  <datalist id="task-assign-clients-dl"></datalist>
-                </div>
-                <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
-                  <label style="font-size:11px; color:var(--text3); font-weight:600;">نوع المهمة</label>
-                  <select id="task-assign-type" onchange="updateAdminTaskDetails('task-assign')" style="width:100%;"></select>
-                </div>
-                <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
-                  <label style="font-size:11px; color:var(--text3); font-weight:600;">المهمة المطلوبة</label>
-                  <select id="task-assign-detail" style="width:100%;" disabled></select>
-                </div>
-                <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
-                  <label style="font-size:11px; color:var(--text3); font-weight:600;">ملاحظات (اختياري)</label>
-                  <input type="text" id="task-assign-notes" placeholder="تفاصيل إضافية عند الحاجة...">
-                </div>
-                <div style="display:flex; align-items:flex-end;">
-                  <button class="btn btn-primary" style="height:36px; width:100%; justify-content:center;" onclick="submitAssignTask()">إسناد</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title" id="tasks-assigned-count">قائمة التكليفات</span>
-            <div class="filter-bar" style="margin-bottom:0; padding:4px 8px; border:none; background:none;">
-              <select id="tasks-filter-status" onchange="loadAssignedTasksList()" style="font-size:12px; padding:4px 10px;">
-                <option value="">كل الحالات</option>
-                <option value="معلقة" selected>معلقة</option>
-                <option value="مكتملة">مكتملة</option>
-              </select>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الموظف</th>
-                  <th>التيم</th>
-                  <th>العميل</th>
-                  <th>نوع المهمة</th>
-                  <th>المهمة المطلوبة</th>
-                  <th>تاريخ الإسناد</th>
-                  <th>الحالة</th>
-                  <th>تاريخ الاكتمال</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="tasks-assigned-tbody">
-                <tr><td colspan="9"><div class="empty"><div class="empty-text">جاري تحميل التكليفات...</div></div></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- الحاوية الثانية: قوالب المهام الدورية -->
-      <div id="tasks-recurring-container" style="display:none;">
+      <div id="tasks-recurring-container">
         <div class="mgmt-grid" style="margin-bottom:1.5rem;">
           <div class="mgmt-card" style="grid-column: 1 / -1;">
             <div class="mgmt-card-header"><span class="mgmt-card-title">بناء مهمه دوريه تتوارث تلقائياً شهرياً</span></div>
@@ -5714,7 +5632,7 @@ async function refreshAll() {
   } else if (activePanel === 'panel-visits') {
     filterVisitsList();
   } else if (activePanel === 'panel-tasks') {
-    loadAssignedTasksList();
+    loadRecurringTasksList();
   } else if (activePanel === 'panel-employees') {
     renderEmployeesList();
   } else if (activePanel === 'panel-clients') {
@@ -5761,7 +5679,7 @@ function switchPanel(name) {
   if (name === 'reportcenter') {
     initReportCenter();
   } else if (name === 'tasks') {
-    loadAssignedTasksList();
+    loadRecurringTasksList();
     checkRecTaskEmpRole();
   } else if (name === 'visits') {
     renderVisits();
@@ -6011,42 +5929,8 @@ async function deleteAssignedTask(id) {
 }
 
 // ══════════════════════════════════════════════════════
-// RECURRING TASKS SUB-TAB SWITCHING & TEMPLATE OPERATIONS
+// RECURRING TASK TEMPLATE OPERATIONS
 // ══════════════════════════════════════════════════════
-function switchTasksSubTab(sub) {
-  STATE.activeTasksSubTab = sub;
-  const normalBtn = document.getElementById('task-subtab-normal-btn');
-  const recBtn = document.getElementById('task-subtab-recurring-btn');
-  const normalCont = document.getElementById('tasks-normal-container');
-  const recCont = document.getElementById('tasks-recurring-container');
-  
-  if (!normalBtn || !recBtn || !normalCont || !recCont) return;
-
-  if (sub === 'normal') {
-    normalBtn.className = 'btn btn-primary';
-    recBtn.className = 'btn btn-secondary';
-    recBtn.style.background = 'transparent';
-    recBtn.style.color = 'var(--text2)';
-    recBtn.style.border = '1px solid var(--border-color)';
-    normalCont.style.display = 'block';
-    recCont.style.display = 'none';
-    loadAssignedTasksList();
-  } else {
-    recBtn.className = 'btn btn-primary';
-    recBtn.style.background = '';
-    recBtn.style.color = '';
-    recBtn.style.border = '';
-    normalBtn.className = 'btn btn-secondary';
-    normalBtn.style.background = 'transparent';
-    normalBtn.style.color = 'var(--text2)';
-    normalBtn.style.border = '1px solid var(--border-color)';
-    normalCont.style.display = 'none';
-    recCont.style.display = 'block';
-    loadRecurringTasksList();
-    checkRecTaskEmpRole();
-  }
-}
-
 function toggleRecWeekDropdown() {
   // Empty since we removed week selection dropdown
 }

@@ -63,7 +63,10 @@ const catalogTypes = ['البنك','المشتريات','المبيعات','ال
 catalogTypes.forEach(type => check(taskCatalog.includes(`'${type}'`), `task catalog must include ${type}`));
 check(loadedTaskCatalog?.types.length === 8, 'task catalog must expose exactly eight task types');
 check(Object.values(loadedTaskCatalog?.catalog || {}).flat().length === 70, 'task catalog must expose all 70 approved task details');
-check(admin.includes('id="task-assign-detail"'), 'assigned task form must include the dependent task detail select');
+check(!admin.includes('id="task-subtab-normal-btn"'), 'urgent task creation tab must be removed');
+check(!admin.includes('id="tasks-normal-container"'), 'urgent task creation form must be removed');
+check(!admin.includes('انشاء مهمه طارئه'), 'urgent task creation label must be removed');
+check(admin.includes('id="tasks-recurring-container"'), 'recurring task management must remain available');
 check(admin.includes('id="rec-task-detail"'), 'recurring task form must include the dependent task detail select');
 
 try {
