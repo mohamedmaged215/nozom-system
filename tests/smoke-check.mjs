@@ -63,10 +63,13 @@ try {
   failed = true;
   console.error(error.stack);
 }
-const catalogTypes = ['البنك','المشتريات','المبيعات','الموردين','العملاء','التقارير','الإقرارات','الميزانية'];
+const catalogTypes = ['البنك','المشتريات','المبيعات','الموردين','العملاء','التقارير','الإقرارات','الميزانية','عام'];
 catalogTypes.forEach(type => check(taskCatalog.includes(`'${type}'`), `task catalog must include ${type}`));
-check(loadedTaskCatalog?.types.length === 8, 'task catalog must expose exactly eight task types');
-check(Object.values(loadedTaskCatalog?.catalog || {}).flat().length === 70, 'task catalog must expose all 70 approved task details');
+check(loadedTaskCatalog?.types.length === 9, 'task catalog must expose exactly nine task types');
+check(Object.values(loadedTaskCatalog?.catalog || {}).flat().length === 75, 'task catalog must expose all 75 approved task details');
+check(loadedTaskCatalog?.catalog['عام']?.includes('إعداد أو تسجيل مسير رواتب'), 'general tasks must include payroll preparation or entry');
+check(loadedTaskCatalog?.requiresNotes('مهمة أخرى') === true, 'other tasks must require a description');
+check(loadedTaskCatalog?.requiresNotes('إعداد أو تسجيل مسير رواتب') === false, 'known general tasks must keep notes optional');
 check(!admin.includes('id="task-subtab-normal-btn"'), 'urgent task creation tab must be removed');
 check(!admin.includes('id="tasks-normal-container"'), 'urgent task creation form must be removed');
 check(!admin.includes('انشاء مهمه طارئه'), 'urgent task creation label must be removed');

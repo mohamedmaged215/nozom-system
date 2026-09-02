@@ -695,11 +695,11 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
 
     <div class="field-group" style="margin-bottom: 12px;">
       <label>المهمة المطلوبة</label>
-      <select id="sup-manual-detail" style="width:100%;" disabled></select>
+      <select id="sup-manual-detail" onchange="updateSupManualNotesRequirement()" style="width:100%;" disabled></select>
     </div>
 
     <div class="field-group">
-      <label>ملاحظات (اختياري)</label>
+      <label id="sup-manual-notes-label">ملاحظات (اختياري)</label>
       <textarea id="sup-manual-desc" placeholder="أضف أي تفاصيل إضافية عند الحاجة..." rows="2" style="width:100%; padding:10px; resize:vertical;"></textarea>
     </div>
 
@@ -1288,6 +1288,19 @@ function updateTaskDetails(id, selectedDetail = '') {
   const typeSelect = document.getElementById(`tasktype-${id}`);
   const detailSelect = document.getElementById(`desc-${id}`);
   TaskCatalog.populateDetailSelect(detailSelect, typeSelect?.value || '', selectedDetail, true);
+  updateTaskNotesRequirement(id);
+}
+
+function updateTaskNotesRequirement(id) {
+  const detail = document.getElementById(`desc-${id}`)?.value || '';
+  const notesInput = document.getElementById(`notes-${id}`);
+  const notesLabel = document.getElementById(`notes-label-${id}`);
+  const required = TaskCatalog.requiresNotes(detail);
+  if (notesInput) {
+    notesInput.required = required;
+    notesInput.placeholder = required ? 'اكتب وصف المهمة التي تم تنفيذها...' : 'أضف ملاحظة عند الحاجة...';
+  }
+  if (notesLabel) notesLabel.textContent = required ? 'وصف المهمة (إجباري)' : 'ملاحظات (اختياري)';
 }
 
 function setTaskCardClassification(id, tasktype, description) {
@@ -1360,10 +1373,10 @@ function addTask(){
     <div class="grid2" style="margin-top:12px">
       <div class="field-group">
         <label>المهمة المطلوبة</label>
-        <select id="desc-${id}" style="width:100%;" disabled></select>
+        <select id="desc-${id}" onchange="updateTaskNotesRequirement(${id})" style="width:100%;" disabled></select>
       </div>
       <div class="field-group">
-        <label>ملاحظات (اختياري)</label>
+        <label id="notes-label-${id}">ملاحظات (اختياري)</label>
         <textarea id="notes-${id}" placeholder="أضف ملاحظة عند الحاجة..." rows="2"></textarea>
       </div>
     </div>`;
@@ -1537,6 +1550,8 @@ function collectData(){
       from:`${fh}:${fm} ${fp==='AM'?'ص':'م'}`,
       to:`${th}:${tm} ${tp==='AM'?'ص':'م'}`,
       dur:pill&&!pill.classList.contains('empty')?pill.textContent:'0:00',
+      detail:document.getElementById(`desc-${id}`)?.value||'',
+      notes:document.getElementById(`notes-${id}`)?.value.trim()||'',
       desc:TaskCatalog.composeDescription(
         document.getElementById(`desc-${id}`)?.value,
         document.getElementById(`notes-${id}`)?.value
@@ -1594,6 +1609,11 @@ async function submitReport(appendOverride){
     // التأكد من اختيار المهمة المطلوبة
     if (!r.desc || !r.desc.trim()) {
       showToast(`يرجى اختيار المهمة المطلوبة للمهمة رقم ${i + 1}`, 'error');
+      return;
+    }
+
+    if (TaskCatalog.requiresNotes(r.detail) && !r.notes) {
+      showToast(`يرجى كتابة وصف المهمة رقم ${i + 1}`, 'error');
       return;
     }
     
@@ -2695,6 +2715,19 @@ function updateSupManualDetails(selectedDetail = '') {
     selectedDetail,
     false
   );
+  updateSupManualNotesRequirement();
+}
+
+function updateSupManualNotesRequirement() {
+  const detail = document.getElementById('sup-manual-detail')?.value || '';
+  const notesInput = document.getElementById('sup-manual-desc');
+  const notesLabel = document.getElementById('sup-manual-notes-label');
+  const required = TaskCatalog.requiresNotes(detail);
+  if (notesInput) {
+    notesInput.required = required;
+    notesInput.placeholder = required ? 'اكتب وصف المهمة التي تم تنفيذها...' : 'أضف أي تفاصيل إضافية عند الحاجة...';
+  }
+  if (notesLabel) notesLabel.textContent = required ? 'وصف المهمة (إجباري)' : 'ملاحظات (اختياري)';
 }
 
 async function submitSupManualTask() {
@@ -2708,6 +2741,7 @@ async function submitSupManualTask() {
   if (!client) { showToast('يرجى تحديد العميل', 'error'); return; }
   if (!tasktype) { showToast('يرجى تحديد نوع المهمة', 'error'); return; }
   if (!detail) { showToast('يرجى اختيار المهمة المطلوبة', 'error'); return; }
+  if (TaskCatalog.requiresNotes(detail) && !notes) { showToast('يرجى كتابة وصف المهمة', 'error'); return; }
   
   const btn = document.getElementById('btn-sup-manual-submit');
   btn.disabled = true;

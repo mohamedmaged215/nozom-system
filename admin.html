@@ -1599,10 +1599,10 @@ tr.row-has-note td:first-child {
                 </div>
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
                   <label style="font-size:11px; color:var(--text3); font-weight:600;">المهمة المطلوبة</label>
-                  <select id="rec-task-detail" style="width:100%;" disabled></select>
+                  <select id="rec-task-detail" onchange="updateAdminTaskNotesRequirement('rec-task')" style="width:100%;" disabled></select>
                 </div>
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
-                  <label style="font-size:11px; color:var(--text3); font-weight:600;">ملاحظات (اختياري)</label>
+                  <label id="rec-task-notes-label" style="font-size:11px; color:var(--text3); font-weight:600;">ملاحظات (اختياري)</label>
                   <input type="text" id="rec-task-notes" placeholder="تفاصيل ثابتة إضافية عند الحاجة...">
                 </div>
                 <div style="display:flex; align-items:flex-end; gap:8px;">
@@ -3055,6 +3055,19 @@ function updateAdminTaskDetails(prefix, selectedDetail = '') {
     selectedDetail,
     true
   );
+  updateAdminTaskNotesRequirement(prefix);
+}
+
+function updateAdminTaskNotesRequirement(prefix) {
+  const detail = document.getElementById(`${prefix}-detail`)?.value || '';
+  const notesInput = document.getElementById(`${prefix}-notes`);
+  const notesLabel = document.getElementById(`${prefix}-notes-label`);
+  const required = TaskCatalog.requiresNotes(detail);
+  if (notesInput) {
+    notesInput.required = required;
+    notesInput.placeholder = required ? 'اكتب وصف المهمة المطلوبة...' : 'تفاصيل ثابتة إضافية عند الحاجة...';
+  }
+  if (notesLabel) notesLabel.textContent = required ? 'وصف المهمة (إجباري)' : 'ملاحظات (اختياري)';
 }
 
 function setAdminTaskSelection(prefix, tasktype, description) {
@@ -5848,6 +5861,7 @@ async function submitAssignTask() {
   if (!client) { showToast('الرجاء تحديد العميل', 'error'); return; }
   if (!tasktype) { showToast('الرجاء تحديد نوع المهمة', 'error'); return; }
   if (!detail) { showToast('الرجاء اختيار المهمة المطلوبة', 'error'); return; }
+  if (TaskCatalog.requiresNotes(detail) && !notesInput.value.trim()) { showToast('الرجاء كتابة وصف المهمة', 'error'); return; }
 
   let empObj;
   if (STATE.role === 'admin') {
@@ -6107,6 +6121,7 @@ async function submitSaveRecurringTask() {
   if (!client) { showToast('الرجاء تحديد العميل', 'error'); return; }
   if (!tasktype) { showToast('الرجاء تحديد نوع المهمة', 'error'); return; }
   if (!detail) { showToast('الرجاء اختيار المهمة المطلوبة', 'error'); return; }
+  if (TaskCatalog.requiresNotes(detail) && !notesInput.value.trim()) { showToast('الرجاء كتابة وصف المهمة', 'error'); return; }
 
   let empObj;
   if (STATE.role === 'admin') {

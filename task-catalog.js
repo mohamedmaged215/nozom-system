@@ -87,10 +87,18 @@
       'إرسال الميزانية المعتمدة من المحاسب القانوني للعميل',
       'أرشفة الميزانية المعتمدة من المحاسب القانوني',
       'إقفال السنة على النظام المحاسبي'
+    ]),
+    'عام': Object.freeze([
+      'إعداد أو تسجيل مسير رواتب',
+      'مراجعة مستندات',
+      'متابعة مع عميل',
+      'اجتماع',
+      'مهمة أخرى'
     ])
   });
 
   const types = Object.freeze(Object.keys(catalog));
+  const otherTaskDetail = 'مهمة أخرى';
   const notesMarker = '\nملاحظات: ';
 
   function setOptions(select, values, placeholder, selectedValue, allowLegacy) {
@@ -154,6 +162,10 @@
     return taskNotes ? `${taskDetail}${notesMarker}${taskNotes}` : taskDetail;
   }
 
+  function requiresNotes(detail) {
+    return String(detail || '').trim() === otherTaskDetail;
+  }
+
   function appendNotes(description, notes) {
     const base = String(description || '').trim();
     const extra = String(notes || '').trim();
@@ -164,10 +176,12 @@
   global.TaskCatalog = Object.freeze({
     catalog,
     types,
+    otherTaskDetail,
     populateTypeSelect,
     populateDetailSelect,
     splitDescription,
     composeDescription,
+    requiresNotes,
     appendNotes
   });
 })(window);
