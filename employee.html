@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <script src="guard.js"></script>
+  <script src="task-catalog.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>تقرير المهام — نظم وحلول</title>
@@ -393,6 +394,46 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
   transform: translateY(-1px);
 }
 
+@media (max-width: 640px) {
+  html, body { overflow-x: hidden; }
+  .app-header {
+    position: relative;
+    height: auto;
+    padding: 12px 14px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .brand { justify-content: center; }
+  .header-right {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .btn-guide-pill {
+    grid-column: 1 / -1;
+    justify-content: center;
+    margin-left: 0;
+  }
+  .team-badge, .emp-badge, .header-date {
+    min-width: 0;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+  .header-date { grid-column: 1 / -1; }
+  .main { width: 100%; padding: 1.25rem .75rem 4rem; }
+  .info-card { grid-template-columns: 1fr; padding: 1rem; gap: 1rem; }
+  .grid2 { grid-template-columns: 1fr; }
+  .task-card { padding: 1rem; }
+  .time-picker { gap: 4px; }
+  .time-picker select { min-width: 0; padding-right: 6px; padding-left: 22px; }
+  .stats-row { gap: 7px; }
+  .stat-card { padding: .8rem .65rem; }
+  .actions { grid-template-columns: 1fr; }
+  .modal { width: calc(100% - 24px); padding: 1.25rem; }
+}
+
 </style>
 </head>
 <body>
@@ -620,11 +661,12 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
     <div class="modal-title" style="color: var(--warning); font-size: 15px; font-weight:750;">تأكيد إتمام التكليف</div>
     <div style="font-size: 12.5px; color: var(--text2); margin-bottom: 14px; line-height: 1.6;">
       العميل: <strong id="sup-comp-client" style="color:var(--text)">—</strong><br>
-      المهمة: <strong id="sup-comp-type" style="color:var(--text)">—</strong>
+      نوع المهمة: <strong id="sup-comp-type" style="color:var(--text)">—</strong><br>
+      المهمة المطلوبة: <strong id="sup-comp-detail" style="color:var(--text)">—</strong>
     </div>
     <div class="field-group">
-      <label>وصف العمل أو ملاحظات الإتمام</label>
-      <textarea id="sup-comp-desc" placeholder="اكتب ملخصاً لما قمت به لإتمام هذه المهمة (اختياري)..." rows="3" style="width:100%; padding:10px; resize:vertical;"></textarea>
+      <label>ملاحظات الإتمام (اختياري)</label>
+      <textarea id="sup-comp-desc" placeholder="أضف ملاحظة فقط عند الحاجة..." rows="3" style="width:100%; padding:10px; resize:vertical;"></textarea>
     </div>
     <div class="modal-actions" style="margin-top: 15px;">
       <button class="btn-sm-cancel" onclick="closeModal('modal-sup-complete')">إلغاء</button>
@@ -642,26 +684,23 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
       <div class="client-wrap">
         <input type="text" id="sup-manual-client" placeholder="ابحث أو اكتب اسم العميل..." list="sup-manual-clients-dl">
         <datalist id="sup-manual-clients-dl"></datalist>
-        <datalist id="global-task-types-dl"></datalist>
         <button class="btn-add-client" onclick="openAddClient('sup-manual')">+</button>
       </div>
     </div>
 
     <div class="field-group" style="margin-bottom: 12px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <label>نوع المهمة</label>
-        <div style="display:flex; gap:4px; align-items:center;">
-          <button type="button" class="btn btn-sm btn-primary" style="height:18px; width:18px; padding:0; font-size:10px; display:flex; align-items:center; justify-content:center; border-radius:3px; background:var(--accent);" onclick="promptAddTaskTypeEmployee()">+</button>
-          <button type="button" class="btn btn-sm btn-danger" style="height:18px; width:18px; padding:0; font-size:10px; display:flex; align-items:center; justify-content:center; border-radius:3px; background:var(--danger-s); color:var(--danger); border:1px solid rgba(248,113,113,0.2);" onclick="promptDeleteTaskTypeEmployee()">✕</button>
-        </div>
-      </div>
-      <input type="text" id="sup-manual-type" placeholder="اختر أو ابحث..." list="sup-manual-type-dl" style="width:100%;">
-      <datalist id="sup-manual-type-dl"></datalist>
+      <label>نوع المهمة</label>
+      <select id="sup-manual-type" onchange="updateSupManualDetails()" style="width:100%;"></select>
+    </div>
+
+    <div class="field-group" style="margin-bottom: 12px;">
+      <label>المهمة المطلوبة</label>
+      <select id="sup-manual-detail" style="width:100%;" disabled></select>
     </div>
 
     <div class="field-group">
-      <label>تفاصيل العمل / وصف الإتمام</label>
-      <textarea id="sup-manual-desc" placeholder="اكتب هنا تفاصيل العمل المنجز للعميل..." rows="3" style="width:100%; padding:10px; resize:vertical;"></textarea>
+      <label>ملاحظات (اختياري)</label>
+      <textarea id="sup-manual-desc" placeholder="أضف أي تفاصيل إضافية عند الحاجة..." rows="2" style="width:100%; padding:10px; resize:vertical;"></textarea>
     </div>
 
     <div class="modal-actions" style="margin-top: 15px;">
@@ -728,7 +767,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
 <script>
 const HOURS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 const MINS  = ['00','05','10','15','20','25','30','35','40','45','50','55'];
-let TASK_TYPES = ['مبيعات','مشتريات','بنوك','تسجيلات','إقفالات شهرية','إقفالات سنوية','تقارير','إقرارات شهرية','إقرارات ربع سنوية','تفريغ','قوائم مالية','متابعة عملاء يومية','اجتماع','اجتماع العمل الأسبوعي','أمور تقنية','إضافي'];
+const TASK_TYPES = TaskCatalog.types;
 
 
 let STATE = { reports: [], tasks: [], clients: [], visits: [] };
@@ -736,7 +775,7 @@ let EMP_ID='', EMP_NAME='', TEAM_ID='';
 let clients=[], taskIds=[], taskCounter=0, activeClientTaskId=null;
 let completedTasksMap={};
 let completedRecTasksMap={};
-let activeSupTaskId=null, activeSupRecTaskId=null, activeSupRecType='', activeSupRecDescription='';
+let activeSupTaskId=null, activeSupRecTaskId=null, activeSupRecType='', activeSupTaskDescription='', activeSupRecDescription='';
 let currentSupRole='موظف';
 let globalTeamsList = [];
 let employeeRecords = [];
@@ -882,19 +921,12 @@ function normalizeReportsResponse(res) {
 }
 
 function normalizeTaskTypesResponse(res) {
-  if (!Array.isArray(res)) return TASK_TYPES;
-  return res.map(t => typeof t === 'string' ? t : t?.name).filter(Boolean);
+  return TASK_TYPES;
 }
 
 function populateTaskTypes() {
-  const globalDl = document.getElementById('global-task-types-dl');
-  if (globalDl) {
-    globalDl.innerHTML = TASK_TYPES.map(t => `<option value="${t}">${t}</option>`).join('');
-  }
-  const supDl = document.getElementById('sup-manual-type-dl');
-  if (supDl) {
-    supDl.innerHTML = TASK_TYPES.map(t => `<option value="${t}">${t}</option>`).join('');
-  }
+  const supType = document.getElementById('sup-manual-type');
+  if (supType) TaskCatalog.populateTypeSelect(supType, supType.value, false);
 }
 
 // بيانات bootstrap محفوظة مؤقتاً لاستخدامها في الـ login screen
@@ -1069,7 +1101,7 @@ async function _initAfterLogin(empRecord) {
     STATE.tasks         = (tasksDb    || []).map(mapTask);
     STATE.recurringTasks= (recTasksDb || []).map(mapRecurringTask);
     STATE.visits        = (visitsDb   || []).map(mapVisit);
-    TASK_TYPES = normalizeTaskTypesResponse(taskTypesDb);
+    normalizeTaskTypesResponse(taskTypesDb);
     populateTaskTypes();
 
     document.getElementById('header-date').textContent = new Date().toLocaleDateString('en-GB', {
@@ -1252,6 +1284,21 @@ function checkExistingReport(){
   initEmployeeRecurringTasks();
 }
 
+function updateTaskDetails(id, selectedDetail = '') {
+  const typeSelect = document.getElementById(`tasktype-${id}`);
+  const detailSelect = document.getElementById(`desc-${id}`);
+  TaskCatalog.populateDetailSelect(detailSelect, typeSelect?.value || '', selectedDetail, true);
+}
+
+function setTaskCardClassification(id, tasktype, description) {
+  const typeSelect = document.getElementById(`tasktype-${id}`);
+  const notesInput = document.getElementById(`notes-${id}`);
+  const parsed = TaskCatalog.splitDescription(tasktype, description);
+  TaskCatalog.populateTypeSelect(typeSelect, tasktype, true);
+  updateTaskDetails(id, parsed.detail);
+  if (notesInput) notesInput.value = parsed.notes;
+}
+
 function addTask(){
   const id=++taskCounter; taskIds.push(id);
   const hoursOpts=HOURS.map(h=>`<option value="${h}" label="${h}">${h}</option>`).join('');
@@ -1281,7 +1328,7 @@ function addTask(){
       </div>
       <div class="field-group">
         <label>نوع المهمة</label>
-        <input type="text" id="tasktype-${id}" placeholder="اختر أو ابحث..." list="global-task-types-dl" style="width:100%;">
+        <select id="tasktype-${id}" onchange="updateTaskDetails(${id})" style="width:100%;"></select>
       </div>
     </div>
     <div class="grid2">
@@ -1310,11 +1357,19 @@ function addTask(){
         </div>
       </div>
     </div>
-    <div class="field-group" style="margin-top:12px">
-      <label>وصف المهمة</label>
-      <textarea id="desc-${id}" placeholder="وصف مختصر لما تم إنجازه..." rows="2"></textarea>
+    <div class="grid2" style="margin-top:12px">
+      <div class="field-group">
+        <label>المهمة المطلوبة</label>
+        <select id="desc-${id}" style="width:100%;" disabled></select>
+      </div>
+      <div class="field-group">
+        <label>ملاحظات (اختياري)</label>
+        <textarea id="notes-${id}" placeholder="أضف ملاحظة عند الحاجة..." rows="2"></textarea>
+      </div>
     </div>`;
   document.getElementById('tasks-container').appendChild(card);
+  TaskCatalog.populateTypeSelect(document.getElementById(`tasktype-${id}`), '', false);
+  updateTaskDetails(id);
   if (taskIds.length === 1) {
     document.getElementById(`tp-from-h-${id}`).value = '09';
     document.getElementById(`tp-from-m-${id}`).value = '00';
@@ -1482,7 +1537,10 @@ function collectData(){
       from:`${fh}:${fm} ${fp==='AM'?'ص':'م'}`,
       to:`${th}:${tm} ${tp==='AM'?'ص':'م'}`,
       dur:pill&&!pill.classList.contains('empty')?pill.textContent:'0:00',
-      desc:document.getElementById(`desc-${id}`)?.value.trim()||'',
+      desc:TaskCatalog.composeDescription(
+        document.getElementById(`desc-${id}`)?.value,
+        document.getElementById(`notes-${id}`)?.value
+      ),
       source: sourceVal,
       task_id: taskIdVal,
       recurrence: recurrenceVal
@@ -1533,9 +1591,9 @@ async function submitReport(appendOverride){
       return;
     }
     
-    // التأكد من إدخال وصف المهمة
+    // التأكد من اختيار المهمة المطلوبة
     if (!r.desc || !r.desc.trim()) {
-      showToast(`برجاء كتابة وصف للمهمة رقم ${i + 1}`, 'error');
+      showToast(`يرجى اختيار المهمة المطلوبة للمهمة رقم ${i + 1}`, 'error');
       return;
     }
     
@@ -1755,7 +1813,8 @@ function importAssignedTask(taskId, client, tasktype, desc) {
     const cVal = document.getElementById(`client-${tid}`)?.value || '';
     const tVal = document.getElementById(`tasktype-${tid}`)?.value || '';
     const dVal = document.getElementById(`desc-${tid}`)?.value || '';
-    if (!cVal.trim() && !tVal.trim() && !dVal.trim()) {
+    const nVal = document.getElementById(`notes-${tid}`)?.value || '';
+    if (!cVal.trim() && !tVal.trim() && !dVal.trim() && !nVal.trim()) {
       id = tid;
       reused = true;
       break;
@@ -1769,8 +1828,7 @@ function importAssignedTask(taskId, client, tasktype, desc) {
   
   // تعبئة البيانات بالقيم
   document.getElementById(`client-${id}`).value = client;
-  document.getElementById(`tasktype-${id}`).value = tasktype;
-  document.getElementById(`desc-${id}`).value = desc;
+  setTaskCardClassification(id, tasktype, desc);
   
   // ضبط التوقيت تلقائياً ليأخذ نهاية وقت المهمة السابقة
   const currentIdx = taskIds.indexOf(id);
@@ -2077,7 +2135,8 @@ function importRecurringTask(taskId, recurrence, client, tasktype, desc) {
     const cVal = document.getElementById(`client-${tid}`)?.value || '';
     const tVal = document.getElementById(`tasktype-${tid}`)?.value || '';
     const dVal = document.getElementById(`desc-${tid}`)?.value || '';
-    if (!cVal.trim() && !tVal.trim() && !dVal.trim()) {
+    const nVal = document.getElementById(`notes-${tid}`)?.value || '';
+    if (!cVal.trim() && !tVal.trim() && !dVal.trim() && !nVal.trim()) {
       id = tid;
       reused = true;
       break;
@@ -2091,8 +2150,7 @@ function importRecurringTask(taskId, recurrence, client, tasktype, desc) {
 
   // تعبئة البيانات بالقيم
   document.getElementById(`client-${id}`).value = client;
-  document.getElementById(`tasktype-${id}`).value = tasktype;
-  document.getElementById(`desc-${id}`).value = desc;
+  setTaskCardClassification(id, tasktype, desc);
   
   // ضبط التوقيت تلقائياً ليأخذ نهاية وقت المهمة السابقة
   const currentIdx = taskIds.indexOf(id);
@@ -2357,7 +2415,7 @@ async function quietRefreshEmployeeTasks() {
     ]);
     STATE.tasks = (tasksDb || []).map(mapTask);
     STATE.recurringTasks = (recDb || []).map(mapRecurringTask);
-    TASK_TYPES = normalizeTaskTypesResponse(taskTypesDb);
+    normalizeTaskTypesResponse(taskTypesDb);
     populateTaskTypes();
     
     const trTasks = STATE.tasks.filter(t => String(t.emp_id) === String(EMP_ID) && t['الحالة'] === 'معلقة');
@@ -2389,7 +2447,7 @@ function renderSupervisorTasks(tasks) {
           <div style="font-size:12.5px; color:var(--text2); margin-bottom:12px; line-height:1.5; white-space: pre-wrap;">${escapeHtml(t['وصف المهمة']) || 'لا يوجد وصف تفصيلي للمهمة.'}</div>
           <div style="font-size:11px; color:var(--text3); margin-bottom:15px;">تاريخ الإسناد: ${t['تاريخ الإسناد'] || ''}</div>
         </div>
-        <button class="btn btn-warning" style="width:100%; justify-content:center; padding:9px; font-size:12.5px; background:var(--warning-s); color:var(--warning); border:1px solid rgba(251,191,36,0.25); font-weight:700;" onclick="openSupTaskCompletionModal('${escapeInlineJs(t.id)}', \`${escapeInlineJs(t['العميل'])}\`, \`${escapeInlineJs(t['نوع المهمة'])}\`)">
+        <button class="btn btn-warning" style="width:100%; justify-content:center; padding:9px; font-size:12.5px; background:var(--warning-s); color:var(--warning); border:1px solid rgba(251,191,36,0.25); font-weight:700;" onclick="openSupTaskCompletionModal('${escapeInlineJs(t.id)}', \`${escapeInlineJs(t['العميل'])}\`, \`${escapeInlineJs(t['نوع المهمة'])}\`, \`${escapeInlineJs(t['وصف المهمة'])}\`)">
           تأكيد إتمام التكليف
         </button>
       </div>
@@ -2397,12 +2455,15 @@ function renderSupervisorTasks(tasks) {
   }).join('');
 }
 
-function openSupTaskCompletionModal(taskId, client, tasktype) {
+function openSupTaskCompletionModal(taskId, client, tasktype, description) {
   activeSupTaskId = taskId;
   activeSupRecTaskId = null;
+  activeSupTaskDescription = description || '';
+  activeSupRecDescription = '';
   
   document.getElementById('sup-comp-client').textContent = client;
   document.getElementById('sup-comp-type').textContent = tasktype;
+  document.getElementById('sup-comp-detail').textContent = description || 'مهمة قديمة بدون وصف محدد';
   document.getElementById('sup-comp-desc').value = '';
   
   const modalTitle = document.querySelector('#modal-sup-complete .modal-title');
@@ -2415,10 +2476,12 @@ function openSupRecurringTaskCompletionModal(taskId, recurrence, client, tasktyp
   activeSupTaskId = null;
   activeSupRecTaskId = taskId;
   activeSupRecType = recurrence;
+  activeSupTaskDescription = '';
   activeSupRecDescription = desc;
 
   document.getElementById('sup-comp-client').textContent = client;
   document.getElementById('sup-comp-type').textContent = tasktype;
+  document.getElementById('sup-comp-detail').textContent = desc || 'مهمة دورية قديمة بدون وصف محدد';
   document.getElementById('sup-comp-desc').value = '';
   
   const modalTitle = document.querySelector('#modal-sup-complete .modal-title');
@@ -2429,9 +2492,9 @@ function openSupRecurringTaskCompletionModal(taskId, recurrence, client, tasktyp
 
 async function submitSupTaskCompletion() {
   if (!activeSupTaskId && !activeSupRecTaskId) return;
-  const desc = document.getElementById('sup-comp-desc').value.trim();
-  
-  if (!desc) { showToast('برجاء كتابة وصف العمل أو ملاحظات الإتمام', 'error'); return; }
+  const notes = document.getElementById('sup-comp-desc').value.trim();
+  const baseDescription = activeSupTaskId ? activeSupTaskDescription : activeSupRecDescription;
+  const desc = TaskCatalog.appendNotes(baseDescription, notes) || 'تم إتمام المهمة بنجاح.';
   
   const client = document.getElementById('sup-comp-client').textContent;
   const tasktype = document.getElementById('sup-comp-type').textContent;
@@ -2465,7 +2528,7 @@ async function submitSupTaskCompletion() {
       'من': '',
       'إلى': '',
       'المدة': '0:00',
-      'وصف المهمة': desc || "تم إتمام التكليف المسند بنجاح.",
+      'وصف المهمة': desc,
       'مصدر المهمة': 'إسناد',
       'task_id': activeSupTaskId,
       'وقت الإرسال': new Date().toISOString()
@@ -2483,7 +2546,7 @@ async function submitSupTaskCompletion() {
       'من': '',
       'إلى': '',
       'المدة': '0:00',
-      'وصف المهمة': desc || activeSupRecDescription || "تم إتمام المهمة الدورية بنجاح.",
+      'وصف المهمة': desc,
       'مصدر المهمة': 'دوري',
       'task_id': activeSupRecTaskId,
       'نوع التكرار': activeSupRecType,
@@ -2514,7 +2577,7 @@ async function submitSupTaskCompletion() {
       from: "",
       to: "",
       dur: "0:00",
-      desc: desc || (activeSupTaskId ? "تم إتمام التكليف المسند بنجاح." : (activeSupRecDescription || "تم إتمام المهمة الدورية بنجاح.")),
+      desc: desc,
       source: activeSupTaskId ? "إسناد" : "دوري",
       task_id: activeSupTaskId || activeSupRecTaskId || "",
       recurrence: activeSupRecTaskId ? activeSupRecType : ""
@@ -2615,8 +2678,8 @@ async function promptDeleteTaskTypeEmployee() {
 function openSupManualTaskModal() {
   document.getElementById('sup-manual-client').value = '';
   document.getElementById('sup-manual-desc').value = '';
-  
-  populateTaskTypes();
+  TaskCatalog.populateTypeSelect(document.getElementById('sup-manual-type'), '', false);
+  updateSupManualDetails();
   
   const dl = document.getElementById('sup-manual-clients-dl');
   dl.innerHTML = clients.map(c => `<option value="${c}">`).join('');
@@ -2624,15 +2687,27 @@ function openSupManualTaskModal() {
   openModal('modal-sup-manual');
 }
 
+function updateSupManualDetails(selectedDetail = '') {
+  const tasktype = document.getElementById('sup-manual-type')?.value || '';
+  TaskCatalog.populateDetailSelect(
+    document.getElementById('sup-manual-detail'),
+    tasktype,
+    selectedDetail,
+    false
+  );
+}
+
 async function submitSupManualTask() {
   const client = document.getElementById('sup-manual-client').value.trim();
   const tasktype = document.getElementById('sup-manual-type').value;
-  const desc = document.getElementById('sup-manual-desc').value.trim();
+  const detail = document.getElementById('sup-manual-detail').value;
+  const notes = document.getElementById('sup-manual-desc').value.trim();
+  const desc = TaskCatalog.composeDescription(detail, notes);
   const date = document.getElementById('report-date').value;
   
   if (!client) { showToast('يرجى تحديد العميل', 'error'); return; }
   if (!tasktype) { showToast('يرجى تحديد نوع المهمة', 'error'); return; }
-  if (!desc) { showToast('برجاء كتابة وصف للمهمة', 'error'); return; }
+  if (!detail) { showToast('يرجى اختيار المهمة المطلوبة', 'error'); return; }
   
   const btn = document.getElementById('btn-sup-manual-submit');
   btn.disabled = true;
@@ -2652,7 +2727,7 @@ async function submitSupManualTask() {
     'من': '',
     'إلى': '',
     'المدة': '0:00',
-    'وصف المهمة': desc || "تم إنجاز المهمة للعميل بنجاح.",
+    'وصف المهمة': desc,
     'مصدر المهمة': 'ذاتي',
     'وقت الإرسال': new Date().toISOString()
   });
@@ -2676,7 +2751,7 @@ async function submitSupManualTask() {
         from: "",
         to: "",
         dur: "0:00",
-        desc: desc || "تم إنجاز المهمة للعميل بنجاح.",
+        desc: desc,
         source: "ذاتي"
       }],
       completedTaskIds: []

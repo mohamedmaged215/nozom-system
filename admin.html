@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <script src="guard.js"></script>
+  <script src="task-catalog.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة الإدارة — نظم وحلول</title>
@@ -1581,21 +1582,18 @@ tr.row-has-note td:first-child {
                   <label style="font-size:11px; color:var(--text3); font-weight:600;">العميل</label>
                   <input type="text" id="task-assign-client" placeholder="اكتب أو ابحث..." list="task-assign-clients-dl">
                   <datalist id="task-assign-clients-dl"></datalist>
-                  <datalist id="global-task-types-dl"></datalist>
                 </div>
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
-                  <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <label style="font-size:11px; color:var(--text3); font-weight:600;">نوع المهمة</label>
-                    <div style="display:flex; gap:4px; align-items:center;">
-                      <button type="button" class="btn btn-sm btn-primary" style="height:18px; width:18px; padding:0; font-size:10px; display:flex; align-items:center; justify-content:center; border-radius:3px; background:var(--accent);" onclick="promptAddTaskType()">+</button>
-                      <button type="button" class="btn btn-sm btn-danger" style="height:18px; width:18px; padding:0; font-size:10px; display:flex; align-items:center; justify-content:center; border-radius:3px; background:var(--danger-s); color:var(--danger); border:1px solid rgba(248,113,113,0.2);" onclick="promptDeleteTaskType('task-assign-type')">✕</button>
-                    </div>
-                  </div>
-                  <input type="text" id="task-assign-type" placeholder="اختر أو ابحث..." list="global-task-types-dl" style="width:100%;">
+                  <label style="font-size:11px; color:var(--text3); font-weight:600;">نوع المهمة</label>
+                  <select id="task-assign-type" onchange="updateAdminTaskDetails('task-assign')" style="width:100%;"></select>
                 </div>
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
-                  <label style="font-size:11px; color:var(--text3); font-weight:600;">وصف التكليف</label>
-                  <input type="text" id="task-assign-desc" placeholder="أدخل تفاصيل المهمة المطلوبة...">
+                  <label style="font-size:11px; color:var(--text3); font-weight:600;">المهمة المطلوبة</label>
+                  <select id="task-assign-detail" style="width:100%;" disabled></select>
+                </div>
+                <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
+                  <label style="font-size:11px; color:var(--text3); font-weight:600;">ملاحظات (اختياري)</label>
+                  <input type="text" id="task-assign-notes" placeholder="تفاصيل إضافية عند الحاجة...">
                 </div>
                 <div style="display:flex; align-items:flex-end;">
                   <button class="btn btn-primary" style="height:36px; width:100%; justify-content:center;" onclick="submitAssignTask()">إسناد</button>
@@ -1624,7 +1622,7 @@ tr.row-has-note td:first-child {
                   <th>التيم</th>
                   <th>العميل</th>
                   <th>نوع المهمة</th>
-                  <th>الوصف</th>
+                  <th>المهمة المطلوبة</th>
                   <th>تاريخ الإسناد</th>
                   <th>الحالة</th>
                   <th>تاريخ الاكتمال</th>
@@ -1678,18 +1676,16 @@ tr.row-has-note td:first-child {
                   <datalist id="global-workplan-items-dl"></datalist>
                 </div>
                 <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
-                  <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <label style="font-size:11px; color:var(--text3); font-weight:600;">نوع المهمة</label>
-                    <div style="display:flex; gap:4px; align-items:center;">
-                      <button type="button" class="btn btn-sm btn-primary" style="height:18px; width:18px; padding:0; font-size:10px; display:flex; align-items:center; justify-content:center; border-radius:3px; background:var(--accent);" onclick="promptAddTaskType()">+</button>
-                      <button type="button" class="btn btn-sm btn-danger" style="height:18px; width:18px; padding:0; font-size:10px; display:flex; align-items:center; justify-content:center; border-radius:3px; background:var(--danger-s); color:var(--danger); border:1px solid rgba(248,113,113,0.2);" onclick="promptDeleteTaskType('rec-task-type')">✕</button>
-                    </div>
-                  </div>
-                  <input type="text" id="rec-task-type" placeholder="اختر أو ابحث..." list="global-task-types-dl" style="width:100%;">
+                  <label style="font-size:11px; color:var(--text3); font-weight:600;">نوع المهمة</label>
+                  <select id="rec-task-type" onchange="updateAdminTaskDetails('rec-task')" style="width:100%;"></select>
                 </div>
-                <div class="field-group" style="display:flex; flex-direction:column; gap:4px; grid-column: span 2;">
-                  <label style="font-size:11px; color:var(--text3); font-weight:600;">وصف المهمة الدورية</label>
-                  <input type="text" id="rec-task-desc" placeholder="أدخل التفاصيل المطلوبة كقالب ثابت...">
+                <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
+                  <label style="font-size:11px; color:var(--text3); font-weight:600;">المهمة المطلوبة</label>
+                  <select id="rec-task-detail" style="width:100%;" disabled></select>
+                </div>
+                <div class="field-group" style="display:flex; flex-direction:column; gap:4px;">
+                  <label style="font-size:11px; color:var(--text3); font-weight:600;">ملاحظات (اختياري)</label>
+                  <input type="text" id="rec-task-notes" placeholder="تفاصيل ثابتة إضافية عند الحاجة...">
                 </div>
                 <div style="display:flex; align-items:flex-end; gap:8px;">
                   <button id="cancel-edit-rec-btn" class="btn btn-secondary" style="height:36px; display:none; justify-content:center;" onclick="cancelEditRecurringTask()">إلغاء</button>
@@ -1715,7 +1711,7 @@ tr.row-has-note td:first-child {
                   <th>التكرار</th>
                   <th>نوع المهمة</th>
                   <th>بند خطة العمل</th>
-                  <th>الوصف التوضيحي للثبات</th>
+                  <th>المهمة المطلوبة</th>
                   <th>تاريخ الإنشاء</th>
                   <th></th>
                 </tr>
@@ -3107,7 +3103,6 @@ function mapReport(r) {
 const getLocalDateString = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const getLocalMonthString = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 const EMPLOYEE_URL = 'employee.html'; // هيتغير لو Netlify URL مختلف
-let TASK_TYPES = ['مبيعات','مشتريات','بنوك','تسجيلات','إقفالات شهرية','إقفالات سنوية','تقارير','إقرارات شهرية','إقرارات ربع سنوية','تفريغ','قوائم مالية','متابعة عملاء يومية','اجتماع','اجتماع العمل الأسبوعي','أمور تقنية','إضافي'];
 let WORK_PLAN_ITEMS = [
   'مراجعة داخلية',
   'فحص ضريبي',
@@ -3132,6 +3127,34 @@ function checkRecTaskEmpRole() {
       if (wpInput) wpInput.value = '';
     }
   }
+}
+
+function updateAdminTaskDetails(prefix, selectedDetail = '') {
+  const tasktype = document.getElementById(`${prefix}-type`)?.value || '';
+  TaskCatalog.populateDetailSelect(
+    document.getElementById(`${prefix}-detail`),
+    tasktype,
+    selectedDetail,
+    true
+  );
+}
+
+function setAdminTaskSelection(prefix, tasktype, description) {
+  const parsed = TaskCatalog.splitDescription(tasktype, description);
+  const typeSelect = document.getElementById(`${prefix}-type`);
+  const notesInput = document.getElementById(`${prefix}-notes`);
+  TaskCatalog.populateTypeSelect(typeSelect, tasktype, true);
+  updateAdminTaskDetails(prefix, parsed.detail);
+  if (notesInput) notesInput.value = parsed.notes;
+}
+
+function initializeTaskCatalogControls() {
+  ['task-assign', 'rec-task'].forEach(prefix => {
+    const typeSelect = document.getElementById(`${prefix}-type`);
+    if (!typeSelect) return;
+    TaskCatalog.populateTypeSelect(typeSelect, typeSelect.value, true);
+    updateAdminTaskDetails(prefix, document.getElementById(`${prefix}-detail`)?.value || '');
+  });
 }
 
 
@@ -3478,11 +3501,7 @@ function populateFilters() {
   if (assignDl) assignDl.innerHTML = optionsHtml;
   if (recDl) recDl.innerHTML = optionsHtml;
 
-  // Populate task types for assignment
-  const globalDl = document.getElementById('global-task-types-dl');
-  if (globalDl) {
-    globalDl.innerHTML = TASK_TYPES.map(t => `<option value="${t}">${t}</option>`).join('');
-  }
+  initializeTaskCatalogControls();
 
   // Populate clients datalist for assignment
   const taskAssignClientsDl = document.getElementById('task-assign-clients-dl');
@@ -5657,7 +5676,6 @@ async function refreshData() {
     STATE.tasks          = (tasks || []).map(mapTask);
     STATE.visits         = (visits || []).map(mapVisit);
     STATE.recurringTasks = (recTasks || []).map(mapRecurringTask);
-    TASK_TYPES           = (taskTypes || []).map(t => t.name || t);
     WORK_PLAN_ITEMS      = (workPlanItems || []).map(w => w.name || w);
     
     STATE.visits.forEach(v => {
@@ -5898,12 +5916,15 @@ async function submitAssignTask() {
   const client = clientInput.value.trim();
   const typeSelect = document.getElementById('task-assign-type');
   const tasktype = typeSelect.value;
-  const descInput = document.getElementById('task-assign-desc');
-  const desc = descInput.value.trim();
+  const detailSelect = document.getElementById('task-assign-detail');
+  const notesInput = document.getElementById('task-assign-notes');
+  const detail = detailSelect.value;
+  const desc = TaskCatalog.composeDescription(detail, notesInput.value);
 
   if (!empName) { showToast('الرجاء اختيار الموظف', 'error'); return; }
   if (!client) { showToast('الرجاء تحديد العميل', 'error'); return; }
   if (!tasktype) { showToast('الرجاء تحديد نوع المهمة', 'error'); return; }
+  if (!detail) { showToast('الرجاء اختيار المهمة المطلوبة', 'error'); return; }
 
   let empObj;
   if (STATE.role === 'admin') {
@@ -5939,8 +5960,9 @@ async function submitAssignTask() {
 
   // تفريغ المدخلات فوراً
   clientInput.value = '';
-  descInput.value = '';
-  typeSelect.value = '';
+  notesInput.value = '';
+  TaskCatalog.populateTypeSelect(typeSelect, '', false);
+  updateAdminTaskDetails('task-assign');
 empInput.value = ''; 
 
   try {
@@ -6039,8 +6061,7 @@ function editRecurringTask(id) {
   document.getElementById('rec-task-emp').value = task.emp_id || '';
   document.getElementById('rec-task-client').value = task['العميل'] || '';
   document.getElementById('rec-task-recurrence').value = task['التكرار'] || 'يومي';
-  document.getElementById('rec-task-type').value = task['نوع المهمة'] || '';
-  document.getElementById('rec-task-desc').value = task['وصف المهمة'] || '';
+  setAdminTaskSelection('rec-task', task['نوع المهمة'] || '', task['وصف المهمة'] || '');
   
   const wpItem = task['بند خطة العمل'] || '';
   const wpInput = document.getElementById('rec-task-workplan');
@@ -6072,8 +6093,9 @@ function cancelEditRecurringTask() {
   document.getElementById('rec-task-emp').value = '';
   document.getElementById('rec-task-client').value = '';
   document.getElementById('rec-task-recurrence').value = 'يومي';
-  document.getElementById('rec-task-type').value = '';
-  document.getElementById('rec-task-desc').value = '';
+  TaskCatalog.populateTypeSelect(document.getElementById('rec-task-type'), '', false);
+  document.getElementById('rec-task-notes').value = '';
+  updateAdminTaskDetails('rec-task');
   
   const wpInput = document.getElementById('rec-task-workplan');
   if (wpInput) wpInput.value = '';
@@ -6186,13 +6208,16 @@ async function submitSaveRecurringTask() {
   const recurrence = document.getElementById('rec-task-recurrence').value;
   const typeSelect = document.getElementById('rec-task-type');
   const tasktype = typeSelect.value;
-  const descInput = document.getElementById('rec-task-desc');
-  const desc = descInput.value.trim();
+  const detailSelect = document.getElementById('rec-task-detail');
+  const notesInput = document.getElementById('rec-task-notes');
+  const detail = detailSelect.value;
+  const desc = TaskCatalog.composeDescription(detail, notesInput.value);
   const workPlanItem = document.getElementById('rec-task-workplan')?.value || '';
 
   if (!empName) { showToast('الرجاء اختيار الموظف', 'error'); return; }
   if (!client) { showToast('الرجاء تحديد العميل', 'error'); return; }
   if (!tasktype) { showToast('الرجاء تحديد نوع المهمة', 'error'); return; }
+  if (!detail) { showToast('الرجاء اختيار المهمة المطلوبة', 'error'); return; }
 
   let empObj;
   if (STATE.role === 'admin') {

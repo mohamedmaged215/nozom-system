@@ -45,6 +45,26 @@ check(!admin.includes('`${month}-31`'), 'month ranges must use the real final da
 
 const employee = fs.readFileSync('employee.html', 'utf8');
 check(employee.includes('if (teamSel.value) onLoginTeamChange();'), 'fallback login must populate employees for a selected team');
+check(employee.includes('id="sup-manual-detail"'), 'supervisor manual task flow must include the dependent task detail select');
+check(employee.includes('TaskCatalog.composeDescription'), 'employee reports must store the selected task detail');
+
+const taskCatalog = fs.readFileSync('task-catalog.js', 'utf8');
+let loadedTaskCatalog;
+try {
+  const script = new vm.Script(taskCatalog, { filename: 'task-catalog.js' });
+  const sandbox = { window: {} };
+  script.runInNewContext(sandbox);
+  loadedTaskCatalog = sandbox.window.TaskCatalog;
+} catch (error) {
+  failed = true;
+  console.error(error.stack);
+}
+const catalogTypes = ['البنك','المشتريات','المبيعات','الموردين','العملاء','التقارير','الإقرارات','الميزانية'];
+catalogTypes.forEach(type => check(taskCatalog.includes(`'${type}'`), `task catalog must include ${type}`));
+check(loadedTaskCatalog?.types.length === 8, 'task catalog must expose exactly eight task types');
+check(Object.values(loadedTaskCatalog?.catalog || {}).flat().length === 70, 'task catalog must expose all 70 approved task details');
+check(admin.includes('id="task-assign-detail"'), 'assigned task form must include the dependent task detail select');
+check(admin.includes('id="rec-task-detail"'), 'recurring task form must include the dependent task detail select');
 
 try {
   new vm.Script(fs.readFileSync('guard.js', 'utf8'), { filename: 'guard.js' });
