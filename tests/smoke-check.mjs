@@ -51,6 +51,8 @@ const employee = fs.readFileSync('employee.html', 'utf8');
 check(employee.includes('if (teamSel.value) onLoginTeamChange();'), 'fallback login must populate employees for a selected team');
 check(employee.includes('id="sup-manual-detail"'), 'supervisor manual task flow must include the dependent task detail select');
 check(employee.includes('TaskCatalog.composeDescription'), 'employee reports must store the selected task detail');
+check(employee.includes('TaskCatalog.displayDescription'), 'employee task cards must use the display-safe task description');
+check(employee.includes('اسم المهمة (إجباري)'), 'custom employee tasks must ask for a task name');
 
 const taskCatalog = fs.readFileSync('task-catalog.js', 'utf8');
 let loadedTaskCatalog;
@@ -70,11 +72,16 @@ check(Object.values(loadedTaskCatalog?.catalog || {}).flat().length === 75, 'tas
 check(loadedTaskCatalog?.catalog['عام']?.includes('إعداد أو تسجيل مسير رواتب'), 'general tasks must include payroll preparation or entry');
 check(loadedTaskCatalog?.requiresNotes('مهمة أخرى') === true, 'other tasks must require a description');
 check(loadedTaskCatalog?.requiresNotes('إعداد أو تسجيل مسير رواتب') === false, 'known general tasks must keep notes optional');
+check(loadedTaskCatalog?.composeDescription('مهمة أخرى', 'طلب مسير الرواتب') === 'مهمة أخرى\nملاحظات: طلب مسير الرواتب', 'custom tasks must retain the compatible storage format');
+check(loadedTaskCatalog?.displayDescription('عام', 'مهمة أخرى\nملاحظات: طلب مسير الرواتب') === 'طلب مسير الرواتب', 'custom tasks must display only their entered name');
+check(loadedTaskCatalog?.displayDescription('البنك', 'تسجيل بنك\nملاحظات: مراجعة') === 'تسجيل بنك\nملاحظات: مراجعة', 'regular tasks must retain their full description');
 check(!admin.includes('id="task-subtab-normal-btn"'), 'urgent task creation tab must be removed');
 check(!admin.includes('id="tasks-normal-container"'), 'urgent task creation form must be removed');
 check(!admin.includes('انشاء مهمه طارئه'), 'urgent task creation label must be removed');
 check(admin.includes('id="tasks-recurring-container"'), 'recurring task management must remain available');
 check(admin.includes('id="rec-task-detail"'), 'recurring task form must include the dependent task detail select');
+check(admin.includes('TaskCatalog.displayDescription'), 'admin views and exports must use the display-safe task description');
+check(admin.includes('اسم المهمة (إجباري)'), 'custom admin tasks must ask for a task name');
 
 try {
   new vm.Script(fs.readFileSync('guard.js', 'utf8'), { filename: 'guard.js' });

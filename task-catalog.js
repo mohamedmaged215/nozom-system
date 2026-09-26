@@ -166,6 +166,12 @@
     return String(detail || '').trim() === otherTaskDetail;
   }
 
+  function displayDescription(taskType, description) {
+    const value = String(description || '').trim();
+    const parsed = splitDescription(taskType, value);
+    return parsed.detail === otherTaskDetail && parsed.notes ? parsed.notes : value;
+  }
+
   function appendNotes(description, notes) {
     const base = String(description || '').trim();
     const extra = String(notes || '').trim();
@@ -182,6 +188,7 @@
     splitDescription,
     composeDescription,
     requiresNotes,
+    displayDescription,
     appendNotes
   });
 })(window);
