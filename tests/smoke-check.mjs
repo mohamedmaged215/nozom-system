@@ -74,7 +74,8 @@ check(loadedTaskCatalog?.requiresNotes('مهمة أخرى') === true, 'other tas
 check(loadedTaskCatalog?.requiresNotes('إعداد أو تسجيل مسير رواتب') === false, 'known general tasks must keep notes optional');
 check(loadedTaskCatalog?.composeDescription('مهمة أخرى', 'طلب مسير الرواتب') === 'مهمة أخرى\nملاحظات: طلب مسير الرواتب', 'custom tasks must retain the compatible storage format');
 check(loadedTaskCatalog?.displayDescription('عام', 'مهمة أخرى\nملاحظات: طلب مسير الرواتب') === 'طلب مسير الرواتب', 'custom tasks must display only their entered name');
-check(loadedTaskCatalog?.displayDescription('البنك', 'تسجيل بنك\nملاحظات: مراجعة') === 'تسجيل بنك\nملاحظات: مراجعة', 'regular tasks must retain their full description');
+check(loadedTaskCatalog?.displayDescription('البنك', 'تسجيل بنك\nملاحظات: مراجعة') === 'تسجيل بنك\nمراجعة', 'regular tasks must hide the internal notes label');
+check(loadedTaskCatalog?.displayDescription('البنك', 'وصف قديم') === 'وصف قديم', 'legacy descriptions must remain visible');
 check(!admin.includes('id="task-subtab-normal-btn"'), 'urgent task creation tab must be removed');
 check(!admin.includes('id="tasks-normal-container"'), 'urgent task creation form must be removed');
 check(!admin.includes('انشاء مهمه طارئه'), 'urgent task creation label must be removed');

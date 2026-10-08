@@ -169,7 +169,9 @@
   function displayDescription(taskType, description) {
     const value = String(description || '').trim();
     const parsed = splitDescription(taskType, value);
-    return parsed.detail === otherTaskDetail && parsed.notes ? parsed.notes : value;
+    if (!parsed.notes) return parsed.detail || value;
+    if (parsed.detail === otherTaskDetail) return parsed.notes;
+    return `${parsed.detail}\n${parsed.notes}`;
   }
 
   function appendNotes(description, notes) {
