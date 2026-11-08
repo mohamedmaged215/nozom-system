@@ -15,6 +15,7 @@
   const date = value => new Date(value).toLocaleDateString('ar-EG',{timeZone:'Africa/Cairo'});
   const badge = status => `<span class="qa-badge" data-status="${escape(status)}">${statuses[status] || 'مسودة'}</span>`;
   const readStatus = review => review.status==='draft' ? '' : `<span class="qa-badge" data-status="${Number(review.seen_revision)>=Number(review.notification_revision || 1)?'closed':'open'}">${Number(review.seen_revision)>=Number(review.notification_revision || 1)?'تمت المشاهدة':Number(review.seen_revision)>0?'تعديلات لم تشاهد':'لم تشاهد بعد'}</span>`;
+  const findingsCount=count=>count===1?'ملاحظة واحدة':count===2?'ملاحظتان':`${count} ${count>=3 && count<=10?'ملاحظات':'ملاحظة'}`;
 
   function supervisorUrl(supervisor, reviewId='') {
     const url=new URL('employee.html',global.location.href);
@@ -44,6 +45,7 @@
     let delivery={supervisors:[],contacts:[]};
     let teamFilter = '';
     let statusFilter = '';
+    let findingFilter='all';
     const writer = () => ['admin','quality'].includes(credentials().p_role);
     const canReply = () => ['admin','supervisor','quality_link'].includes(credentials().p_role);
     const teamName = id => data.teams.find(t => t.id===id)?.name || 'التيم';
@@ -72,6 +74,26 @@
       root.innerHTML = `<div data-error class="qa-error" role="alert"></div>${content}`;
       icons();
     }
+    function actionMenu(label,content){
+      return `<details class="qa-menu"><summary role="button" aria-label="${label}" title="${label}">${icon('ellipsis')}</summary><div class="qa-menu-popup">${content}</div></details>`;
+    }
+    function closeMenus(except=null){root.querySelectorAll('.qa-menu[open]').forEach(menu=>{if(menu!==except)menu.open=false;});}
+    const outsideMenus=event=>{if(!event.target.closest('.qa-menu'))closeMenus();};
+    document.addEventListener('click',outsideMenus);
+    root.addEventListener('toggle',event=>{if(event.target.matches('.qa-menu') && event.target.open)closeMenus(event.target);},true);
+    root.addEventListener('keydown',event=>{
+      const menu=event.target.closest('.qa-menu[open]');
+      if(event.key==='Escape' && menu){event.preventDefault();menu.open=false;menu.querySelector('summary').focus();return;}
+      if(!event.target.matches('[role=tab]'))return;
+      const tabs=Array.from(root.querySelectorAll('[role=tab]'));
+      let index=tabs.indexOf(event.target);
+      if(event.key==='ArrowLeft')index=(index+1)%tabs.length;
+      else if(event.key==='ArrowRight')index=(index+tabs.length-1)%tabs.length;
+      else if(event.key==='Home')index=0;
+      else if(event.key==='End')index=tabs.length-1;
+      else return;
+      event.preventDefault();tabs[index].click();
+    });
     async function fetchList() {
       data=await call('list');
       if(writer())delivery=await call('delivery');
@@ -92,7 +114,7 @@
       if(!phone)return `<button data-action="contacts" data-team="${escape(review.team_id)}">${icon('message-circle')}إضافة رقم المشرف</button>`;
       const text=`وصلتك مراجعة جودة بعنوان «${review.title}» لتيم ${teamName(review.team_id)}، تشمل ${review.items.length} ملاحظات. برجاء الدخول للاطلاع والمتابعة:\n${supervisorUrl(supervisor,review.id)}`;
       const url=`https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
-      return `<a class="qa-button" href="${escape(url)}" target="_blank" rel="noopener noreferrer">${icon('message-circle')}تنبيه عبر واتساب</a>`;
+      return `<a class="qa-button qa-whatsapp" href="${escape(url)}" target="_blank" rel="noopener noreferrer">${icon('message-circle')}تنبيه عبر واتساب</a>`;
     }
     function list() {
       review=null;
@@ -155,26 +177,53 @@
         <button type="button" data-action="delete" title="حذف المسودة">${icon('trash-2')}حذف المسودة</button>`}</div></form>`);
     }
     function detail() {
+      const counts={all:review.items.length,open:0,resolved:0,closed:0};
+      review.items.forEach(item=>{counts[item.status]++;});
+      const completion=counts.all?Math.round(counts.closed/counts.all*100):0;
+      const tabs=[['all','الكل'],['open','بانتظار الرد'],['resolved','بانتظار الاعتماد'],['closed','مغلقة']];
       const groups=new Map();
-      review.items.forEach(item=>{if(!groups.has(item.client_name))groups.set(item.client_name,[]);groups.get(item.client_name).push(item);});
-      frame(`<div class="qa-toolbar"><button data-action="back">${icon('arrow-right')}رجوع</button><h2>${escape(review.title)}</h2>
-        ${writer()?`<button data-action="edit-review">${icon('pencil')}تعديل المراجعة</button><button data-action="append-finding">${icon('plus')}إضافة ملاحظة</button>${whatsapp()}<button class="qa-danger qa-icon" data-action="delete-review" data-id="${review.id}" title="حذف المراجعة" aria-label="حذف المراجعة">${icon('trash-2')}</button>`:''}
-        <button data-action="export">${icon('download')}Excel</button><button data-action="reload" title="تحديث">${icon('refresh-cw')}</button></div>
-        <div class="qa-meta"><span>${escape(teamName(review.team_id))}</span><span>${date(review.created_at)}</span>
-        <span>${review.items.filter(i=>i.status==='closed').length} / ${review.items.length} مغلقة</span>${readStatus(review)}</div>
-        ${Array.from(groups,([client,items])=>`<section class="qa-client-section"><h3 class="qa-client-title">${escape(client)}</h3>
-        ${items.map(item=>`<article class="qa-finding"><div class="qa-finding-head"><span class="qa-category">${escape(item.category)}</span>${badge(item.status)}</div>
-          <h3>${escape(item.observation)}</h3>${item.details?`<p>${escape(item.details)}</p>`:''}
-          ${item.reply && (!canReply() || item.status==='closed' || item.status==='open')?`<div class="qa-reply"><label>${item.status==='open'?'رد المشرف السابق':'رد المشرف'}</label><p>${escape(item.reply)}</p></div>`:''}
-          ${canReply() && item.status!=='closed'?`<form data-reply="${item.id}" class="qa-reply"><label for="qa-reply-${item.id}">رد المعالجة</label>
-          <textarea id="qa-reply-${item.id}" name="reply" required maxlength="4000">${escape(item.status==='open'?'':item.reply)}</textarea><div class="qa-actions"><button type="submit">${icon('check')}تمت المعالجة</button></div></form>`:''}
-          ${writer()?`<div class="qa-actions">${item.status==='resolved'?`<button data-action="close" data-id="${item.id}">${icon('check-check')}إغلاق الملاحظة</button>`:''}
-          ${item.status!=='open'?`<button data-action="reopen" data-id="${item.id}">${icon('rotate-ccw')}إعادة فتح</button>`:''}
-          <button data-action="edit-finding" data-id="${item.id}">${icon('pencil')}تعديل الملاحظة</button>
-          <button class="qa-danger" data-action="delete-finding" data-id="${item.id}">${icon('trash-2')}حذف الملاحظة</button></div>`:''}
-        </article>`).join('')}</section>`).join('') || '<div class="qa-empty">لا توجد ملاحظات في هذه المراجعة</div>'}`);
+      review.items.filter(item=>findingFilter==='all' || item.status===findingFilter).forEach(item=>{
+        if(!groups.has(item.client_name))groups.set(item.client_name,[]);
+        groups.get(item.client_name).push(item);
+      });
+      const reviewMenu=`${writer()?`<button data-action="edit-review">${icon('pencil')}تعديل المراجعة</button>`:''}
+        <button data-action="export">${icon('file-spreadsheet')}تصدير Excel</button>
+        ${writer()?`<button data-action="contacts" data-team="${escape(review.team_id)}">${icon('phone')}رقم المشرف</button>
+        <div class="qa-menu-divider"></div><button class="qa-danger" data-action="delete-review" data-id="${review.id}">${icon('trash-2')}حذف المراجعة</button>`:''}`;
+      frame(`<div class="qa-detail">
+        <div class="qa-review-nav"><button class="qa-back" data-action="back">${icon('arrow-right')}رجوع</button><span>مراجعات الجودة</span></div>
+        <header class="qa-review-header"><div class="qa-review-identity"><h2>${escape(review.title)}</h2>
+          <div class="qa-review-meta"><span>${icon('users')}${escape(teamName(review.team_id))}</span><span>${icon('calendar-days')}<time datetime="${escape(review.created_at)}">${date(review.created_at)}</time></span>${readStatus(review)}</div></div>
+          <div class="qa-review-tools${writer()?'':' qa-reader-tools'}">${writer()?`<button class="qa-primary" data-action="append-finding">${icon('plus')}إضافة ملاحظة</button>${whatsapp()}`:''}
+          <button class="qa-icon" data-action="reload" title="تحديث" aria-label="تحديث">${icon('refresh-cw')}</button>${actionMenu('خيارات المراجعة',reviewMenu)}</div>
+        </header>
+        <div class="qa-review-overview"><div class="qa-review-tabs" role="tablist" aria-label="حالات الملاحظات">
+          ${tabs.map(([value,label])=>`<button role="tab" id="qa-tab-${value}" aria-controls="qa-review-findings" aria-selected="${findingFilter===value}" tabindex="${findingFilter===value?'0':'-1'}" data-action="filter-findings" data-status="${value}">${label}<span>${counts[value]}</span></button>`).join('')}</div>
+          <div class="qa-review-progress"><div><span>اكتمال المراجعة</span><strong>${completion}%</strong></div><progress aria-label="اكتمال المراجعة" value="${counts.closed}" max="${counts.all||1}"></progress></div></div>
+        <div id="qa-review-findings" role="tabpanel" aria-labelledby="qa-tab-${findingFilter}" tabindex="0">
+        ${Array.from(groups,([client,items])=>`<section class="qa-client-section"><div class="qa-client-title"><h3>${icon('building-2')}<span>${escape(client)}</span></h3><span>${findingsCount(items.length)}</span></div>
+        ${items.map(item=>{
+          const statusName={open:'بانتظار الرد',resolved:'بانتظار الاعتماد',closed:'مغلقة'}[item.status];
+          const statusIcon={open:'clock-3',resolved:'circle-check',closed:'check-check'}[item.status];
+          const number=String(review.items.indexOf(item)+1).padStart(2,'0');
+          const menu=writer()?actionMenu('خيارات الملاحظة',`${item.status==='closed'?`<button data-action="reopen" data-id="${item.id}">${icon('rotate-ccw')}إعادة فتح</button>`:''}
+            <button data-action="edit-finding" data-id="${item.id}">${icon('pencil')}تعديل الملاحظة</button><div class="qa-menu-divider"></div>
+            <button class="qa-danger" data-action="delete-finding" data-id="${item.id}">${icon('trash-2')}حذف الملاحظة</button>`):'';
+          return `<article class="qa-finding" data-finding-id="${item.id}" data-status="${item.status}"><div class="qa-finding-head"><div class="qa-finding-context"><span class="qa-finding-number" aria-label="الملاحظة ${number}">${number}</span><span class="qa-category">${escape(item.category)}</span></div>
+          <div class="qa-finding-state"><span class="qa-badge" data-status="${item.status}">${icon(statusIcon)}${statusName}</span>${menu}</div></div>
+          <h3>${escape(item.observation)}</h3>${item.details?`<p class="qa-description">${escape(item.details)}</p>`:''}
+          ${item.reply?`<div class="qa-response" data-previous="${item.status==='open'}"><div class="qa-response-label">${icon('message-square-text')}<span>${item.status==='open'?'رد المشرف السابق':'رد المشرف'}</span></div><p>${escape(item.reply)}</p></div>`:''}
+          ${canReply() && item.status!=='closed'?`<details class="qa-reply-editor"${item.status==='open' || !item.reply?' open':''}><summary>${icon(item.reply && item.status!=='open'?'pencil':'message-square-plus')}${item.reply && item.status!=='open'?'تعديل الرد':'رد المعالجة'}${icon('chevron-down')}</summary>
+          <form data-reply="${item.id}" class="qa-reply"><label class="qa-visually-hidden" for="qa-reply-${item.id}">رد المعالجة</label>
+          <textarea id="qa-reply-${item.id}" name="reply" placeholder="اكتب ما تم لمعالجة الملاحظة..." required maxlength="4000">${escape(item.status==='open'?'':item.reply)}</textarea><div class="qa-actions"><button class="qa-approve" type="submit">${icon('check')}تمت المعالجة</button></div></form></details>`:''}
+          ${writer() && item.status==='resolved'?`<footer class="qa-finding-footer"><button class="qa-approve" data-action="close" data-id="${item.id}">${icon('check-check')}اعتماد وإغلاق</button><button class="qa-return" data-action="reopen" data-id="${item.id}">${icon('undo-2')}إرجاع للمشرف</button></footer>`:''}
+          ${writer() && item.status==='open'?`<div class="qa-awaiting">${icon('clock-3')}بانتظار رد المشرف</div>`:''}
+          </article>`;
+        }).join('')}</section>`).join('') || `<div class="qa-empty qa-review-empty">${icon(counts.all?'list-filter':'clipboard-check')}<h3>${counts.all?'لا توجد ملاحظات في هذا التصنيف':'لا توجد ملاحظات في هذه المراجعة'}</h3></div>`}
+        </div></div>`);
     }
     async function open(id) {
+      if(review?.id!==id)findingFilter='all';
       review=await call('get',{review_id:id});
       if(disposed)return;
       if(['supervisor','quality_link'].includes(credentials().p_role) && review.status==='sent'){
@@ -211,16 +260,27 @@
       }
     });
     root.addEventListener('click',e=>{
+      const trigger=e.target.closest('.qa-menu > summary');
+      if(trigger)closeMenus(trigger.parentElement);
       const button=e.target.closest('button[data-action]');
       if(!button || busy)return;
       const action=button.dataset.action;
+      const menuSummary=button.closest('.qa-menu')?.querySelector('summary');
+      closeMenus();
+      menuSummary?.focus({preventScroll:true});
       if(action==='back'){
         if(dirty && !global.confirm('يوجد تعديل غير محفوظ. هل تريد الرجوع؟'))return;
         dirty=false;work(async()=>{await fetchList();list();});
       }else if(action==='new'){createForm();}
+      else if(action==='filter-findings'){
+        if(dirty && !global.confirm('يوجد رد غير محفوظ. هل تريد تغيير التصنيف؟'))return;
+        findingFilter=button.dataset.status;dirty=false;detail();
+        root.querySelector('[role=tab][aria-selected=true]')?.focus({preventScroll:true});
+      }
       else if(action==='contacts'){contacts(button.dataset.team);}
       else if(action==='contacts-back'){if(review)detail();else list();}
       else if(action==='edit-review' || action==='edit-finding' || action==='append-finding'){
+        findingFilter='all';
         draft=review.items.map(item=>({...item}));
         if(action==='append-finding')draft.push({client_id:draft.at(-1)?.client_id || '',category:'',observation:'',details:''});
         dirty=action==='append-finding';editor();
@@ -281,9 +341,9 @@
     frame('<div class="qa-empty">جاري تحميل المراجعات...</div>');
     const api={
       async refresh(){if(dirty)return;await work(async()=>{await fetchList();if(initialReviewId){const id=initialReviewId;initialReviewId=null;await open(id);}else if(review)await open(review.id);else list();});},
-      async openReview(id){await currentWork;if(dirty && !global.confirm('يوجد تعديل غير محفوظ. هل تريد فتح المراجعة؟'))return;await work(async()=>{await fetchList();await open(id);});},
+      async openReview(id){await currentWork;if(dirty && !global.confirm('يوجد تعديل غير محفوظ. هل تريد فتح المراجعة؟'))return;findingFilter='all';await work(async()=>{await fetchList();await open(id);});},
       exportExcel,
-      destroy(){disposed=true;dirty=false;global.removeEventListener('beforeunload',beforeUnload);root.replaceChildren();},
+      destroy(){disposed=true;dirty=false;global.removeEventListener('beforeunload',beforeUnload);document.removeEventListener('click',outsideMenus);root.replaceChildren();},
       hasUnsavedChanges:()=>dirty
     };
     api.ready=api.refresh();
