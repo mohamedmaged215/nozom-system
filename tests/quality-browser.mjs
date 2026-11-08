@@ -17,6 +17,7 @@ const fixture = {
 };
 let review;
 let revision=0;
+let deletionCalls=0;
 function stamp(){return new Date(Date.UTC(2026,10,8,12,0,revision++)).toISOString();}
 const reviewId='10000000-0000-4000-8000-000000000001';
 const errors=[];
@@ -52,6 +53,14 @@ async function setup(page, file='quality.html') {
         const item=review.items.find(i=>i.id===payload.finding_id);
         assert.equal(payload.updated_at,item.updated_at);
         Object.assign(item,{status:'resolved',reply:payload.reply,updated_at:stamp()});break;
+      }
+      case 'delete_finding':{
+        assert.equal(request.p_role,'quality');
+        const item=review.items.find(i=>i.id===payload.finding_id);
+        assert.equal(payload.updated_at,item.updated_at);
+        review.items=review.items.filter(i=>i.id!==item.id);
+        review.updated_at=stamp();deletionCalls++;
+        fixture.reviews=[{...review,total:review.items.length,closed:review.items.filter(i=>i.status==='closed').length}];break;
       }
       case 'close':
       case 'reopen':{
@@ -95,6 +104,13 @@ try {
   await page.setViewportSize({width:390,height:844});
   await noOverflow(page);
   await page.screenshot({path:path.join(output,'mobile-draft.png'),fullPage:true});
+  await page.getByRole('button',{name:'إضافة ملاحظة',exact:true}).click();
+  page.once('dialog',dialog=>dialog.dismiss());
+  await page.locator('[data-action=remove]').last().click();
+  assert.equal(await page.locator('[data-draft-row]').count(),3,'draft cancellation removed row');
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('[data-action=remove]').last().click();
+  assert.equal(await page.locator('[data-draft-row]').count(),2);
   await page.getByRole('button',{name:'إرسال للمشرف'}).click();
   await page.locator('.qa-finding').first().waitFor();
   assert.equal(review.status,'sent');
@@ -109,6 +125,7 @@ try {
   });
   await supervisor.getByRole('button',{name:'مراجعة الأرشفة والحسابات',exact:true}).click();
   assert.equal(await supervisor.getByRole('button',{name:'مراجعة جديدة'}).count(),0);
+  assert.equal(await supervisor.getByRole('button',{name:'حذف الملاحظة',exact:true}).count(),0,'supervisor can delete');
   await supervisor.locator('form[data-reply]').first().locator('textarea').fill('تمت مطابقة الحساب وإرفاق التسوية على الدرايف.');
   await supervisor.locator('form[data-reply]').first().getByRole('button',{name:'تمت المعالجة',exact:true}).click();
   await supervisor.locator('.qa-badge[data-status=resolved]').waitFor();
@@ -149,8 +166,26 @@ try {
   await admin.waitForFunction(()=>document.querySelector('.sidebar').getBoundingClientRect().left>=innerWidth-1);
   await noOverflow(admin);
   await admin.screenshot({path:path.join(output,'admin-panel-mobile.png'),fullPage:true});
+  page.once('dialog',dialog=>{
+    assert.ok(dialog.message().includes('رد المشرف'));
+    dialog.dismiss();
+  });
+  await page.getByRole('button',{name:'حذف الملاحظة',exact:true}).first().click();
+  assert.equal(deletionCalls,0,'cancelled deletion called API');
+  assert.equal(await page.locator('.qa-finding').count(),2);
+  page.once('dialog',dialog=>dialog.accept());
+  await page.getByRole('button',{name:'حذف الملاحظة',exact:true}).first().click();
+  await page.waitForFunction(()=>document.querySelectorAll('.qa-finding').length===1);
+  assert.equal(deletionCalls,1);
+  assert.equal(review.items[0].observation,'مراجعة المستندات المرسلة من العميل');
+  await noOverflow(page);
+  await page.screenshot({path:path.join(output,'delete-finding-mobile.png'),fullPage:true});
+  page.once('dialog',dialog=>dialog.accept());
+  await page.getByRole('button',{name:'حذف الملاحظة',exact:true}).click();
+  await page.getByText('لا توجد ملاحظات في هذه المراجعة',{exact:true}).waitFor();
+  assert.equal(deletionCalls,2);
   assert.deepEqual(errors,[]);
-  console.log('Browser workflow passed: draft, dependent choices, custom finding, publish, supervisor reply, closure, Excel, mobile layout.');
+  console.log('Browser workflow passed: draft, publish, reply, closure, Excel, mobile layout, delete confirmation and cancellation.');
   console.log(`Screenshots: ${output}`);
 } finally {
   await browser.close();

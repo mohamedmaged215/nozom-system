@@ -5,6 +5,8 @@
 .qa-root button:hover,.qa-button:hover{border-color:#dd8549}
 .qa-root button:disabled{opacity:.5;cursor:wait}
 .qa-root .qa-primary{background:#c66e32;border-color:#c66e32;color:#fff}
+.qa-root .qa-danger{color:#ffb4ad;border-color:#81504c}
+.qa-root .qa-danger:hover{background:#402522;border-color:#e8756b}
 .qa-root .qa-icon{width:38px;flex-shrink:0;padding:8px}
 .qa-root svg,.qa-button svg{width:17px;height:17px;flex-shrink:0}
 .qa-root input,.qa-root select,.qa-root textarea{display:block;width:100%;min-width:0;color:var(--qa-text);background:#191918;border:1px solid var(--qa-line);padding:9px 10px;border-radius:5px;line-height:1.5}

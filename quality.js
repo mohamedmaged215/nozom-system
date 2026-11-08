@@ -123,9 +123,10 @@
           ${item.reply && (!canReply() || item.status==='closed')?`<div class="qa-reply"><label>رد المشرف</label><p>${escape(item.reply)}</p></div>`:''}
           ${canReply() && item.status!=='closed'?`<form data-reply="${item.id}" class="qa-reply"><label for="qa-reply-${item.id}">رد المعالجة</label>
           <textarea id="qa-reply-${item.id}" name="reply" required maxlength="4000">${escape(item.reply)}</textarea><div class="qa-actions"><button type="submit">${icon('check')}تمت المعالجة</button></div></form>`:''}
-          ${writer() && item.status!=='open'?`<div class="qa-actions">${item.status==='resolved'?`<button data-action="close" data-id="${item.id}">${icon('check-check')}إغلاق الملاحظة</button>`:''}
-          <button data-action="reopen" data-id="${item.id}">${icon('rotate-ccw')}إعادة فتح</button></div>`:''}
-        </article>`).join('')}</section>`).join('')}`);
+          ${writer()?`<div class="qa-actions">${item.status==='resolved'?`<button data-action="close" data-id="${item.id}">${icon('check-check')}إغلاق الملاحظة</button>`:''}
+          ${item.status!=='open'?`<button data-action="reopen" data-id="${item.id}">${icon('rotate-ccw')}إعادة فتح</button>`:''}
+          <button class="qa-danger" data-action="delete-finding" data-id="${item.id}">${icon('trash-2')}حذف الملاحظة</button></div>`:''}
+        </article>`).join('')}</section>`).join('') || '<div class="qa-empty">لا توجد ملاحظات في هذه المراجعة</div>'}`);
     }
     async function open(id) {
       review=await call('get',{review_id:id});
@@ -163,6 +164,7 @@
         dirty=false;work(async()=>{await fetchList();list();});
       }else if(action==='new'){createForm();}
       else if(action==='add' || action==='remove'){
+        if(action==='remove' && !global.confirm('هل تريد حذف هذه الملاحظة من المسودة؟'))return;
         const title=root.querySelector('#qa-title').value;collect();
         if(action==='add')draft.push({client_id:draft.at(-1)?.client_id || '',category:'',observation:'',details:''});
         else draft.splice(Number(button.dataset.index),1);
@@ -172,6 +174,10 @@
       else if(action==='open' || action==='reload'){work(()=>open(button.dataset.id || review.id));}
       else if(action==='delete'){
         if(global.confirm('حذف هذه المسودة؟'))work(async()=>{await call('delete',{review_id:review.id,updated_at:review.updated_at});dirty=false;await fetchList();list();});
+      }else if(action==='delete-finding'){
+        const item=review.items.find(i=>i.id===button.dataset.id);
+        if(!global.confirm(`هل تريد حذف الملاحظة «${item.observation}» للعميل «${item.client_name}» نهائيًا؟\nسيتم حذف رد المشرف عليها أيضًا، ولن يمكن التراجع عن الحذف.`))return;
+        work(async()=>{await call('delete_finding',{review_id:review.id,finding_id:item.id,updated_at:item.updated_at});await open(review.id);});
       }else if(action==='close' || action==='reopen'){
         const item=review.items.find(i=>i.id===button.dataset.id);
         work(async()=>{await call(action,{review_id:review.id,finding_id:item.id,updated_at:item.updated_at});await open(review.id);});

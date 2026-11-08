@@ -14,6 +14,7 @@ declare
   bad_items jsonb;
   good_items jsonb;
   denied boolean;
+  preserved_finding uuid;
 begin
   select password into strict admin_password from public.credentials where role='admin' limit 1;
   insert into public.teams(id,name) values(team_a,'Quality test A'),(team_b,'Quality test B');
@@ -77,6 +78,34 @@ begin
   perform public.quality_api('quality',null,test_password,'reopen',jsonb_build_object('review_id',review_id,'finding_id',item->>'id','updated_at',item->>'updated_at'));
   doc:=public.quality_api('quality',null,test_password,'get',jsonb_build_object('review_id',review_id));
   assert doc->'items'->0->>'status'='open', 'reopen failed';
+  item:=doc->'items'->0;
+  insert into public.quality_findings(review_id,client_id,client_name,category,observation,position)
+    values(review_id,client_a,'Test client A','البنوك','Keep this finding',2) returning id into preserved_finding;
+  denied:=false;
+  begin perform public.quality_api('supervisor',team_a,test_password,'delete_finding',jsonb_build_object('review_id',review_id,'finding_id',item->>'id','updated_at',item->>'updated_at'));
+    exception when insufficient_privilege then denied:=true; end;
+  assert denied, 'supervisor deleted finding';
+  denied:=false;
+  begin perform public.quality_api('quality',null,'invalid','delete_finding',jsonb_build_object('review_id',review_id,'finding_id',item->>'id','updated_at',item->>'updated_at'));
+    exception when others then denied:=true; end;
+  assert denied, 'delete allowed with invalid password';
+  denied:=false;
+  begin perform public.quality_api('quality',null,test_password,'delete_finding',jsonb_build_object('review_id',review_id,'finding_id',item->>'id','updated_at','2000-01-01T00:00:00Z'));
+    exception when others then denied:=true; end;
+  assert denied, 'stale deletion accepted';
+  denied:=false;
+  begin perform public.quality_api('quality',null,test_password,'delete_finding',jsonb_build_object('review_id',gen_random_uuid(),'finding_id',item->>'id','updated_at',item->>'updated_at'));
+    exception when others then denied:=true; end;
+  assert denied, 'delete accepted for mismatched review';
+  perform public.quality_api('quality',null,test_password,'delete_finding',jsonb_build_object('review_id',review_id,'finding_id',item->>'id','updated_at',item->>'updated_at'));
+  assert not exists(select 1 from public.quality_findings where id=(item->>'id')::uuid), 'finding not deleted';
+  assert exists(select 1 from public.quality_findings where id=preserved_finding), 'other finding affected';
+  doc:=public.quality_api('admin',null,admin_password,'get',jsonb_build_object('review_id',review_id));
+  item:=doc->'items'->0;
+  assert jsonb_array_length(doc->'items')=1, 'review count wrong after deletion';
+  perform public.quality_api('admin',null,admin_password,'delete_finding',jsonb_build_object('review_id',review_id,'finding_id',item->>'id','updated_at',item->>'updated_at'));
+  doc:=public.quality_api('quality',null,test_password,'get',jsonb_build_object('review_id',review_id));
+  assert jsonb_array_length(doc->'items')=0, 'admin deletion failed';
 end;
 $$;
 rollback;
