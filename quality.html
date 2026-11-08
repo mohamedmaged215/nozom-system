@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مراقب الجودة | نظم وحلول</title>
+  <script src="guard.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="quality.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script src="quality.js"></script>
+</head>
+<body class="qa-shell">
+  <header class="qa-shell-header"><strong>نظم وحلول <span style="font-weight:400">| مراقبة الجودة</span></strong>
+    <button id="qa-logout" class="qa-button" type="button" hidden>تسجيل الخروج</button></header>
+  <main>
+    <div class="qa-login qa-root" id="qa-login">
+      <form id="qa-login-form">
+        <h1>دخول مراقب الجودة</h1>
+        <div><label for="qa-password">كلمة المرور</label><input id="qa-password" type="password" autocomplete="current-password" required></div>
+        <button class="qa-primary" id="qa-login-button" type="submit">دخول</button>
+        <div id="qa-login-error" class="qa-login-error" role="alert"></div>
+        <a href="admin.html">لوحة المدير والمشرفين</a>
+      </form>
+    </div>
+    <div id="qa-app" hidden></div>
+  </main>
+  <script>
+    const client=supabase.createClient('https://gzkjladvhhntmzigyorv.supabase.co','sb_publishable_0x-wR8lObcOtpswFQHhlbw_ok0YYm-D');
+    async function qualityRpc(name,params){const {data,error}=await client.rpc(name,params);if(error)throw new Error(error.message);return data;}
+    document.getElementById('qa-login-form').addEventListener('submit',async event=>{
+      event.preventDefault();
+      const button=document.getElementById('qa-login-button');
+      if(button.disabled)return;
+      button.disabled=true;
+      document.getElementById('qa-login-error').textContent='';
+      const password=document.getElementById('qa-password').value;
+      const credentials={p_role:'quality',p_team_id:null,p_password:password};
+      try{
+        await qualityRpc('quality_api',{...credentials,p_action:'list',p_payload:{}});
+        document.getElementById('qa-password').value='';
+        document.getElementById('qa-login').hidden=true;
+        document.getElementById('qa-app').hidden=false;
+        document.getElementById('qa-logout').hidden=false;
+        QualityReviews.mount(document.getElementById('qa-app'),{rpc:qualityRpc,credentials:()=>credentials});
+      }catch(error){document.getElementById('qa-login-error').textContent=error.message;}
+      finally{button.disabled=false;}
+    });
+    document.getElementById('qa-logout').addEventListener('click',()=>location.reload());
+  </script>
+</body>
+</html>

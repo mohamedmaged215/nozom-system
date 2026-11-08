@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const htmlFiles = ['admin.html', 'employee.html'];
+const htmlFiles = ['admin.html', 'employee.html', 'quality.html'];
 let failed = false;
 
 function check(condition, message) {
@@ -86,6 +86,7 @@ check(admin.includes('اسم المهمة (إجباري)'), 'custom admin tasks 
 
 try {
   new vm.Script(fs.readFileSync('guard.js', 'utf8'), { filename: 'guard.js' });
+  new vm.Script(fs.readFileSync('quality.js', 'utf8'), { filename: 'quality.js' });
 } catch (error) {
   failed = true;
   console.error(error.stack);
