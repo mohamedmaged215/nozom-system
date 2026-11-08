@@ -12,7 +12,11 @@
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const icon = name => `<i data-lucide="${name}" aria-hidden="true"></i>`;
   const option = (value, text, selected) => `<option value="${escape(value)}"${value===selected?' selected':''}>${escape(text)}</option>`;
-  const date = value => new Date(value).toLocaleDateString('ar-EG',{timeZone:'Africa/Cairo'});
+  const dateFormatter=new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Cairo',numberingSystem:'latn',day:'2-digit',month:'2-digit',year:'numeric'});
+  const date=value=>{
+    const parts=Object.fromEntries(dateFormatter.formatToParts(new Date(value)).map(part=>[part.type,part.value]));
+    return `${parts.day}-${parts.month}-${parts.year}`;
+  };
   const badge = status => `<span class="qa-badge" data-status="${escape(status)}">${statuses[status] || 'مسودة'}</span>`;
   const readStatus = review => review.status==='draft' ? '' : `<span class="qa-badge" data-status="${Number(review.seen_revision)>=Number(review.notification_revision || 1)?'closed':'open'}">${Number(review.seen_revision)>=Number(review.notification_revision || 1)?'تمت المشاهدة':Number(review.seen_revision)>0?'تعديلات لم تشاهد':'لم تشاهد بعد'}</span>`;
   const findingsCount=count=>count===1?'ملاحظة واحدة':count===2?'ملاحظتان':`${count} ${count>=3 && count<=10?'ملاحظات':'ملاحظة'}`;
@@ -128,7 +132,7 @@
         <div><label for="qa-filter-status">المراجعات</label><select id="qa-filter-status" data-filter="status">
         ${option('','الكل',statusFilter)}${option('sent','مرسلة',statusFilter)}${writer()?option('draft','مسودات',statusFilter):''}</select></div></div>
         ${visible.length?`<div class="qa-scroll"><table class="qa-list"><thead><tr><th>المراجعة</th><th>التيم</th><th>التاريخ</th><th>الحالة</th><th>المغلق / الإجمالي</th>${writer()?'<th class="qa-row-actions">حذف</th>':''}</tr></thead><tbody>
-        ${visible.map(r=>`<tr><td><button data-action="open" data-id="${r.id}">${escape(r.title)}</button></td><td>${escape(teamName(r.team_id))}</td><td>${date(r.created_at)}</td>
+        ${visible.map(r=>`<tr><td><button data-action="open" data-id="${r.id}">${escape(r.title)}</button></td><td>${escape(teamName(r.team_id))}</td><td><time class="qa-date" dir="ltr" datetime="${escape(r.created_at)}">${date(r.created_at)}</time></td>
         <td>${r.status==='draft'?badge('draft'):`مرسلة ${readStatus(r)}`}</td><td>${r.closed} / ${r.total}</td>
         ${writer()?`<td class="qa-row-actions"><button class="qa-danger qa-icon" data-action="delete-review" data-id="${r.id}" title="حذف المراجعة" aria-label="حذف المراجعة">${icon('trash-2')}</button></td>`:''}</tr>`).join('')}</tbody></table></div>`:'<div class="qa-empty">لا توجد مراجعات</div>'}`);
     }
@@ -167,7 +171,7 @@
     function editor(title) {
       const sent=review.status==='sent';
       frame(`<div class="qa-toolbar"><button data-action="${sent?'cancel-edit':'back'}">${icon('arrow-right')}رجوع</button><h2>${escape(review.title)}</h2>${sent?'':badge('draft')}</div>
-        <div class="qa-meta">${escape(teamName(review.team_id))} · ${date(review.created_at)}</div>
+        <div class="qa-meta">${escape(teamName(review.team_id))} · <time class="qa-date" dir="ltr" datetime="${escape(review.created_at)}">${date(review.created_at)}</time></div>
         <form data-editor><div class="qa-editor-head"><label for="qa-title">عنوان المراجعة</label><input id="qa-title" name="title" maxlength="160" value="${escape(title ?? review.title)}" required></div>
         ${draft.map(draftRow).join('')}<div class="qa-actions">
         <button type="button" data-action="add">${icon('plus')}إضافة ملاحظة</button>
@@ -193,7 +197,7 @@
       frame(`<div class="qa-detail">
         <div class="qa-review-nav"><button class="qa-back" data-action="back">${icon('arrow-right')}رجوع</button><span>مراجعات الجودة</span></div>
         <header class="qa-review-header"><div class="qa-review-identity"><h2>${escape(review.title)}</h2>
-          <div class="qa-review-meta"><span>${icon('users')}${escape(teamName(review.team_id))}</span><span>${icon('calendar-days')}<time datetime="${escape(review.created_at)}">${date(review.created_at)}</time></span>${readStatus(review)}</div></div>
+          <div class="qa-review-meta"><span>${icon('users')}${escape(teamName(review.team_id))}</span><span>${icon('calendar-days')}<time class="qa-date" dir="ltr" datetime="${escape(review.created_at)}">${date(review.created_at)}</time></span>${readStatus(review)}</div></div>
           <div class="qa-review-tools${writer()?'':' qa-reader-tools'}">${writer()?`<button class="qa-primary" data-action="append-finding">${icon('plus')}إضافة ملاحظة</button>${whatsapp()}`:''}
           <button class="qa-icon" data-action="reload" title="تحديث" aria-label="تحديث">${icon('refresh-cw')}</button>${actionMenu('خيارات المراجعة',reviewMenu)}</div>
         </header>

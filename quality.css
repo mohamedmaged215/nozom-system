@@ -50,6 +50,7 @@
 .qa-badge[data-status=resolved]{background:#183e37;color:#8ee1c6}
 .qa-badge[data-status=closed]{background:#263727;color:#a2d99d}
 .qa-meta{display:flex;gap:12px;align-items:center;flex-wrap:wrap;color:var(--qa-muted);font-size:12px;margin:8px 0 20px}
+.qa-date{display:inline-block;direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums;white-space:nowrap}
 .qa-editor-head{max-width:600px;margin:20px 0}
 .qa-draft-row{display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,1fr) minmax(200px,1.5fr) 38px;gap:12px;padding:18px 0;border-top:1px solid var(--qa-line);align-items:end}
 .qa-draft-details{grid-column:1/-1}
