@@ -1,0 +1,90 @@
+begin;
+do $$
+declare
+  admin_password text;
+  test_password text:=gen_random_uuid()::text;
+  team_a text:='quality_edit_'||gen_random_uuid()::text;
+  team_b text:='quality_edit_'||gen_random_uuid()::text;
+  client_a text:='quality_edit_'||gen_random_uuid()::text;
+  client_b text:='quality_edit_'||gen_random_uuid()::text;
+  review_id uuid;
+  doc jsonb;
+  changed jsonb;
+  old_doc jsonb;
+  row_item jsonb;
+  first_id text;
+  second_id text;
+  denied boolean;
+begin
+  select password into strict admin_password from public.credentials where role='admin' limit 1;
+  insert into public.teams(id,name) values(team_a,'Edit test A'),(team_b,'Edit test B');
+  insert into public.clients(id,name,team_id) values(client_a,'Edit client A',team_a),(client_b,'Edit client B',team_b);
+  insert into public.credentials(role,team_id,password) values('supervisor',team_a,test_password);
+  perform public.quality_api('admin',null,admin_password,'set_password',jsonb_build_object('password',test_password));
+  doc:=public.quality_api('quality',null,test_password,'create',jsonb_build_object('team_id',team_a));
+  review_id:=(doc->>'id')::uuid;
+  doc:=public.quality_api('quality',null,test_password,'get',jsonb_build_object('review_id',review_id));
+  perform public.quality_api('quality',null,test_password,'publish',jsonb_build_object('review_id',review_id,'updated_at',doc->>'updated_at','items',
+    jsonb_build_array(jsonb_build_object('client_id',client_a,'category','البنوك','observation','ملاحظة أولى','details','original'),
+    jsonb_build_object('client_id',client_a,'category','أخرى','observation','ملاحظة ثانية','details','keep'))));
+  doc:=public.quality_api('quality',null,test_password,'get',jsonb_build_object('review_id',review_id));
+  first_id:=doc->'items'->0->>'id';second_id:=doc->'items'->1->>'id';
+  for row_item in select value from jsonb_array_elements(doc->'items') loop
+    perform public.quality_api('supervisor',team_a,test_password,'respond',jsonb_build_object('review_id',review_id,'finding_id',row_item->>'id','updated_at',row_item->>'updated_at','reply','رد محفوظ'));
+  end loop;
+  doc:=public.quality_api('quality',null,test_password,'get',jsonb_build_object('review_id',review_id));
+  for row_item in select value from jsonb_array_elements(doc->'items') loop
+    perform public.quality_api('quality',null,test_password,'close',jsonb_build_object('review_id',review_id,'finding_id',row_item->>'id','updated_at',row_item->>'updated_at'));
+  end loop;
+  doc:=public.quality_api('quality',null,test_password,'get',jsonb_build_object('review_id',review_id));
+  changed:=doc||jsonb_build_object('review_id',review_id,'title','عنوان معدل');
+  denied:=false;
+  begin perform public.quality_api('supervisor',team_a,test_password,'edit_review',changed);
+    exception when insufficient_privilege then denied:=true; end;
+  assert denied,'supervisor can edit';
+  denied:=false;
+  begin perform public.quality_api('quality',null,'invalid','edit_review',changed);
+    exception when others then denied:=true; end;
+  assert denied,'invalid password can edit';
+  denied:=false;
+  begin perform public.quality_api('quality',null,test_password,'edit_review',jsonb_set(changed,'{items,1,client_id}',to_jsonb(client_b)));
+    exception when others then denied:=true; end;
+  assert denied,'cross-team client accepted';
+  denied:=false;
+  begin perform public.quality_api('quality',null,test_password,'edit_review',jsonb_set(changed,'{items,1,id}',to_jsonb(first_id)));
+    exception when others then denied:=true; end;
+  assert denied,'duplicate finding accepted';
+  denied:=false;
+  begin perform public.quality_api('quality',null,test_password,'edit_review',jsonb_set(changed,'{items,1,id}',to_jsonb(gen_random_uuid()::text)));
+    exception when others then denied:=true; end;
+  assert denied,'foreign finding accepted';
+  perform public.quality_api('quality',null,test_password,'edit_review',changed);
+  old_doc:=changed;
+  doc:=public.quality_api('quality',null,test_password,'get',jsonb_build_object('review_id',review_id));
+  assert doc->>'title'='عنوان معدل','title edit failed';
+  assert doc->'items'->0->>'status'='closed' and doc->'items'->1->>'status'='closed','title edit reopened findings';
+  changed:=jsonb_set(doc||jsonb_build_object('review_id',review_id),'{items,0,details}','"changed detail"'::jsonb);
+  perform public.quality_api('quality',null,test_password,'edit_review',changed);
+  denied:=false;
+  begin perform public.quality_api('quality',null,test_password,'edit_review',old_doc);
+    exception when others then denied:=true; end;
+  assert denied,'stale review edit accepted';
+  doc:=public.quality_api('quality',null,test_password,'get',jsonb_build_object('review_id',review_id));
+  assert doc->'items'->0->>'id'=first_id,'edited finding ID changed';
+  assert doc->'items'->0->>'status'='open','edited finding not reopened';
+  assert doc->'items'->0->>'reply'='رد محفوظ','previous reply lost';
+  assert doc->'items'->1->>'id'=second_id and doc->'items'->1->>'status'='closed','unchanged finding affected';
+  changed:=jsonb_set(doc||jsonb_build_object('review_id',review_id),'{items}',doc->'items'||jsonb_build_array(
+    jsonb_build_object('client_id',client_a,'category','أخرى','observation','ملاحظة جديدة','details','')));
+  perform public.quality_api('quality',null,test_password,'edit_review',changed);
+  doc:=public.quality_api('quality',null,test_password,'get',jsonb_build_object('review_id',review_id));
+  assert jsonb_array_length(doc->'items')=3,'append failed';
+  changed:=jsonb_set(doc||jsonb_build_object('review_id',review_id),'{items}',jsonb_build_array(doc->'items'->0,doc->'items'->2));
+  perform public.quality_api('admin',null,admin_password,'edit_review',changed);
+  doc:=public.quality_api('quality',null,test_password,'get',jsonb_build_object('review_id',review_id));
+  assert jsonb_array_length(doc->'items')=2,'remove via edit failed';
+  assert doc->'items'->0->>'reply'='رد محفوظ','edit removed unrelated reply';
+end;
+$$;
+rollback;
+select 'Quality editing and permissions passed' as result;

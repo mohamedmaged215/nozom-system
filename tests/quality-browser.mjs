@@ -62,6 +62,18 @@ async function setup(page, file='quality.html') {
         review.updated_at=stamp();deletionCalls++;
         fixture.reviews=[{...review,total:review.items.length,closed:review.items.filter(i=>i.status==='closed').length}];break;
       }
+      case 'edit_review':{
+        assert.equal(request.p_role,'quality');
+        assert.equal(payload.updated_at,review.updated_at);
+        review.items=payload.items.map((row,i)=>{
+          const previous=review.items.find(item=>item.id===row.id);
+          const changed=previous && ['client_id','category','observation','details'].some(key=>row[key]!==previous[key]);
+          return {...previous,...row,id:row.id || `30000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`,client_name:'شركة الاختبار',
+            status:!previous || changed?'open':previous.status,reply:previous?.reply || '',updated_at:stamp()};
+        });
+        review.title=payload.title;review.updated_at=stamp();
+        fixture.reviews=[{...review,total:review.items.length,closed:review.items.filter(i=>i.status==='closed').length}];break;
+      }
       case 'close':
       case 'reopen':{
         assert.equal(request.p_role,'quality');
@@ -126,6 +138,7 @@ try {
   await supervisor.getByRole('button',{name:'مراجعة الأرشفة والحسابات',exact:true}).click();
   assert.equal(await supervisor.getByRole('button',{name:'مراجعة جديدة'}).count(),0);
   assert.equal(await supervisor.getByRole('button',{name:'حذف الملاحظة',exact:true}).count(),0,'supervisor can delete');
+  assert.equal(await supervisor.getByRole('button',{name:'تعديل المراجعة',exact:true}).count(),0,'supervisor can edit review');
   await supervisor.locator('form[data-reply]').first().locator('textarea').fill('تمت مطابقة الحساب وإرفاق التسوية على الدرايف.');
   await supervisor.locator('form[data-reply]').first().getByRole('button',{name:'تمت المعالجة',exact:true}).click();
   await supervisor.locator('.qa-badge[data-status=resolved]').waitFor();
@@ -166,6 +179,35 @@ try {
   await admin.waitForFunction(()=>document.querySelector('.sidebar').getBoundingClientRect().left>=innerWidth-1);
   await noOverflow(admin);
   await admin.screenshot({path:path.join(output,'admin-panel-mobile.png'),fullPage:true});
+  const originalId=review.items[0].id;
+  const originalReply=review.items[0].reply;
+  await page.getByRole('button',{name:'تعديل الملاحظة',exact:true}).first().click();
+  await page.locator('#qa-details-0').fill('تعديل غير محفوظ');
+  page.once('dialog',dialog=>dialog.accept());
+  await page.getByRole('button',{name:'إلغاء',exact:true}).click();
+  assert.equal(review.items[0].status,'closed');
+  await page.getByRole('button',{name:'تعديل المراجعة',exact:true}).click();
+  await page.locator('#qa-title').fill('مراجعة محدثة');
+  await page.locator('#qa-details-0').fill('تفاصيل معدلة تحتاج مراجعة المشرف');
+  await page.getByRole('button',{name:'حفظ التعديلات',exact:true}).click();
+  await page.getByRole('heading',{name:'مراجعة محدثة',exact:true}).waitFor();
+  assert.equal(review.items[0].id,originalId);
+  assert.equal(review.items[0].status,'open');
+  assert.equal(review.items[0].reply,originalReply);
+  await page.getByText('رد المشرف السابق',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'إضافة ملاحظة',exact:true}).click();
+  await page.locator('#qa-category-2').selectOption('الأرشفة والمستندات');
+  await page.locator('#qa-observation-2').selectOption('مستندات رسمية ناقصة');
+  await noOverflow(page);
+  await page.screenshot({path:path.join(output,'edit-review-mobile.png'),fullPage:true});
+  await page.getByRole('button',{name:'حفظ التعديلات',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelectorAll('.qa-finding').length===3);
+  assert.equal(review.items[2].status,'open');
+  await page.getByRole('button',{name:'تعديل المراجعة',exact:true}).click();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('[data-action=remove]').last().click();
+  await page.getByRole('button',{name:'حفظ التعديلات',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelectorAll('.qa-finding').length===2);
   page.once('dialog',dialog=>{
     assert.ok(dialog.message().includes('رد المشرف'));
     dialog.dismiss();
@@ -185,7 +227,7 @@ try {
   await page.getByText('لا توجد ملاحظات في هذه المراجعة',{exact:true}).waitFor();
   assert.equal(deletionCalls,2);
   assert.deepEqual(errors,[]);
-  console.log('Browser workflow passed: draft, publish, reply, closure, Excel, mobile layout, delete confirmation and cancellation.');
+  console.log('Browser workflow passed: draft, publish, reply, closure, Excel, mobile layout, editing, append, cancel, delete confirmation.');
   console.log(`Screenshots: ${output}`);
 } finally {
   await browser.close();
