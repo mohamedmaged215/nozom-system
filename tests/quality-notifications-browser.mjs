@@ -3,13 +3,13 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {createRequire} from 'node:module';
-import {pathToFileURL} from 'node:url';
 const require=createRequire(path.join(process.env.QUALITY_NODE_MODULES,'package.json'));
 const {chromium}=require('playwright');
 const browser=await chromium.launch({executablePath:process.env.QUALITY_BROWSER,headless:true});
 const output=path.join(os.tmpdir(),'nozom-quality-browser');
 await fs.mkdir(output,{recursive:true});
 const errors=[];
+let audioRequests=0;
 const supervisor={id:'sup-notification',name:'مشرف الاختبار',team_id:'team-a',role:'مشرف',is_active:true};
 const employee={id:'employee-b',name:'موظف الاختبار',team_id:'team-a',role:'موظف',is_active:true};
 const teams=[{id:'team-a',name:'advanced team-6',is_active:true}];
@@ -21,6 +21,21 @@ const token='notification-test-token';
 const delivery={supervisors:[{employee_id:supervisor.id,name:supervisor.name,team_id:supervisor.team_id,token}],contacts:[{team_id:'team-a',phone:'201000000000'}]};
 async function setup(page,url){
   page.on('pageerror',e=>errors.push(e.message));
+  await page.route('http://quality.test/**',async route=>{
+    const filename=decodeURIComponent(new URL(route.request().url()).pathname).slice(1);
+    assert.ok(!filename.includes('..'),'unsafe fixture path');
+    if(filename==='assets/quality-notification.mp3')audioRequests++;
+    await route.fulfill({path:path.resolve(filename)});
+  });
+  await page.addInitScript(()=>{
+    window.audioStarts=[];window.audioStops=0;
+    const start=AudioBufferSourceNode.prototype.start,stop=AudioBufferSourceNode.prototype.stop;
+    AudioBufferSourceNode.prototype.start=function(...args){
+      window.audioStarts.push({duration:this.buffer.duration,audible:this.buffer.getChannelData(0).some(value=>Math.abs(value)>0.001)});
+      return start.apply(this,args);
+    };
+    AudioBufferSourceNode.prototype.stop=function(...args){window.audioStops++;return stop.apply(this,args);};
+  });
   await page.route('**/rest/v1/rpc/**',async route=>{
     const method=route.request().url().split('/').at(-1);
     const args=route.request().postDataJSON();
@@ -56,7 +71,7 @@ async function setup(page,url){
   await page.goto(url);
 }
 function employeeUrl(id,withToken=true){
-  const url=pathToFileURL(path.resolve('employee.html'));
+  const url=new URL('http://quality.test/employee.html');
   url.search=new URLSearchParams({empId:id,teamId:'team-a'}).toString();
   if(withToken)url.hash=new URLSearchParams({qualityToken:token}).toString();
   return url.href;
@@ -68,9 +83,13 @@ try{
   await page.locator('[data-unread-count]').getByText('1',{exact:true}).waitFor();
   assert.equal(review.seen_revision,0,'banner marked review read');
   await page.getByRole('button',{name:'تشغيل صوت التنبيهات'}).click();
+  await page.waitForFunction(()=>audioStarts.length===1);
+  assert.equal(audioRequests,1,'custom audio was not fetched');
+  assert.ok(await page.evaluate(()=>audioStarts[0].duration>0 && audioStarts[0].audible),'custom MP3 did not decode to audible audio');
   assert.equal(await page.evaluate(()=>localStorage.getItem('qa_notification_sound')),'true');
   await page.getByRole('button',{name:'كتم صوت التنبيهات'}).click();
   assert.equal(await page.evaluate(()=>localStorage.getItem('qa_notification_sound')),'false');
+  assert.equal(await page.evaluate(()=>audioStops),1,'mute did not stop the active audio');
   await page.getByRole('button',{name:'عرض المراجعة',exact:true}).click();
   await page.locator('#employee-quality .qa-finding').waitFor();
   await page.locator('[data-unread-count]').getByText('0',{exact:true}).waitFor();
@@ -85,13 +104,25 @@ try{
   review.items[0].details='تفاصيل جديدة للمراجعة';review.items[0].status='open';
   await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
   await page.locator('[data-unread-count]').getByText('1',{exact:true}).waitFor();
+  assert.equal(await page.evaluate(()=>audioStarts.length),1,'muted update played audio');
+  await page.getByRole('button',{name:'تشغيل صوت التنبيهات'}).click();
+  await page.waitForFunction(()=>audioStarts.length===2);
+  const refreshed=page.waitForResponse(response=>response.url().endsWith('/quality_api') && response.request().postDataJSON().p_action==='notifications');
+  await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+  await refreshed;
+  assert.equal(await page.evaluate(()=>audioStarts.length),2,'unchanged review replayed audio');
+  review.notification_revision=3;
+  await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+  await page.waitForFunction(()=>audioStarts.length===3);
+  assert.equal(audioRequests,1,'audio should be cached after decoding');
+  await page.getByRole('button',{name:'كتم صوت التنبيهات'}).click();
   await page.setViewportSize({width:390,height:844});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   await page.locator('#employee-quality').screenshot({path:path.join(output,'personal-quality-mobile-alert.png')});
   await page.getByRole('button',{name:'عرض المراجعة',exact:true}).click();
   await page.getByText('تفاصيل جديدة للمراجعة',{exact:true}).waitFor();
   await page.locator('[data-unread-count]').getByText('0',{exact:true}).waitFor();
-  assert.equal(review.seen_revision,2);
+  assert.equal(review.seen_revision,3);
   await page.locator('#employee-quality').screenshot({path:path.join(output,'personal-quality-mobile-read.png')});
   const normal=await context.newPage();
   await setup(normal,employeeUrl(employee.id,false));
@@ -103,15 +134,15 @@ try{
   await oldLink.getByRole('button',{name:'تفعيل',exact:true}).click();
   await oldLink.locator('[data-unread-count]').waitFor();
   assert.ok(oldLink.url().includes('qualityToken='));
-  review.notification_revision=3;
+  review.notification_revision=4;
   const direct=await context.newPage();
   await setup(direct,`${employeeUrl(supervisor.id)}&qualityReview=${review.id}`);
   await direct.locator('#employee-quality .qa-finding').waitFor();
   await direct.locator('[data-unread-count]').getByText('0',{exact:true}).waitFor();
-  assert.equal(review.seen_revision,3,'direct review link did not mark viewed revision');
+  assert.equal(review.seen_revision,4,'direct review link did not mark viewed revision');
   assert.equal(review.items[0].status,'open','deep link processed finding');
   const reviewer=await context.newPage();
-  await setup(reviewer,pathToFileURL(path.resolve('quality.html')).href);
+  await setup(reviewer,'http://quality.test/quality.html');
   await reviewer.locator('#qa-password').fill('reviewer-password');
   await reviewer.getByRole('button',{name:'دخول',exact:true}).click();
   await reviewer.getByRole('button',{name:review.title,exact:true}).click();
@@ -120,5 +151,5 @@ try{
   assert.equal(wa.pathname,'/201000000000');
   const text=wa.searchParams.get('text');assert.ok(text.includes('qualityToken='));assert.ok(text.includes('qualityReview='));
   assert.deepEqual(errors,[]);
-  console.log('Notification browser checks passed: personal link, bell, read sync, sound, replies, updated review, employee isolation, old-link activation, WhatsApp.');
+  console.log('Notification browser checks passed: custom MP3 decoding, playback, mute, cached audio, no duplicate alerts, personal link, bell, read sync, replies, employee isolation, old-link activation, WhatsApp.');
 }finally{await browser.close();}
