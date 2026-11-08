@@ -105,9 +105,10 @@
         ${option('','كل التيمات',teamFilter)}${data.teams.map(t=>option(t.id,t.name,teamFilter)).join('')}</select></div>
         <div><label for="qa-filter-status">المراجعات</label><select id="qa-filter-status" data-filter="status">
         ${option('','الكل',statusFilter)}${option('sent','مرسلة',statusFilter)}${writer()?option('draft','مسودات',statusFilter):''}</select></div></div>
-        ${visible.length?`<div class="qa-scroll"><table class="qa-list"><thead><tr><th>المراجعة</th><th>التيم</th><th>التاريخ</th><th>الحالة</th><th>المغلق / الإجمالي</th></tr></thead><tbody>
+        ${visible.length?`<div class="qa-scroll"><table class="qa-list"><thead><tr><th>المراجعة</th><th>التيم</th><th>التاريخ</th><th>الحالة</th><th>المغلق / الإجمالي</th>${writer()?'<th class="qa-row-actions">حذف</th>':''}</tr></thead><tbody>
         ${visible.map(r=>`<tr><td><button data-action="open" data-id="${r.id}">${escape(r.title)}</button></td><td>${escape(teamName(r.team_id))}</td><td>${date(r.created_at)}</td>
-        <td>${r.status==='draft'?badge('draft'):`مرسلة ${readStatus(r)}`}</td><td>${r.closed} / ${r.total}</td></tr>`).join('')}</tbody></table></div>`:'<div class="qa-empty">لا توجد مراجعات</div>'}`);
+        <td>${r.status==='draft'?badge('draft'):`مرسلة ${readStatus(r)}`}</td><td>${r.closed} / ${r.total}</td>
+        ${writer()?`<td class="qa-row-actions"><button class="qa-danger qa-icon" data-action="delete-review" data-id="${r.id}" title="حذف المراجعة" aria-label="حذف المراجعة">${icon('trash-2')}</button></td>`:''}</tr>`).join('')}</tbody></table></div>`:'<div class="qa-empty">لا توجد مراجعات</div>'}`);
     }
     function createForm() {
       frame(`<div class="qa-toolbar"><button data-action="back">${icon('arrow-right')}رجوع</button><h2>مراجعة جديدة</h2></div>
@@ -157,7 +158,7 @@
       const groups=new Map();
       review.items.forEach(item=>{if(!groups.has(item.client_name))groups.set(item.client_name,[]);groups.get(item.client_name).push(item);});
       frame(`<div class="qa-toolbar"><button data-action="back">${icon('arrow-right')}رجوع</button><h2>${escape(review.title)}</h2>
-        ${writer()?`<button data-action="edit-review">${icon('pencil')}تعديل المراجعة</button><button data-action="append-finding">${icon('plus')}إضافة ملاحظة</button>${whatsapp()}`:''}
+        ${writer()?`<button data-action="edit-review">${icon('pencil')}تعديل المراجعة</button><button data-action="append-finding">${icon('plus')}إضافة ملاحظة</button>${whatsapp()}<button class="qa-danger qa-icon" data-action="delete-review" data-id="${review.id}" title="حذف المراجعة" aria-label="حذف المراجعة">${icon('trash-2')}</button>`:''}
         <button data-action="export">${icon('download')}Excel</button><button data-action="reload" title="تحديث">${icon('refresh-cw')}</button></div>
         <div class="qa-meta"><span>${escape(teamName(review.team_id))}</span><span>${date(review.created_at)}</span>
         <span>${review.items.filter(i=>i.status==='closed').length} / ${review.items.length} مغلقة</span>${readStatus(review)}</div>
@@ -240,6 +241,10 @@
       else if(action==='open' || action==='reload'){work(()=>open(button.dataset.id || review.id));}
       else if(action==='delete'){
         if(global.confirm('حذف هذه المسودة؟'))work(async()=>{await call('delete',{review_id:review.id,updated_at:review.updated_at});dirty=false;await fetchList();list();});
+      }else if(action==='delete-review'){
+        const target=review?.id===button.dataset.id?review:data.reviews.find(r=>r.id===button.dataset.id);
+        if(!global.confirm(`هل تريد حذف المراجعة «${target.title}» نهائيًا؟\nسيتم حذف جميع الملاحظات وردود المشرف داخلها، ولن يمكن التراجع عن الحذف.`))return;
+        work(async()=>{await call('delete_review',{review_id:target.id,updated_at:target.updated_at});dirty=false;await fetchList();list();});
       }else if(action==='delete-finding'){
         const item=review.items.find(i=>i.id===button.dataset.id);
         if(!global.confirm(`هل تريد حذف الملاحظة «${item.observation}» للعميل «${item.client_name}» نهائيًا؟\nسيتم حذف رد المشرف عليها أيضًا، ولن يمكن التراجع عن الحذف.`))return;

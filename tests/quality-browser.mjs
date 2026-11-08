@@ -19,6 +19,7 @@ const delivery={supervisors:[{employee_id:'sup-a',team_id:'team-a',name:'مشر�
 let review;
 let revision=0;
 let deletionCalls=0;
+let reviewDeletionCalls=0;
 function stamp(){return new Date(Date.UTC(2026,10,8,12,0,revision++)).toISOString();}
 const reviewId='10000000-0000-4000-8000-000000000001';
 const errors=[];
@@ -65,6 +66,12 @@ async function setup(page, file='quality.html') {
         review.items=review.items.filter(i=>i.id!==item.id);
         review.updated_at=stamp();deletionCalls++;
         fixture.reviews=[{...review,total:review.items.length,closed:review.items.filter(i=>i.status==='closed').length}];break;
+      }
+      case 'delete_review':{
+        assert.equal(request.p_role,'quality');assert.equal(payload.review_id,review.id);
+        assert.equal(payload.updated_at,review.updated_at);
+        fixture.reviews=fixture.reviews.filter(r=>r.id!==payload.review_id);
+        reviewDeletionCalls++;break;
       }
       case 'edit_review':{
         assert.equal(request.p_role,'quality');
@@ -146,6 +153,7 @@ try {
   assert.equal(await supervisor.getByRole('button',{name:'مراجعة جديدة'}).count(),0);
   assert.equal(await supervisor.getByRole('button',{name:'حذف الملاحظة',exact:true}).count(),0,'supervisor can delete');
   assert.equal(await supervisor.getByRole('button',{name:'تعديل المراجعة',exact:true}).count(),0,'supervisor can edit review');
+  assert.equal(await supervisor.getByRole('button',{name:'حذف المراجعة',exact:true}).count(),0,'supervisor can delete review');
   await supervisor.locator('form[data-reply]').first().locator('textarea').fill('تمت مطابقة الحساب وإرفاق التسوية على الدرايف.');
   await supervisor.locator('form[data-reply]').first().getByRole('button',{name:'تمت المعالجة',exact:true}).click();
   await supervisor.locator('.qa-badge[data-status=resolved]').waitFor();
@@ -233,6 +241,23 @@ try {
   await page.getByRole('button',{name:'حذف الملاحظة',exact:true}).click();
   await page.getByText('لا توجد ملاحظات في هذه المراجعة',{exact:true}).waitFor();
   assert.equal(deletionCalls,2);
+  fixture.reviews.push({...review,id:'10000000-0000-4000-8000-000000000099',title:'مراجعة محفوظة',total:0,closed:0});
+  await page.getByRole('button',{name:'رجوع',exact:true}).click();
+  const deleteReview=page.locator(`[data-action=delete-review][data-id="${reviewId}"]`);
+  await deleteReview.waitFor();
+  page.once('dialog',dialog=>{assert.ok(dialog.message().includes('جميع الملاحظات'));dialog.dismiss();});
+  await deleteReview.click();
+  assert.equal(reviewDeletionCalls,0);
+  assert.equal(fixture.reviews.length,2);
+  page.once('dialog',dialog=>dialog.accept());
+  await deleteReview.click();
+  await page.waitForFunction(id=>!document.querySelector(`[data-action=delete-review][data-id="${id}"]`),reviewId);
+  assert.equal(reviewDeletionCalls,1);
+  await page.getByRole('button',{name:'مراجعة محفوظة',exact:true}).waitFor();
+  const deleteBox=await page.getByRole('button',{name:'حذف المراجعة',exact:true}).boundingBox();
+  assert.ok(deleteBox.x>=0 && deleteBox.x+deleteBox.width<=390,'mobile review delete is offscreen');
+  await noOverflow(page);
+  await page.screenshot({path:path.join(output,'delete-review-list-mobile.png'),fullPage:true});
   assert.deepEqual(errors,[]);
   console.log('Browser workflow passed: draft, publish, reply, closure, Excel, mobile layout, editing, append, cancel, delete confirmation.');
   console.log(`Screenshots: ${output}`);

@@ -42,6 +42,7 @@
 .qa-list{width:100%;border-collapse:collapse}
 .qa-list th,.qa-list td{text-align:right;padding:13px 10px;border-bottom:1px solid var(--qa-line);overflow-wrap:anywhere;font-size:13px}
 .qa-list th{color:var(--qa-muted);font-weight:500}
+.qa-list .qa-row-actions{position:sticky;left:0;z-index:1;background:#1b1a18;width:58px;min-width:58px;text-align:center}
 .qa-scroll{overflow-x:auto}
 .qa-list button{text-align:right}
 .qa-badge{display:inline-block;font-size:12px;padding:3px 8px;border-radius:4px;background:#31302e;color:#ddd7cf;white-space:nowrap}
