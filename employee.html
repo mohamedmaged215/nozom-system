@@ -3,6 +3,11 @@
 <head>
   <script src="guard.js"></script>
   <script src="task-catalog.js"></script>
+  <link rel="stylesheet" href="quality.css">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script src="quality.js"></script>
+  <script src="quality-notifications.js"></script>
+  <script src="quality-employee.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>تقرير المهام — نظم وحلول</title>
@@ -495,6 +500,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.6;}
 </header>
 
 <div class="main" id="main-content" style="display:none">
+  <section id="employee-quality" hidden></section>
 
   <div class="period-banner" id="period-banner">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -1196,6 +1202,7 @@ async function onTeamSwitch() {
     completedRecTasksMap = {};
 
     // إخفاء أو إظهار لوحة المشرف والعادي
+    EmployeeQuality.start({id:EMP_ID,name:EMP_NAME,team_id:TEAM_ID,role},rpc);
     if (role === 'مشرف') {
       // إخفاء مكونات تقرير الموظف ذو الوقت
       const statsRow = document.querySelector('.stats-row');

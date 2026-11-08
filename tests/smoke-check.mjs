@@ -87,6 +87,8 @@ check(admin.includes('اسم المهمة (إجباري)'), 'custom admin tasks 
 try {
   new vm.Script(fs.readFileSync('guard.js', 'utf8'), { filename: 'guard.js' });
   new vm.Script(fs.readFileSync('quality.js', 'utf8'), { filename: 'quality.js' });
+  new vm.Script(fs.readFileSync('quality-notifications.js', 'utf8'), { filename: 'quality-notifications.js' });
+  new vm.Script(fs.readFileSync('quality-employee.js', 'utf8'), { filename: 'quality-employee.js' });
 } catch (error) {
   failed = true;
   console.error(error.stack);

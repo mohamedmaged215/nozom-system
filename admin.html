@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="quality.css">
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   <script src="quality.js"></script>
+  <script src="quality-notifications.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة الإدارة — نظم وحلول</title>
@@ -1331,6 +1332,7 @@ tr.row-has-note td:first-child {
   </header>
 
   <div class="content">
+    <div id="admin-quality-alerts" hidden></div>
 
     <!-- ═══════════════════════════════════════════════
          DASHBOARD
@@ -2903,6 +2905,13 @@ function auth() {
 }
 
 let qualityPanel = null;
+let qualityNotifier = null;
+let qualitySupervisorLinks = [];
+async function openQualityNotification(id) {
+  switchPanel('quality');
+  await qualityPanel?.ready;
+  if (id) await qualityPanel?.openReview(id);
+}
 async function saveQualityPassword(event) {
   event.preventDefault();
   if (STATE.role !== 'admin') return;
@@ -3318,6 +3327,10 @@ function enterDashboard(role, teamId, teamName, password) {
   STATE.teamId = teamId;
   STATE.teamName = teamName;
   STATE.password = password;
+  const qualityAlerts = document.getElementById('admin-quality-alerts');
+  qualityNotifier?.destroy();
+  qualityAlerts.hidden = role !== 'supervisor';
+  if (role === 'supervisor') qualityNotifier = QualityNotifications.mount(qualityAlerts, { rpc, credentials: auth, onOpen: openQualityNotification, identity: teamId });
   document.getElementById('quality-access-settings').style.display = role === 'admin' ? 'block' : 'none';
   window.lucide?.createIcons();
 
@@ -5005,7 +5018,8 @@ function renderLinks() {
   if (supervisors.length > 0) {
     html += `<div style="grid-column: 1 / -1; padding: 8px 14px; background: rgba(251,191,36,0.06); border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 700; color: var(--warning); border-radius: 6px; margin-bottom: 6px; margin-top: 10px;">👑 روابط المشرفين (${supervisors.length})</div>`;
     html += supervisors.map(e => {
-      const url = `${base}?empId=${encodeURIComponent(e.id)}&name=${encodeURIComponent(e['الاسم'])}&teamId=${encodeURIComponent(e.team_id)}&role=${encodeURIComponent(e['الدور'] || 'موظف')}`;
+      const qualityLink = qualitySupervisorLinks.find(s => s.employee_id === e.id);
+      const url = qualityLink ? QualityReviews.supervisorUrl(qualityLink) : `${base}?empId=${encodeURIComponent(e.id)}&name=${encodeURIComponent(e['الاسم'])}&teamId=${encodeURIComponent(e.team_id)}&role=${encodeURIComponent(e['الدور'] || 'موظف')}`;
       const roleColor = 'var(--warning)';
       return `<div class="link-card">
         <div class="link-emp">${escapeHtml(e['الاسم'])}</div>
@@ -5631,7 +5645,7 @@ tr:nth-child(even) td{background:#fafafa;}
 
 async function refreshData() {
   try {
-    const [teams, employees, clients, tasks, visits, recTasks, taskTypes, workPlanItems] = await Promise.all([
+    const [teams, employees, clients, tasks, visits, recTasks, taskTypes, workPlanItems, qualityLinks] = await Promise.all([
       rpc('get_teams',          { ...auth() }),
       rpc('get_employees',      { ...auth() }),
       rpc('get_clients',        { ...auth() }),
@@ -5639,7 +5653,11 @@ async function refreshData() {
       rpc('get_visits',         { ...auth() }),
       rpc('get_recurring_tasks',{ ...auth() }),
       rpc('get_task_types',     { ...auth() }),
-      rpc('get_work_plan_items',{ ...auth() })
+      rpc('get_work_plan_items',{ ...auth() }),
+      rpc('quality_api', { ...auth(), p_action: 'portal_links', p_payload: {} }).catch(error => {
+        console.warn('تعذر تحديث روابط الجودة', error.message);
+        return { supervisors: [] };
+      })
     ]);
 
     STATE.teams          = (teams || []).map(mapTeam);
@@ -5651,6 +5669,7 @@ async function refreshData() {
     STATE.visits         = (visits || []).map(mapVisit);
     STATE.recurringTasks = (recTasks || []).map(mapRecurringTask);
     WORK_PLAN_ITEMS      = (workPlanItems || []).map(w => w.name || w);
+    qualitySupervisorLinks = qualityLinks.supervisors || [];
     
     STATE.visits.forEach(v => {
       if (!v['الحالة'] && v['ملاحظات'] && v['ملاحظات'].includes('ما تم إنجازه في الزيارة:')) {

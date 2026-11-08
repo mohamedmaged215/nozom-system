@@ -15,6 +15,7 @@ const fixture = {
   clients:[{id:'client-a',name:'شركة الاختبار',team_id:'team-a'}],
   reviews:[]
 };
+const delivery={supervisors:[{employee_id:'sup-a',team_id:'team-a',name:'مشرف الاختبار',token:'test-portal-token'}],contacts:[{team_id:'team-a',phone:'966500000000'}]};
 let review;
 let revision=0;
 let deletionCalls=0;
@@ -38,6 +39,9 @@ async function setup(page, file='quality.html') {
     let result={};
     switch(request.p_action){
       case 'list': result=fixture;break;
+      case 'delivery':result=delivery;break;
+      case 'mark_seen':review.seen_revision=payload.revision;break;
+      case 'save_contact':delivery.contacts=[{team_id:payload.team_id,phone:payload.phone}];break;
       case 'create':
         review={id:reviewId,team_id:payload.team_id,title:payload.title || 'مراجعة جودة',created_at:stamp(),updated_at:stamp(),status:'draft',items:[]};
         fixture.reviews=[{...review,total:0,closed:0}];result={id:review.id};break;
@@ -45,7 +49,7 @@ async function setup(page, file='quality.html') {
       case 'save':
       case 'publish':
         assert.equal(payload.updated_at,review.updated_at);
-        review={...review,title:payload.title,status:request.p_action==='publish'?'sent':'draft',updated_at:stamp(),
+        review={...review,title:payload.title,status:request.p_action==='publish'?'sent':'draft',notification_revision:request.p_action==='publish'?1:0,updated_at:stamp(),
           items:payload.items.map((item,i)=>({...item,id:`20000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`,client_name:'شركة الاختبار',status:'open',reply:'',updated_at:stamp()}))};
         fixture.reviews=[{...review,total:review.items.length,closed:0}];break;
       case 'respond':{
@@ -71,7 +75,7 @@ async function setup(page, file='quality.html') {
           return {...previous,...row,id:row.id || `30000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`,client_name:'شركة الاختبار',
             status:!previous || changed?'open':previous.status,reply:previous?.reply || '',updated_at:stamp()};
         });
-        review.title=payload.title;review.updated_at=stamp();
+        review.title=payload.title;review.updated_at=stamp();review.notification_revision++;
         fixture.reviews=[{...review,total:review.items.length,closed:review.items.filter(i=>i.status==='closed').length}];break;
       }
       case 'close':
@@ -126,6 +130,9 @@ try {
   await page.getByRole('button',{name:'إرسال للمشرف'}).click();
   await page.locator('.qa-finding').first().waitFor();
   assert.equal(review.status,'sent');
+  const whatsapp=new URL(await page.getByRole('link',{name:'تنبيه عبر واتساب'}).getAttribute('href'));
+  assert.equal(whatsapp.hostname,'wa.me');
+  assert.ok(whatsapp.searchParams.get('text').includes('qualityReview='));
   assert.equal(await page.locator('form[data-reply]').count(),0,'reviewer can respond');
 
   const supervisor=await context.newPage();
