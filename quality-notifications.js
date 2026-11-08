@@ -5,10 +5,10 @@
   const escape=value=>String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function mount(root,{rpc,credentials,onOpen,identity}){
     let disposed=false,fetching=false,pending=false;
-    let sound=false,audio=null,bufferPromise=null,source=null,playback=0;
+    let sound=true,audio=null,bufferPromise=null,source=null,playback=0;
     let known={};
-    const key=`qa_notifications_${identity}`;
-    try{sound=localStorage.getItem('qa_notification_sound')==='true';known=JSON.parse(sessionStorage.getItem(key)||'{}');}catch{}
+    const key=`qa_notification_audio_${identity}`;
+    try{known=JSON.parse(sessionStorage.getItem(key)||'{}') || {};}catch{}
     let latest={unread_count:0,reviews:[]};
     root.classList.add('qa-root','qa-notifier');
     function render(message=''){
@@ -20,20 +20,27 @@
         ${first?`<div class="qa-incoming" role="status"><span>وصلتك مراجعة جودة: <strong>${escape(first.title)}</strong></span><button data-review="${escape(first.id)}">${icon('arrow-up-left')}عرض المراجعة</button></div>`:''}`;
       global.lucide?.createIcons({root});
     }
-    async function unlock(){
+    function unplayed(){
+      return latest.reviews.filter(r=>r.unread && Number(r.revision)>Number(known[r.id]||0));
+    }
+    function unlock(preview=false){
       if(!sound || disposed)return;
       try{
         const Audio=global.AudioContext || global.webkitAudioContext;
-        if(!audio && Audio)audio=new Audio();
-        if(audio?.state==='suspended')await audio.resume();
+        if(!audio && Audio){
+          audio=new Audio();
+          audio.onstatechange=()=>{if(audio.state==='running')chime();};
+        }
+        if(audio?.state==='running')chime(preview);
+        else if(audio?.state==='suspended')audio.resume().then(()=>chime(preview)).catch(()=>{});
       }catch{}
     }
     function stopSound(){
       playback++;
       if(source){source.stop();source.disconnect();source=null;}
     }
-    async function chime(){
-      if(!sound || audio?.state!=='running')return;
+    async function chime(preview=false){
+      if(disposed || !sound || audio?.state!=='running' || (!preview && !unplayed().length))return;
       stopSound();
       const request=playback;
       try{
@@ -44,10 +51,15 @@
         }).then(bytes=>audio.decodeAudioData(bytes)).catch(error=>{bufferPromise=null;throw error;});
         const buffer=await bufferPromise;
         if(disposed || !sound || request!==playback || audio.state!=='running')return;
+        const notified=unplayed();
+        if(!preview && !notified.length)return;
         const current=audio.createBufferSource();
         current.buffer=buffer;current.connect(audio.destination);source=current;
         current.onended=()=>{current.disconnect();if(source===current)source=null;};
         current.start();
+        // A blocked or cancelled attempt must remain pending for the next gesture.
+        notified.forEach(r=>{known[r.id]=r.revision;});
+        try{sessionStorage.setItem(key,JSON.stringify(known));}catch{}
       }catch{if(!disposed && sound && request===playback)render('تعذر تشغيل صوت التنبيه؛ جرّب تشغيله مرة أخرى');}
     }
     async function refresh(){
@@ -57,32 +69,32 @@
       try{
         const result=await rpc('quality_api',{...credentials(),p_action:'notifications',p_payload:{}});
         if(disposed)return;
-        const fresh=result.reviews.some(r=>r.unread && Number(r.revision)>Number(known[r.id]||0));
         latest=result;
-        latest.reviews.forEach(r=>{known[r.id]=r.revision;});
-        try{sessionStorage.setItem(key,JSON.stringify(known));}catch{}
-        render();if(fresh)chime();
+        render();if(unplayed().length)unlock();
       }catch{if(!disposed)render('تعذر تحديث التنبيهات؛ أعد المحاولة من الجرس');}
       finally{fetching=false;if(pending){pending=false;refresh();}}
     }
-    root.addEventListener('click',async event=>{
+    function click(event){
       const button=event.target.closest('button');if(!button)return;
       if(button.hasAttribute('data-sound')){
         sound=!sound;
         if(!sound)stopSound();
-        try{localStorage.setItem('qa_notification_sound',String(sound));}catch{}
-        await unlock();if(sound)chime();render();
+        render();if(sound)unlock(true);
       }else if(button.hasAttribute('data-review')){onOpen(button.dataset.review);}
       else if(button.hasAttribute('data-open')){refresh();onOpen();}
-    });
+    }
+    root.addEventListener('click',click);
     const visible=()=>{if(!document.hidden)refresh();};
+    const interact=event=>{if(!event.target.closest?.('[data-sound]'))unlock();};
     document.addEventListener('visibilitychange',visible);
-    document.addEventListener('pointerdown',unlock);
+    document.addEventListener('click',interact);
+    document.addEventListener('keydown',interact);
     global.addEventListener('quality:seen',refresh);
     const interval=global.setInterval(refresh,30000);
     render('جاري التحقق من المراجعات...');
+    unlock();
     refresh();
-    return {refresh,destroy(){disposed=true;stopSound();global.clearInterval(interval);global.removeEventListener('quality:seen',refresh);document.removeEventListener('visibilitychange',visible);document.removeEventListener('pointerdown',unlock);audio?.close().catch(()=>{});root.replaceChildren();}};
+    return {refresh,destroy(){disposed=true;stopSound();root.removeEventListener('click',click);global.clearInterval(interval);global.removeEventListener('quality:seen',refresh);document.removeEventListener('visibilitychange',visible);document.removeEventListener('click',interact);document.removeEventListener('keydown',interact);if(audio){audio.onstatechange=null;audio.close().catch(()=>{});}root.replaceChildren();}};
   }
   global.QualityNotifications={mount};
 })(window);
